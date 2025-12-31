@@ -66,6 +66,11 @@
       "enabled": true
     },
     {
+      "name": "mcp",
+      "definition_cid": "reference_templates/servers/definitions/mcp.py",
+      "enabled": true
+    },
+    {
       "name": "jsonplaceholder",
       "definition_cid": "reference_templates/servers/definitions/jsonplaceholder.py",
       "enabled": true
@@ -674,6 +679,151 @@
       "name": "zip",
       "definition_cid": "reference_templates/servers/definitions/zip.sh",
       "enabled": true
+    },
+    {
+      "name": "hubspot",
+      "definition_cid": "reference_templates/servers/definitions/hubspot.py",
+      "enabled": true
+    },
+    {
+      "name": "mailchimp",
+      "definition_cid": "reference_templates/servers/definitions/mailchimp.py",
+      "enabled": true
+    },
+    {
+      "name": "zoom",
+      "definition_cid": "reference_templates/servers/definitions/zoom.py",
+      "enabled": true
+    },
+    {
+      "name": "gmail",
+      "definition_cid": "reference_templates/servers/definitions/gmail.py",
+      "enabled": true
+    },
+    {
+      "name": "google_drive",
+      "definition_cid": "reference_templates/servers/definitions/google_drive.py",
+      "enabled": true
+    },
+    {
+      "name": "google_calendar",
+      "definition_cid": "reference_templates/servers/definitions/google_calendar.py",
+      "enabled": true
+    },
+    {
+      "name": "youtube",
+      "definition_cid": "reference_templates/servers/definitions/youtube.py",
+      "enabled": true
+    },
+    {
+      "name": "google_contacts",
+      "definition_cid": "reference_templates/servers/definitions/google_contacts.py",
+      "enabled": true
+    },
+    {
+      "name": "google_docs",
+      "definition_cid": "reference_templates/servers/definitions/google_docs.py",
+      "enabled": true
+    },
+    {
+      "name": "google_forms",
+      "definition_cid": "reference_templates/servers/definitions/google_forms.py",
+      "enabled": true
+    },
+    {
+      "name": "google_analytics",
+      "definition_cid": "reference_templates/servers/definitions/google_analytics.py",
+      "enabled": true
+    },
+    {
+      "name": "google_ads",
+      "definition_cid": "reference_templates/servers/definitions/google_ads.py",
+      "enabled": true
+    },
+    {
+      "name": "microsoft_outlook",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_outlook.py",
+      "enabled": true
+    },
+    {
+      "name": "microsoft_teams",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_teams.py",
+      "enabled": true
+    },
+    {
+      "name": "onedrive",
+      "definition_cid": "reference_templates/servers/definitions/onedrive.py",
+      "enabled": true
+    },
+    {
+      "name": "microsoft_excel",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_excel.py",
+      "enabled": true
+    },
+    {
+      "name": "dynamics365",
+      "definition_cid": "reference_templates/servers/definitions/dynamics365.py",
+      "enabled": true
+    },
+    {
+      "name": "trello",
+      "definition_cid": "reference_templates/servers/definitions/trello.py",
+      "enabled": true
+    },
+    {
+      "name": "monday",
+      "definition_cid": "reference_templates/servers/definitions/monday.py",
+      "enabled": true
+    },
+    {
+      "name": "clickup",
+      "definition_cid": "reference_templates/servers/definitions/clickup.py",
+      "enabled": true
+    },
+    {
+      "name": "jira",
+      "definition_cid": "reference_templates/servers/definitions/jira.py",
+      "enabled": true
+    },
+    {
+      "name": "confluence",
+      "definition_cid": "reference_templates/servers/definitions/confluence.py",
+      "enabled": true
+    },
+    {
+      "name": "basecamp",
+      "definition_cid": "reference_templates/servers/definitions/basecamp.py",
+      "enabled": true
+    },
+    {
+      "name": "smartsheet",
+      "definition_cid": "reference_templates/servers/definitions/smartsheet.py",
+      "enabled": true
+    },
+    {
+      "name": "todoist",
+      "definition_cid": "reference_templates/servers/definitions/todoist.py",
+      "enabled": true
+    },
+    {
+      "name": "discord",
+      "definition_cid": "reference_templates/servers/definitions/discord.py",
+      "enabled": true
+    },
+    {
+      "name": "twilio",
+      "definition_cid": "reference_templates/servers/definitions/twilio.py",
+      "enabled": true
+    },
+    {
+      "name": "whatsapp",
+      "definition_cid": "reference_templates/servers/definitions/whatsapp.py",
+      "enabled": true
+    },
+    {
+      "name": "telegram",
+      "definition_cid": "reference_templates/servers/definitions/telegram.py",
+      "enabled": true
     }
   ],
   "variables": [
@@ -690,6 +840,11 @@
     {
       "name": "gateways",
       "definition": "GENERATED:gateways.json",
+      "enabled": true
+    },
+    {
+      "name": "mcps",
+      "definition": "GENERATED:mcps.json",
       "enabled": true
     }
   ]

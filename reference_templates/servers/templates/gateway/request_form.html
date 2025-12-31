@@ -116,7 +116,7 @@
             <textarea id="transform_override" name="transform_override" class="code-editor" placeholder="def transform_request(request_details: dict, context: dict) -> dict:
     # Modify request_details and return transformed request
     return {
-        'url': '...',
+        'path': request_details.get('path', ''),
         'method': 'GET',
         'headers': {},
     }">{{ transform_override or default_transform }}</textarea>

@@ -1,10 +1,10 @@
 # ruff: noqa: F821, F706
 # pylint: disable=undefined-variable,return-outside-function
-"""Gateway server for routing requests to internal servers.
+"""Gateway server for proxying requests to external and internal APIs.
 
-This server provides a unified interface for accessing internal servers with
-customizable request and response transformations. All server-specific
-configuration comes from the 'gateways' variable.
+This server provides a unified interface for accessing APIs with customizable
+request and response transformations. All server-specific configuration comes
+from the 'gateways' variable.
 
 Routes:
     /gateway - Instruction page
@@ -23,6 +23,7 @@ from html import escape
 from pathlib import Path
 from urllib.parse import urljoin
 
+import requests
 from flask import current_app, request as flask_request
 from jinja2 import Template
 
@@ -399,12 +400,49 @@ def _handle_meta_page(server_name, gateways, context):
     # Generate test paths based on server type
     test_paths = _get_test_paths(server_name)
 
+    resolved_target = _resolve_target(config, server_name, {})
+
+    probe = {
+        "attempted": False,
+        "sample_path": None,
+        "resolved_target": resolved_target,
+        "request_details": None,
+        "response": None,
+        "error": None,
+        "error_detail": None,
+    }
+
+    sample_path = ""
+    if test_paths:
+        sample_path = test_paths[0]
+    probe_request_details = _build_probe_request_details(sample_path)
+    probe["sample_path"] = sample_path
+    probe["request_details"] = _safe_preview_request_details(probe_request_details)
+    probe["attempted"] = True
+    try:
+        probe_target = _resolve_target(config, server_name, probe_request_details)
+        probe["resolved_target"] = probe_target
+        response = _execute_target_request(probe_target, probe_request_details)
+        probe["response"] = _preview_response(response)
+    except Exception as e:
+        probe["error"] = str(e)
+        probe["error_detail"] = _format_exception_detail(
+            e,
+            debug_context={
+                "gateway": server_name,
+                "probe_request_details": probe.get("request_details"),
+                "probe_resolved_target": probe.get("resolved_target"),
+            },
+        )
+
     html = template.render(
         server_name=server_name,
         config=config,
         server_exists=server_exists,
         server_definition_info=server_definition_info,
         server_definition_diagnostics_url=server_definition_diagnostics_url,
+        resolved_target=resolved_target,
+        probe=probe,
         request_cid_lookup=request_cid_lookup,
         response_cid_lookup=response_cid_lookup,
         request_cid_link_html=request_cid_link_html,
@@ -576,42 +614,77 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
     }
 
 
-def _execute_target_request(target, request_details):
-    """Execute a request to the target server.
+def _execute_target_request(target_url, request_details):
+    """Execute a request to the target server."""
+    if isinstance(target_url, dict):
+        if target_url.get("mode") == "internal":
+            return _execute_internal_target(target_url, request_details)
+        target_url = target_url.get("url")
 
-    The gateway server is internal-only: it always executes another internal
-    server and never performs outbound HTTP requests.
-    """
-    if isinstance(request_details, dict):
-        explicit_url = request_details.get("url")
-        if isinstance(explicit_url, str) and explicit_url and not explicit_url.startswith("/"):
-            raise ValueError("Gateway requests must not specify an external URL")
+    # Build the full URL
+    if target_url.startswith("/"):
+        # Internal server request
+        base_url = flask_request.host_url.rstrip("/")
+        url = urljoin(base_url, target_url)
+    else:
+        url = request_details.get("url", target_url)
 
-    if isinstance(target, dict):
-        mode = target.get("mode")
-        if mode != "internal":
-            raise ValueError(f"Unsupported target mode: {mode!r}")
-        return _execute_internal_target(target, request_details)
+    # Add path if not already in URL
+    if "url" not in request_details:
+        path = request_details.get("path", "")
+        if path:
+            url = urljoin(url.rstrip("/") + "/", path.lstrip("/"))
 
-    if isinstance(target, str):
-        if not target.startswith("/"):
-            raise ValueError("Gateway target must be an internal path")
-        return _execute_internal_target({"mode": "internal", "url": target}, request_details)
+    method = request_details.get("method", "GET")
+    headers = request_details.get("headers", {})
+    params = request_details.get("params")
+    json_body = request_details.get("json")
+    data = request_details.get("data")
 
-    raise TypeError(f"Unsupported target type: {type(target).__name__}")
+    # Filter headers
+    filtered_headers = {}
+    for key, value in headers.items():
+        if key.lower() not in (
+            "host",
+            "content-length",
+            "transfer-encoding",
+            "accept-encoding",
+        ):
+            filtered_headers[key] = value
+
+    return requests.request(
+        method,
+        url,
+        headers=filtered_headers,
+        params=params,
+        json=json_body if json_body else None,
+        data=data if data and not json_body else None,
+        timeout=30,
+        allow_redirects=True,
+    )
 
 
 def _resolve_target(config: dict, server_name: str, request_details: dict) -> dict:
     """Resolve the final gateway target.
 
-    The gateway server is internal-only and always targets an internal server.
+    Returns a dict with:
+      - mode: 'internal' | 'http'
+      - url: internal path starting with '/' or absolute URL
     """
+    configured_target = config.get("target_url")
     explicit_url = request_details.get("url")
+
     if isinstance(explicit_url, str) and explicit_url:
         if explicit_url.startswith("/"):
             return {"mode": "internal", "url": explicit_url}
-        raise ValueError("Gateway target must be an internal path")
+        return {"mode": "http", "url": explicit_url}
 
+    if isinstance(configured_target, str) and configured_target:
+        if configured_target.startswith("/"):
+            return {"mode": "internal", "url": configured_target}
+        return {"mode": "http", "url": configured_target}
+
+    # Default: treat gateway name as an internal server.
     return {"mode": "internal", "url": f"/{server_name}"}
 
 
@@ -1115,7 +1188,8 @@ def _execute_gateway_request(ctx, gateways, context):
         transformed = json.loads(ctx.get("preview", "{}"))
 
         server_name = ctx["selected_server"]
-        target_url = f"/{server_name}"
+        # Use /servers/{gateway_name} as target
+        target_url = f"/servers/{server_name}"
 
         # Execute the request
         response = _execute_target_request(target_url, transformed)
@@ -1210,7 +1284,7 @@ def _get_default_request_transform():
     method = request_details.get("method", "GET")
 
     return {
-        "path": path,
+        "url": f"https://example.com/{path}",
         "method": method,
         "headers": request_details.get("headers", {}),
         "json": request_details.get("json"),

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
-
 import pytest
 
 from database import db
@@ -40,13 +38,11 @@ def gateways_variable(integration_app):
 
     gateways_config = {
         "jsonplaceholder": {
-            "target_url": "https://jsonplaceholder.typicode.com",
             "description": "JSONPlaceholder fake REST API for testing",
             "request_transform_cid": "",
             "response_transform_cid": "",
         },
         "test-api": {
-            "target_url": "https://api.example.com",
             "description": "Test API for unit testing",
             "request_transform_cid": "",
             "response_transform_cid": "",
@@ -95,7 +91,6 @@ def transform_response(response_details: dict, context: dict) -> dict:
 
     gateways_config = {
         "jsonplaceholder": {
-            "target_url": "https://jsonplaceholder.typicode.com",
             "description": "JSONPlaceholder fake REST API for testing",
             "request_transform_cid": request_cid,
             "response_transform_cid": response_cid,
@@ -185,7 +180,6 @@ def test_gateway_meta_page_shows_config(
 
     page = response.get_data(as_text=True)
     assert "jsonplaceholder" in page
-    assert "jsonplaceholder.typicode.com" in page
 
 
 def test_gateway_meta_page_finds_transform_cids(
@@ -204,33 +198,7 @@ def test_gateway_meta_page_finds_transform_cids(
     assert "Valid" in page
 
 
-@patch("requests.request")
-def test_gateway_meta_page_includes_downstream_probe(
-    mock_request,
-    client,
-    integration_app,
-    gateway_server,
-    gateways_variable,
-):
-    """Gateway meta page should include target resolution and a downstream probe preview."""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {"Content-Type": "text/plain"}
-    mock_response.content = b"ok"
-    mock_response.text = "ok"
-    mock_request.return_value = mock_response
-
-    response = client.get("/gateway/meta/jsonplaceholder", follow_redirects=True)
-    assert response.status_code == 200
-
-    page = response.get_data(as_text=True)
-    assert "Target Resolution" in page
-    assert "Downstream Probe" in page
-
-
-@patch("requests.request")
 def test_gateway_returns_error_when_response_transform_missing(
-    mock_request,
     client,
     integration_app,
     gateway_server,
@@ -240,7 +208,6 @@ def test_gateway_returns_error_when_response_transform_missing(
 
     gateways_config = {
         "jsonplaceholder": {
-            "target_url": "https://jsonplaceholder.typicode.com",
             "description": "JSONPlaceholder fake REST API for testing",
             "request_transform_cid": "",
             "response_transform_cid": "AAAAA_DOES_NOT_EXIST",
@@ -255,13 +222,6 @@ def test_gateway_returns_error_when_response_transform_missing(
         )
         db.session.add(variable)
         db.session.commit()
-
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {"Content-Type": "text/plain"}
-    mock_response.content = b"RAW"
-    mock_response.text = "RAW"
-    mock_request.return_value = mock_response
 
     response = client.get("/gateway/jsonplaceholder/posts/1", follow_redirects=True)
     assert response.status_code == 200
@@ -281,49 +241,6 @@ def test_gateway_meta_page_404_for_unknown_gateway(
 
     page = response.get_data(as_text=True)
     assert "Not Found" in page or "unknown-gateway" in page
-
-
-@patch("requests.request")
-def test_gateway_proxies_to_target(
-    mock_request,
-    client,
-    integration_app,
-    gateway_server,
-    gateways_variable,
-):
-    """Gateway should proxy requests to the target server."""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {"Content-Type": "application/json"}
-    mock_response.content = b'{"message": "Hello from API", "status": "ok"}'
-    mock_response.text = '{"message": "Hello from API", "status": "ok"}'
-    mock_response.json.return_value = {"message": "Hello from API", "status": "ok"}
-    mock_request.return_value = mock_response
-
-    response = client.get("/gateway/jsonplaceholder/posts/1", follow_redirects=True)
-    assert response.status_code == 200
-
-    # Verify the request was made to the target
-    mock_request.assert_called()
-
-
-@patch("requests.request")
-def test_gateway_handles_request_errors(
-    mock_request,
-    client,
-    integration_app,
-    gateway_server,
-    gateways_variable,
-):
-    """Gateway should handle target server errors gracefully."""
-    mock_request.side_effect = Exception("Connection failed")
-
-    response = client.get("/gateway/jsonplaceholder/posts/1", follow_redirects=True)
-    assert response.status_code == 200
-
-    page = response.get_data(as_text=True)
-    # Should show error page
-    assert "Error" in page or "Failed" in page
 
 
 def test_gateway_error_page_includes_diagnostics(

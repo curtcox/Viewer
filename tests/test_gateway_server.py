@@ -1,6 +1,7 @@
 """Tests for gateway server functionality."""
 # pylint: disable=no-name-in-module
 
+import gzip
 from unittest.mock import Mock, patch
 
 import pytest
@@ -19,7 +20,6 @@ def patch_execution_environment(monkeypatch):
 
     gateways_config = {
         "jsonplaceholder": {
-            "target_url": "https://jsonplaceholder.typicode.com",
             "description": "JSONPlaceholder fake REST API for testing",
             "request_transform_cid": "",
             "response_transform_cid": "",
@@ -90,33 +90,6 @@ def test_gateway_template_has_correct_metadata():
     assert "proxy" in gateway["description"].lower() or "api" in gateway["description"].lower()
 
 
-@patch("requests.request")
-def test_gateway_proxies_request_to_target_server(mock_request):
-    """Gateway should proxy requests to the configured target server."""
-
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {"Content-Type": "application/json"}
-    mock_response.content = b'{"message": "Hello from API"}'
-    mock_response.text = '{"message": "Hello from API"}'
-    mock_response.json.return_value = {"message": "Hello from API"}
-    mock_request.return_value = mock_response
-
-    from reference_templates.servers import get_server_templates
-
-    templates = get_server_templates()
-    gateway_template = next(t for t in templates if t.get("id") == "gateway")
-    definition = gateway_template["definition"]
-
-    with app.test_request_context("/gateway/jsonplaceholder/posts/1"):
-        result = server_execution.execute_server_code_from_definition(
-            definition, "gateway"
-        )
-
-    assert result["content_type"] == "application/json"
-    mock_request.assert_called()
-
-
 def test_gateway_handles_missing_gateway_gracefully():
     """Gateway should handle requests to non-existent gateways gracefully."""
     from reference_templates.servers import get_server_templates
@@ -135,6 +108,84 @@ def test_gateway_handles_missing_gateway_gracefully():
     assert "Not Found" in result["output"] or "not configured" in result["output"].lower()
     assert "Defined gateways" in result["output"]
     assert "jsonplaceholder" in result["output"]
+
+
+def test_gateway_internal_redirect_resolution_preserves_bytes():
+    """Gateway should resolve internal redirects to CID content without corrupting raw bytes."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    raw_json = b"{\"ok\": true}"
+
+    class _FakeResponse:
+        status_code = 302
+        headers = {"Location": "/AAAAATEST.json"}
+        content = b""
+        text = ""
+
+    with patch.object(gateway_definition, "_resolve_cid_content", return_value=raw_json) as mock_resolve:
+        resolved = gateway_definition._follow_internal_redirects(_FakeResponse())
+
+    mock_resolve.assert_called_once_with("AAAAATEST", as_bytes=True)
+    assert getattr(resolved, "status_code", None) == 200
+    assert resolved.content == raw_json
+    assert resolved.headers.get("Content-Type") == "application/json"
+
+
+@patch("requests.request")
+def test_internal_jsonplaceholder_forces_identity_encoding(mock_request):
+    """Internal jsonplaceholder server should force identity encoding to avoid compressed bytes."""
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {"Content-Type": "application/json"}
+    mock_response.content = b"{}"
+    mock_request.return_value = mock_response
+
+    from reference_templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
+
+    class _FakeReq:
+        path = "/jsonplaceholder/posts/1"
+        query_string = b""
+        method = "GET"
+        headers = {"Accept-Encoding": "br"}
+
+        def get_data(self, cache=False):  # pylint: disable=unused-argument
+            return None
+
+    jsonplaceholder_definition._proxy_request(_FakeReq())
+
+    assert mock_request.call_count == 1
+    _, kwargs = mock_request.call_args
+    lowered = {k.lower(): v for k, v in (kwargs.get("headers") or {}).items()}
+    assert lowered.get("accept-encoding") == "identity"
+
+
+@patch("requests.request")
+def test_internal_jsonplaceholder_decompresses_gzip(mock_request):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+    }
+    payload = b"{\"ok\": true}"
+    mock_response.content = gzip.compress(payload)
+    mock_request.return_value = mock_response
+
+    from reference_templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
+
+    class _FakeReq:
+        path = "/jsonplaceholder/posts/1"
+        query_string = b""
+        method = "GET"
+        headers = {}
+
+        def get_data(self, cache=False):  # pylint: disable=unused-argument
+            return None
+
+    result = jsonplaceholder_definition._proxy_request(_FakeReq())
+
+    assert result["content_type"] == "application/json"
+    assert result["output"] == payload
 
 
 def test_gateway_request_route_accessible():

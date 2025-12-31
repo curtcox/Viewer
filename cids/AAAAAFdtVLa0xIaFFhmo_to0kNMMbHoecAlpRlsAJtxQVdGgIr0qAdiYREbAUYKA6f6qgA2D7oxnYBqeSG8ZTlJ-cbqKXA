@@ -72,7 +72,7 @@
     },
     {
       "name": "jsonplaceholder",
-      "definition_cid": "AAAAABKk0AIuACp5ttAKF-glWRohCL65iRr1R4CU6TT2JwgnyOvAKWEc5jVj7NI7wCRGr-c0ToGOg9OR7cgEIBdDuDUqUA",
+      "definition_cid": "AAAAABKur692shO1t2f1PIyoupyX-gf3xjbaXwrjbY6jOSXs5z56XGUp8guwJBjMd1r7a-vqyJfZOMO7AnQuU4-P4rfEvw",
       "enabled": true
     },
     {
@@ -686,36 +686,6 @@
       "enabled": true
     },
     {
-      "name": "salesforce",
-      "definition_cid": "AAAAABm0RcaLSNbp5CXTTYZhJIO3QDORJ7wJ-lEv7LLh6YkLfO1E0KY0zgX3V8Cwvv5HDNz4woYYranXkm0KafiAG3HUgQ",
-      "enabled": true
-    },
-    {
-      "name": "pipedrive",
-      "definition_cid": "AAAAABhspfuxZqXYW-eA_EL6PR-B57OzRnjJzAEFLwTMTPgA-fj8N8033JYMuimHFqnZWv3cUk-6jvPdCpj3650x9AtMjA",
-      "enabled": true
-    },
-    {
-      "name": "close_crm",
-      "definition_cid": "AAAAABgg0fpQ_wsP_q870011M8mTVIlBbvIEh_c4YsDAaZ3jugIyLFyDGumTyqXX9AZNxhGwjhU-KddmjqCeuhhB3JArEw",
-      "enabled": true
-    },
-    {
-      "name": "zoho_crm",
-      "definition_cid": "AAAAABbQLoAGFQPPKWVSRxTrORUl0G8uCPZ6t3SXG8mJTtu0KBdB5RrP0fFxjCbFx0V1EDJRr1BkVJchpJK6cXNmen8PBA",
-      "enabled": true
-    },
-    {
-      "name": "insightly",
-      "definition_cid": "AAAAABmgKm0I1bJabPYSCl-c4hoLa7yb0ebZcysAtEbNTXsfvbb3XXARIredCCb0DS3sXmddDGDKFg3IV75on2-7mv94IQ",
-      "enabled": true
-    },
-    {
-      "name": "calendly",
-      "definition_cid": "AAAAABegYLEj_Si3R3kNXid4ht4cx4VloJzVOutsBeLH3QpsK_BmK6k2G7MbfMJJ46M5wIm1QaKv9pR5S5AvMHjyBfKIaA",
-      "enabled": true
-    },
-    {
       "name": "mailchimp",
       "definition_cid": "AAAAABiFTNWfljZW7u_oRBGgIUff6HKeEbYO6cEw07OujvpS22qdVJmMlg1ijFwABjzbvFqe6S2r70SS_ie84Mt0yROlFg",
       "enabled": true
@@ -793,66 +763,6 @@
     {
       "name": "dynamics365",
       "definition_cid": "AAAAACPhXflB8Ecx2Dqk8BYjSoc__Ly94MUXfznyg1TIBeA2FENGZjHMubyuuAX08cW_miqdEDH4xUFKcgMLWCdme5efHg",
-      "enabled": true
-    },
-    {
-      "name": "trello",
-      "definition_cid": "AAAAABOc-clKR0u20QpvIEaehDJU6dnM0f4GTv3x_GioVUGgoT5mFesOzecbtSwyw8rGfB8awHEmeusz9phnBjbS67gOmA",
-      "enabled": true
-    },
-    {
-      "name": "monday",
-      "definition_cid": "AAAAABNH4Nr0WpZh93GIU2xt3kHACV2Xxr37J3OL9c4NTLq9_Io_GMAUwudGvJmaMBij8LUUo0a4iWD22tn5QOsENUcSFQ",
-      "enabled": true
-    },
-    {
-      "name": "clickup",
-      "definition_cid": "AAAAABSEtPy0o-defpwYfhDH2YmzZOF0088tIIZ1lv3Gp5CMd9Ph9xmBIh7uBbI4wBswWR8UFph02A4HyrjmxntMvHJGMg",
-      "enabled": true
-    },
-    {
-      "name": "jira",
-      "definition_cid": "AAAAABgdc4UsUf43kkKkPrSdnV8chaT-HpBOVFIrRf9P10nLkyncv81kOXMmvqGrpUFflr1DLVob6AmH7I3KBnFZF_FhrA",
-      "enabled": true
-    },
-    {
-      "name": "confluence",
-      "definition_cid": "AAAAABaqWn4ykkWOKxir0n7ENOjwL4-E6LZt4FYTFzbaUvBNTq_TfaA0KghdnLxhKZ36ndw6dmrUyAvkP6SsHPbzdVxZ5Q",
-      "enabled": true
-    },
-    {
-      "name": "basecamp",
-      "definition_cid": "AAAAABXlLBurEtUgkqQ7bf1D2fmS569rY-EziDdYQPF-suDBb4z6Hz0ZdKVw0XqYpw1auhiyK1lwwyEZ7FOExMyQBhoLhQ",
-      "enabled": true
-    },
-    {
-      "name": "smartsheet",
-      "definition_cid": "AAAAABJZUaWzKBm8ku2kSV6QKjmnOUUD_fWRBED-pXUHxhd7qKg9bsnI3nu7WknTvQPGtPDWhYt6ICXspS8YjHRCkkZ56Q",
-      "enabled": true
-    },
-    {
-      "name": "todoist",
-      "definition_cid": "AAAAABS7T1f0e0wMEfDENYghPzISLLDlUcvkwe8YTLZT1A7di0IzoerdvgWp9QABgfySV-YAecLtOW_i1A2_6GmFFSU87w",
-      "enabled": true
-    },
-    {
-      "name": "discord",
-      "definition_cid": "AAAAABXoe0wP3L1d6StWslQvhde59kUciIm6j0MzBIWtHPksk6D7pIwkUJcOgjj7k0R7o5R1GVlEFX3k6UkG0oCNiBIqTQ",
-      "enabled": true
-    },
-    {
-      "name": "twilio",
-      "definition_cid": "AAAAABg5GW5KGr1Z8PMeToIVXeztg69WZcmrKkrCJga9J3pIWtNEcRPjPHp_mg9intdikEUpvY1g42IEL6FT2xwBjxdIJQ",
-      "enabled": true
-    },
-    {
-      "name": "whatsapp",
-      "definition_cid": "AAAAABeh5nIfBhhHRSygwb0lJxhigu_Sc6XCWOOYqm1QSOIyYM7Q3vakdgIwwUy-x6GAkRmOOMOy1bx4QAfBA1d2Hj8hUA",
-      "enabled": true
-    },
-    {
-      "name": "telegram",
-      "definition_cid": "AAAAABmksiDFhMDZX7y3uO-AmbjSW3Ljtvd38xx28SXMbrn6Em6RzWRW-mIqPLib3rMLY9gfP20nWQFoga6Rt9nKaPQNag",
       "enabled": true
     }
   ],

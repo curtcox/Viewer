@@ -126,7 +126,7 @@ def _proxy_request(req) -> dict:
 
     # Add JSON accept header
     filtered_headers.setdefault("Accept", "application/json")
-    filtered_headers["Accept-Encoding"] = "identity"
+    filtered_headers.setdefault("Accept-Encoding", "identity")
 
     # Get body data
     body = req.get_data(cache=False) if hasattr(req, "get_data") else None
