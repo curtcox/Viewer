@@ -473,26 +473,21 @@ Create the following templates:
 
 ### Transform Update Pattern
 
-Update transforms to check for and use `resolve_template`:
+Transforms use external templates exclusively via `resolve_template`. The gateway supports inline templates for backwards compatibility, but transforms themselves should only use external templates:
 
 ```python
 def transform_response(response_details: dict, context: dict) -> dict:
     resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured")
 
     # Prepare data
     command = extract_command(response_details)
     sections = parse_sections(response_details.get("text", ""))
 
-    if resolve_template:
-        try:
-            template = resolve_template("man_page.html")
-            html = template.render(command=command, sections=sections)
-        except (ValueError, LookupError):
-            # Fallback to inline template
-            html = _render_inline(command, sections)
-    else:
-        # Backwards compatibility: use inline template
-        html = _render_inline(command, sections)
+    # Use external template (no fallback to inline)
+    template = resolve_template("man_page.html")
+    html = template.render(command=command, sections=sections)
 
     return {"output": html, "content_type": "text/html"}
 ```
@@ -500,34 +495,49 @@ def transform_response(response_details: dict, context: dict) -> dict:
 ### Tests for Enhancement 4
 
 ```python
-# Test 4.1: Man transform uses external template when available
+# Test 4.1: Man transform uses external template
 def test_man_transform_uses_external_template():
-    """Man response transform should use external template when available."""
+    """Man response transform should use external template."""
     pass
 
-# Test 4.2: Man transform falls back to inline when template missing
-def test_man_transform_fallback_inline():
-    """Man transform should fall back to inline template if external unavailable."""
+# Test 4.2: Man transform raises error when templates not configured
+def test_man_transform_requires_templates():
+    """Man transform should raise error if resolve_template not available."""
     pass
 
 # Test 4.3: TLDR transform uses external template
 def test_tldr_transform_uses_external_template():
-    """TLDR transform should use external template when available."""
+    """TLDR transform should use external template."""
     pass
 
-# Test 4.4: JSONPlaceholder transform uses external template
+# Test 4.4: TLDR transform raises error when templates not configured
+def test_tldr_transform_requires_templates():
+    """TLDR transform should raise error if resolve_template not available."""
+    pass
+
+# Test 4.5: JSONPlaceholder transform uses external template
 def test_jsonplaceholder_transform_uses_external_template():
-    """JSONPlaceholder transform should use external template when available."""
+    """JSONPlaceholder transform should use external template."""
     pass
 
-# Test 4.5: HRX transform uses external template
+# Test 4.6: JSONPlaceholder transform raises error when templates not configured
+def test_jsonplaceholder_transform_requires_templates():
+    """JSONPlaceholder transform should raise error if resolve_template not available."""
+    pass
+
+# Test 4.7: HRX transform uses external template
 def test_hrx_transform_uses_external_template():
-    """HRX transform should use external template when available."""
+    """HRX transform should use external template."""
     pass
 
-# Test 4.6: Transforms work without templates config (backwards compatibility)
-def test_transforms_backwards_compatible():
-    """Existing transforms should work without templates config."""
+# Test 4.8: HRX transform raises error when templates not configured
+def test_hrx_transform_requires_templates():
+    """HRX transform should raise error if resolve_template not available."""
+    pass
+
+# Test 4.9: Gateway inline template support maintained for backwards compatibility
+def test_gateway_inline_templates_supported():
+    """Gateway should still support inline templates for backwards compatibility."""
     pass
 ```
 
@@ -748,12 +758,15 @@ def test_meta_page_template_cid_links():
 | 3.7 | test_empty_templates_config | Gateway with no templates config should still work |
 | 3.8 | test_request_transform_receives_template_resolver | Request transform should receive resolve_template in context |
 | 3.9 | test_response_transform_receives_template_resolver | Response transform should receive resolve_template in context |
-| 4.1 | test_man_transform_uses_external_template | Man response transform should use external template when available |
-| 4.2 | test_man_transform_fallback_inline | Man transform should fall back to inline template if external unavailable |
-| 4.3 | test_tldr_transform_uses_external_template | TLDR transform should use external template when available |
-| 4.4 | test_jsonplaceholder_transform_uses_external_template | JSONPlaceholder transform should use external template when available |
-| 4.5 | test_hrx_transform_uses_external_template | HRX transform should use external template when available |
-| 4.6 | test_transforms_backwards_compatible | Existing transforms should work without templates config |
+| 4.1 | test_man_transform_uses_external_template | Man response transform should use external template |
+| 4.2 | test_man_transform_requires_templates | Man transform should raise error if resolve_template not available |
+| 4.3 | test_tldr_transform_uses_external_template | TLDR transform should use external template |
+| 4.4 | test_tldr_transform_requires_templates | TLDR transform should raise error if resolve_template not available |
+| 4.5 | test_jsonplaceholder_transform_uses_external_template | JSONPlaceholder transform should use external template |
+| 4.6 | test_jsonplaceholder_transform_requires_templates | JSONPlaceholder transform should raise error if resolve_template not available |
+| 4.7 | test_hrx_transform_uses_external_template | HRX transform should use external template |
+| 4.8 | test_hrx_transform_requires_templates | HRX transform should raise error if resolve_template not available |
+| 4.9 | test_gateway_inline_templates_supported | Gateway should still support inline templates for backwards compatibility |
 | 5.1 | test_meta_page_shows_templates_section | Meta page should show templates section when templates configured |
 | 5.2 | test_meta_page_lists_template_names | Meta page should list all template names from config |
 | 5.3 | test_meta_page_shows_template_cids | Meta page should show CID for each template |
@@ -764,6 +777,7 @@ def test_meta_page_template_cid_links():
 | 5.8 | test_meta_page_handles_missing_template_cid | Meta page should handle templates with unresolvable CIDs |
 | 5.9 | test_meta_page_no_templates_configured | Meta page should show message when no templates configured |
 | 5.10 | test_meta_page_template_cid_links | Template CIDs should be clickable links |
+| 5.11 | test_meta_page_warns_transforms_without_templates | Meta page should warn when transforms exist but templates are missing |
 
 ### Integration Tests (tests/integration/test_gateway_server.py)
 
@@ -792,34 +806,40 @@ def test_meta_page_template_cid_links():
 | E.8 | test_concurrent_template_resolution | Multiple concurrent resolve_template calls |
 | E.9 | test_source_field_preserved_through_transform_chain | Source field preserved if response transform re-wraps |
 | E.10 | test_request_transform_response_with_headers | Direct response with custom headers dict |
+| E.11 | test_transform_error_when_no_templates_configured | Transform raises clear error when templates not configured |
+| E.12 | test_gateway_error_page_for_missing_templates | Gateway shows helpful error when transform fails due to missing templates |
+
+---
+
+## Design Decisions
+
+The following decisions have been made:
+
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | **Template Caching** | No caching. Templates are resolved per-request to ensure freshness. |
+| 2 | **Template Include/Extend** | Keep templates standalone for simplicity. No include/extend support initially. |
+| 3 | **Template Errors at Runtime** | Let the exception propagate. The gateway error handler will display a diagnostic error page. |
+| 4 | **Response Transform for Direct Responses** | Always call the response transform. It can check `source` and return early if desired. |
+| 5 | **Direct Response Status Code** | Default to 200 when not explicitly specified. |
+| 6 | **Template Variable Detection** | Use Jinja2's `meta.find_undeclared_variables()`. Accept that it may miss some variables. |
+| 7 | **Inline Template Support** | The gateway maintains inline template support for backwards compatibility, but transforms should ONLY use external templates. No transform should use inline templates. |
+| 8 | **Template Security** | No additional sandboxing. Templates are trusted content stored as CIDs. |
 
 ---
 
 ## Open Questions
 
-1. **Template Caching**: Should resolved templates be cached during a request? Across requests?
-   - *Proposed Answer*: No caching initially. Templates are resolved per-request to ensure freshness. Caching can be added as an optimization later.
+1. **Transform Behavior Without Templates**: Since transforms must use external templates exclusively, what should happen when a transform is invoked but `resolve_template` is not available (i.e., no templates configured in the gateway)?
+   - **Option A**: Raise a `RuntimeError` with a clear message indicating templates must be configured
+   - **Option B**: Return the raw/unformatted content with a basic wrapper
+   - **Option C**: Return an error page explaining the misconfiguration
+   - *Recommendation*: Option A - fail fast with a clear error message
 
-2. **Template Include/Extend**: Should templates be able to include or extend other templates in the same gateway's template config?
-   - *Proposed Answer*: Not in initial implementation. Keep templates standalone for simplicity.
-
-3. **Template Errors at Runtime**: If a template fails to render (e.g., missing variable), should the transform fail or fall back?
-   - *Proposed Answer*: Let the exception propagate. The gateway error handler will catch it and display a diagnostic error page.
-
-4. **Response Transform for Direct Responses**: Should the response transform always be called for direct responses, or should there be an option to skip it?
-   - *Proposed Answer*: Always call it. The transform can check `source` and return early if desired.
-
-5. **Request Transform Direct Response Status Code**: Should direct responses default to 200, or require explicit status?
-   - *Proposed Answer*: Default to 200 for backwards compatibility and simplicity.
-
-6. **Template Variable Detection**: How accurate should variable detection be for the meta page?
-   - *Proposed Answer*: Use Jinja2's `meta.find_undeclared_variables()` which provides reasonable detection. Accept that it may miss some variables (e.g., those accessed via subscript notation).
-
-7. **Backwards Compatibility Period**: How long should inline templates be supported in existing transforms?
-   - *Proposed Answer*: Indefinitely. Keep fallback logic so transforms work with or without external templates.
-
-8. **Template Security**: Should templates have any sandboxing or restrictions?
-   - *Proposed Answer*: No additional sandboxing. Templates are already trusted content (stored as CIDs by the system administrator). Jinja2's default autoescaping provides basic XSS protection.
+2. **Meta Page Template Validation Warning**: Should the meta page show a warning when a gateway has transforms configured but no templates?
+   - **Option A**: Yes, show a warning that templates are required for the transforms to function
+   - **Option B**: No, this is implicit from the templates section being empty
+   - *Recommendation*: Option A - explicit validation helps users diagnose issues
 
 ---
 
@@ -885,8 +905,11 @@ def test_meta_page_template_cid_links():
 ## Success Criteria
 
 1. All listed tests pass
-2. Existing gateways continue to work without modification (backwards compatibility)
-3. New gateways can be configured with external templates
-4. Meta page displays template information and validation
-5. Request transforms can return clarifying menus
-6. Response transforms know the source of responses
+2. Gateway server maintains backwards compatibility (inline template support)
+3. All transforms use external templates exclusively (no inline templates in transform code)
+4. Transforms raise clear errors when templates are not configured
+5. New gateways can be configured with external templates via CIDs
+6. Meta page displays template information, validation, and warnings for misconfiguration
+7. Request transforms can return clarifying menus (direct responses)
+8. Response transforms receive `source` field indicating origin
+9. Meta page lists and previews all templates associated with each gateway
