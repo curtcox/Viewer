@@ -22,6 +22,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "jsonplaceholder": "jsonplaceholder.py",
     "shell": "shell.py",
     "glom": "glom.py",
+    "gmail": "gmail.py",
     "hrx": "hrx.py",
     "gateway": "gateway.py",
     "mcp": "mcp.py",
@@ -31,7 +32,9 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "google_gemini": "google_gemini.py",
     "google_sheets": "google_sheets.py",
     "github": "github.py",
+    "hubspot": "hubspot.py",
     "jinja": "jinja_renderer.py",
+    "mailchimp": "mailchimp.py",
     "nvidia_nim": "nvidia_nim.py",
     "notion": "notion.py",
     "openai_chat": "openai_chat.py",
@@ -46,6 +49,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "slack": "slack.py",
     "stripe": "stripe.py",
     "zendesk": "zendesk.py",
+    "zoom": "zoom.py",
 }
 
 

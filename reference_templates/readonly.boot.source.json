@@ -564,6 +564,26 @@
       "name": "zcat",
       "definition_cid": "reference_templates/servers/definitions/zcat.sh",
       "enabled": true
+    },
+    {
+      "name": "hubspot",
+      "definition_cid": "reference_templates/servers/definitions/hubspot.py",
+      "enabled": true
+    },
+    {
+      "name": "mailchimp",
+      "definition_cid": "reference_templates/servers/definitions/mailchimp.py",
+      "enabled": true
+    },
+    {
+      "name": "zoom",
+      "definition_cid": "reference_templates/servers/definitions/zoom.py",
+      "enabled": true
+    },
+    {
+      "name": "gmail",
+      "definition_cid": "reference_templates/servers/definitions/gmail.py",
+      "enabled": true
     }
   ],
   "variables": [

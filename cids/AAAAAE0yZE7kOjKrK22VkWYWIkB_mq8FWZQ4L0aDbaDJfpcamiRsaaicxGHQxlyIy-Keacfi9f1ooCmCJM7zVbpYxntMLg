@@ -694,11 +694,6 @@
       "name": "zoom",
       "definition_cid": "AAAAABJmLj8c3SnN0k-4VmYQw4RV0knqJ2h2IaLWRgR5s4GK7Pf55P-nc-BtY6cQM48Qcx_wV9P315tf0M7Y5WyxJ1oU6g",
       "enabled": true
-    },
-    {
-      "name": "gmail",
-      "definition_cid": "AAAAABk8O8fkkaaG72R_lS7RUecg54_vE29BSziwhj7SVSJtUHzzALl5bIyRsDXDoazf5yOq-hK8gZ9jxPYx3vu0g0H-6A",
-      "enabled": true
     }
   ],
   "variables": [
