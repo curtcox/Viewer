@@ -1,0 +1,892 @@
+# Gateway Enhancement Plan
+
+## Overview
+
+This plan details enhancements to the gateway facility to support:
+1. Request transforms that can directly return responses (bypassing the server)
+2. Response transforms that know whether the response came from a request transform or the server
+3. External Jinja templates resolved via a template function passed to transforms
+4. Template CIDs specified in the gateways variable
+5. Enhanced `/gateways/meta/{server}` to list and preview gateway templates
+
+---
+
+## Current Architecture Summary
+
+### Key Files
+- `reference_templates/servers/definitions/gateway.py` - Main gateway server (1234 lines)
+- `reference_templates/gateways.json` - Gateway configuration with CIDs
+- `reference_templates/gateways/transforms/*.py` - Transform implementations
+- `reference_templates/servers/templates/gateway/*.html` - Gateway UI templates
+- `tests/test_gateway_server.py` - Unit tests
+- `tests/integration/test_gateway_server.py` - Integration tests
+
+### Current Transform Interfaces
+
+**Request Transform:**
+```python
+def transform_request(request_details: dict, context: dict) -> dict:
+    """
+    Args:
+        request_details: {path, query_string, method, headers, json, body}
+        context: Full server execution context
+    Returns: {method, headers, path, json, data, params}
+    """
+```
+
+**Response Transform:**
+```python
+def transform_response(response_details: dict, context: dict) -> dict:
+    """
+    Args:
+        response_details: {status_code, headers, content, text, json, request_path}
+        context: Full server execution context
+    Returns: {output, content_type}
+    """
+```
+
+### Current Gateway Config Structure
+```json
+{
+  "man": {
+    "request_transform_cid": "AAAAA...",
+    "response_transform_cid": "AAAAA...",
+    "description": "HTML formatted man pages with command links"
+  }
+}
+```
+
+---
+
+## Enhancement 1: Request Transform Direct Response
+
+### Description
+Allow request transforms to return a response directly, bypassing the target server. This is used for:
+- Producing clarifying menus when the request is ambiguous
+- Returning cached responses
+- Validating input and returning error pages
+- Rendering help/documentation pages
+
+### New Request Transform Interface
+
+```python
+def transform_request(request_details: dict, context: dict) -> dict:
+    """
+    Returns either:
+    1. A transformed request dict (current behavior):
+       {"method": ..., "headers": ..., "path": ..., "json": ..., "data": ..., "params": ...}
+
+    2. A direct response dict (new behavior):
+       {"response": {"output": ..., "content_type": ...}}
+    """
+```
+
+### Detection Logic
+The gateway will check if the return value contains a `response` key. If present, it skips server execution and proceeds directly to the response transform (if configured).
+
+### Implementation Changes
+
+**File: `reference_templates/servers/definitions/gateway.py`**
+
+Modify `_handle_gateway_request()`:
+
+```python
+# After executing request transform
+if isinstance(transformed, dict):
+    if "response" in transformed:
+        # Request transform returned a direct response
+        direct_response = transformed["response"]
+        response_details = {
+            "status_code": direct_response.get("status_code", 200),
+            "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
+            "content": direct_response.get("output", "").encode("utf-8") if isinstance(direct_response.get("output"), str) else direct_response.get("output", b""),
+            "text": direct_response.get("output", "") if isinstance(direct_response.get("output"), str) else direct_response.get("output", b"").decode("utf-8", errors="replace"),
+            "json": None,
+            "request_path": rest_path,
+            "source": "request_transform",  # NEW: indicates source
+        }
+        # Skip to response transform
+    else:
+        request_details = transformed
+        # Continue with server execution...
+```
+
+### Tests for Enhancement 1
+
+#### Unit Tests (test_gateway_server.py)
+
+```python
+# Test 1.1: Request transform returning direct response bypasses server
+def test_request_transform_direct_response_bypasses_server():
+    """Request transform returning response dict should bypass server execution."""
+    # Setup: Create a request transform that returns {"response": {...}}
+    # Verify: Server is not called, response is returned directly
+    pass
+
+# Test 1.2: Request transform direct response has correct content type
+def test_request_transform_direct_response_content_type():
+    """Direct response from request transform should preserve content_type."""
+    pass
+
+# Test 1.3: Request transform direct response status code
+def test_request_transform_direct_response_status_code():
+    """Direct response can specify custom status_code."""
+    pass
+
+# Test 1.4: Request transform returning normal dict continues to server
+def test_request_transform_normal_dict_continues():
+    """Request transform returning normal dict should continue to server."""
+    pass
+
+# Test 1.5: Request transform direct response with binary output
+def test_request_transform_direct_response_binary_output():
+    """Direct response output can be bytes."""
+    pass
+
+# Test 1.6: Request transform direct response with HTML menu
+def test_request_transform_direct_response_clarifying_menu():
+    """Request transform can return a clarifying menu HTML page."""
+    pass
+
+# Test 1.7: Request transform response key takes precedence
+def test_request_transform_response_key_precedence():
+    """If both 'response' and 'path' keys present, 'response' takes precedence."""
+    pass
+```
+
+#### Integration Tests (tests/integration/test_gateway_server.py)
+
+```python
+# Test 1.8: End-to-end direct response from request transform
+def test_gateway_request_transform_direct_response_integration():
+    """Full integration test for request transform returning direct response."""
+    pass
+
+# Test 1.9: Direct response followed by response transform
+def test_gateway_direct_response_then_response_transform():
+    """Response transform should be called even for direct responses."""
+    pass
+```
+
+---
+
+## Enhancement 2: Response Transform Source Indicator
+
+### Description
+The response transform needs to know whether the response was generated by:
+1. The request transform (direct response)
+2. The target server (normal flow)
+
+This allows the response transform to handle these cases differently.
+
+### New Response Details Field
+
+Add a `source` field to `response_details`:
+
+```python
+response_details = {
+    "status_code": ...,
+    "headers": ...,
+    "content": ...,
+    "text": ...,
+    "json": ...,
+    "request_path": ...,
+    "source": "request_transform" | "server",  # NEW
+}
+```
+
+### Implementation Changes
+
+**File: `reference_templates/servers/definitions/gateway.py`**
+
+When building `response_details` after server execution:
+```python
+response_details = {
+    # ... existing fields ...
+    "source": "server",
+}
+```
+
+When building `response_details` from request transform direct response:
+```python
+response_details = {
+    # ... existing fields ...
+    "source": "request_transform",
+}
+```
+
+### Tests for Enhancement 2
+
+#### Unit Tests
+
+```python
+# Test 2.1: Response from server has source="server"
+def test_response_details_source_server():
+    """Response details from server should have source='server'."""
+    pass
+
+# Test 2.2: Response from request transform has source="request_transform"
+def test_response_details_source_request_transform():
+    """Response details from request transform should have source='request_transform'."""
+    pass
+
+# Test 2.3: Response transform receives source field
+def test_response_transform_receives_source():
+    """Response transform should receive the source field in response_details."""
+    pass
+
+# Test 2.4: Response transform can behave differently based on source
+def test_response_transform_conditional_on_source():
+    """Response transform can conditionally process based on source."""
+    pass
+
+# Test 2.5: Source field defaults to server when not set
+def test_response_details_source_defaults_server():
+    """Source field should default to 'server' for backwards compatibility."""
+    pass
+```
+
+---
+
+## Enhancement 3: External Jinja Templates for Transforms
+
+### Description
+Replace inline HTML templates in transforms with external Jinja template files. Transforms receive a template resolution function that loads templates by name from CIDs specified in the gateway configuration.
+
+### New Template Resolution Function
+
+Transforms receive a `resolve_template` function via the context:
+
+```python
+def transform_response(response_details: dict, context: dict) -> dict:
+    resolve_template = context.get("resolve_template")
+    if resolve_template:
+        template = resolve_template("man_page.html")
+        html = template.render(command=command, sections=sections)
+        return {"output": html, "content_type": "text/html"}
+```
+
+### Template Resolution Flow
+
+1. Gateway loads template CIDs from the gateway config
+2. When executing a transform, gateway creates `resolve_template` function
+3. `resolve_template(name)` looks up the template CID from config
+4. Loads template content from CID storage
+5. Returns a Jinja2 Template object
+
+### New Gateway Config Structure
+
+```json
+{
+  "man": {
+    "request_transform_cid": "AAAAA...",
+    "response_transform_cid": "AAAAA...",
+    "description": "HTML formatted man pages with command links",
+    "templates": {
+      "man_page.html": "AAAAA_template_cid...",
+      "man_error.html": "AAAAA_error_template_cid...",
+      "man_menu.html": "AAAAA_menu_template_cid..."
+    }
+  }
+}
+```
+
+### Implementation Changes
+
+**File: `reference_templates/servers/definitions/gateway.py`**
+
+Add template resolution function factory:
+
+```python
+def _create_template_resolver(config: dict, context: dict):
+    """Create a template resolution function for a gateway config.
+
+    Args:
+        config: Gateway configuration dict with optional 'templates' key
+        context: Server execution context
+
+    Returns:
+        Function that takes template name and returns Jinja2 Template
+    """
+    templates_config = config.get("templates", {})
+
+    def resolve_template(template_name: str):
+        """Resolve a template by name from the gateway's templates config.
+
+        Args:
+            template_name: Name of the template (e.g., "man_page.html")
+
+        Returns:
+            jinja2.Template object
+
+        Raises:
+            ValueError: If template not found in config
+            LookupError: If template CID cannot be resolved
+        """
+        if template_name not in templates_config:
+            raise ValueError(f"Template '{template_name}' not found in gateway config. "
+                           f"Available templates: {list(templates_config.keys())}")
+
+        template_cid = templates_config[template_name]
+        content = _resolve_cid_content(template_cid)
+        if content is None:
+            raise LookupError(f"Could not resolve template CID: {template_cid}")
+
+        return Template(content)
+
+    return resolve_template
+```
+
+Modify transform execution to inject resolver:
+
+```python
+# In _handle_gateway_request:
+template_resolver = _create_template_resolver(config, context)
+enhanced_context = {
+    **(context or {}),
+    "resolve_template": template_resolver,
+}
+
+# Pass enhanced_context to transforms
+result = transform_fn(request_details, enhanced_context)
+```
+
+### Tests for Enhancement 3
+
+#### Unit Tests
+
+```python
+# Test 3.1: Template resolver created from config
+def test_template_resolver_creation():
+    """Template resolver should be created from gateway config."""
+    pass
+
+# Test 3.2: Template resolver returns Jinja Template
+def test_template_resolver_returns_jinja_template():
+    """resolve_template should return a jinja2.Template object."""
+    pass
+
+# Test 3.3: Template resolver raises ValueError for unknown template
+def test_template_resolver_unknown_template():
+    """resolve_template should raise ValueError for unknown template name."""
+    pass
+
+# Test 3.4: Template resolver raises LookupError for missing CID
+def test_template_resolver_missing_cid():
+    """resolve_template should raise LookupError if CID cannot be resolved."""
+    pass
+
+# Test 3.5: Transform receives resolve_template in context
+def test_transform_receives_template_resolver():
+    """Transforms should receive resolve_template function in context."""
+    pass
+
+# Test 3.6: Template can be rendered with variables
+def test_template_rendering_with_variables():
+    """Resolved template can be rendered with variables."""
+    pass
+
+# Test 3.7: Empty templates config handled gracefully
+def test_empty_templates_config():
+    """Gateway with no templates config should still work."""
+    pass
+
+# Test 3.8: Template resolver available to request transform
+def test_request_transform_receives_template_resolver():
+    """Request transform should receive resolve_template in context."""
+    pass
+
+# Test 3.9: Template resolver available to response transform
+def test_response_transform_receives_template_resolver():
+    """Response transform should receive resolve_template in context."""
+    pass
+```
+
+#### Integration Tests
+
+```python
+# Test 3.10: End-to-end template resolution
+def test_gateway_template_resolution_integration():
+    """Full integration test for template resolution from CID."""
+    pass
+
+# Test 3.11: Response transform using external template
+def test_response_transform_external_template():
+    """Response transform can use external template via resolve_template."""
+    pass
+```
+
+---
+
+## Enhancement 4: Update Existing Transforms
+
+### Description
+Update the existing man, tldr, jsonplaceholder, and hrx transforms to use external Jinja templates via the `resolve_template` function.
+
+### Man Gateway Templates
+
+Create the following templates:
+
+**man_page.html** - Main man page template
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>man {{ command }}</title>
+    <!-- styles -->
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway/man">man pages</a>
+        <a href="/gateway/tldr/{{ command }}">tldr {{ command }}</a>
+    </div>
+    <h1>man {{ command }}</h1>
+    {% if sections %}
+    <div class="toc">...</div>
+    {% for section_name, section_content in sections.items() %}
+    <h2 id="{{ section_name | lower | replace(' ', '-') }}">{{ section_name }}</h2>
+    <pre>{{ section_content }}</pre>
+    {% endfor %}
+    {% else %}
+    <pre>{{ content }}</pre>
+    {% endif %}
+</body>
+</html>
+```
+
+**man_error.html** - Man error page template
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>man {{ command }} - Error</title>
+</head>
+<body>
+    <div class="error">
+        <h1>man {{ command }}</h1>
+        <p>{{ message }}</p>
+    </div>
+</body>
+</html>
+```
+
+### Transform Update Pattern
+
+Update transforms to check for and use `resolve_template`:
+
+```python
+def transform_response(response_details: dict, context: dict) -> dict:
+    resolve_template = context.get("resolve_template")
+
+    # Prepare data
+    command = extract_command(response_details)
+    sections = parse_sections(response_details.get("text", ""))
+
+    if resolve_template:
+        try:
+            template = resolve_template("man_page.html")
+            html = template.render(command=command, sections=sections)
+        except (ValueError, LookupError):
+            # Fallback to inline template
+            html = _render_inline(command, sections)
+    else:
+        # Backwards compatibility: use inline template
+        html = _render_inline(command, sections)
+
+    return {"output": html, "content_type": "text/html"}
+```
+
+### Tests for Enhancement 4
+
+```python
+# Test 4.1: Man transform uses external template when available
+def test_man_transform_uses_external_template():
+    """Man response transform should use external template when available."""
+    pass
+
+# Test 4.2: Man transform falls back to inline when template missing
+def test_man_transform_fallback_inline():
+    """Man transform should fall back to inline template if external unavailable."""
+    pass
+
+# Test 4.3: TLDR transform uses external template
+def test_tldr_transform_uses_external_template():
+    """TLDR transform should use external template when available."""
+    pass
+
+# Test 4.4: JSONPlaceholder transform uses external template
+def test_jsonplaceholder_transform_uses_external_template():
+    """JSONPlaceholder transform should use external template when available."""
+    pass
+
+# Test 4.5: HRX transform uses external template
+def test_hrx_transform_uses_external_template():
+    """HRX transform should use external template when available."""
+    pass
+
+# Test 4.6: Transforms work without templates config (backwards compatibility)
+def test_transforms_backwards_compatible():
+    """Existing transforms should work without templates config."""
+    pass
+```
+
+---
+
+## Enhancement 5: Update /gateways/meta/{server} for Templates
+
+### Description
+Enhance the gateway meta page to list and preview all templates associated with a gateway.
+
+### New Meta Page Features
+
+1. **Templates Section** - List all template names and their CIDs
+2. **Template Preview** - Show template source code
+3. **Template Validation** - Validate Jinja syntax
+4. **Template Variables** - List expected template variables (if detectable)
+
+### Implementation Changes
+
+**File: `reference_templates/servers/definitions/gateway.py`**
+
+Update `_handle_meta_page()`:
+
+```python
+def _handle_meta_page(server_name, gateways, context):
+    # ... existing code ...
+
+    # Load template information
+    templates_config = config.get("templates", {})
+    templates_info = []
+
+    for template_name, template_cid in templates_config.items():
+        template_info = {
+            "name": template_name,
+            "cid": template_cid,
+            "source": None,
+            "status": "error",
+            "status_text": "Not Found",
+            "error": None,
+            "variables": [],
+        }
+
+        # Load and validate template
+        source, error, variables = _load_and_validate_template(template_cid, context)
+        template_info["source"] = source
+        if error:
+            template_info["error"] = error
+            template_info["status"] = "error"
+            template_info["status_text"] = "Error"
+        else:
+            template_info["status"] = "valid"
+            template_info["status_text"] = "Valid"
+            template_info["variables"] = variables
+
+        templates_info.append(template_info)
+
+    # Add to template context
+    html = template.render(
+        # ... existing vars ...
+        templates_info=templates_info,
+    )
+```
+
+Add template validation function:
+
+```python
+def _load_and_validate_template(cid, context):
+    """Load and validate a Jinja template.
+
+    Returns: (source, error, variables)
+    """
+    try:
+        cid_lookup = _normalize_cid_lookup(cid)
+        content = _resolve_cid_content(cid_lookup)
+        if not content:
+            return None, f"Template not found at CID: {cid}", []
+
+        # Try to parse as Jinja template
+        from jinja2 import Environment, meta
+        env = Environment()
+        try:
+            ast = env.parse(content)
+            # Extract referenced variables
+            variables = list(meta.find_undeclared_variables(ast))
+        except Exception as e:
+            return content, f"Jinja syntax error: {e}", []
+
+        return content, None, variables
+
+    except Exception as e:
+        return None, f"Validation error: {e}", []
+```
+
+**File: `reference_templates/servers/templates/gateway/meta.html`**
+
+Add templates section:
+
+```html
+{% if templates_info %}
+<div class="card">
+    <h3>Templates</h3>
+    {% for tpl in templates_info %}
+    <div class="template-item">
+        <h4>
+            {{ tpl.name }}
+            <span class="status {{ tpl.status }}">{{ tpl.status_text }}</span>
+        </h4>
+        <div class="info-row">
+            <span class="info-label">CID:</span>
+            <span class="info-value"><code>{{ tpl.cid }}</code></span>
+        </div>
+        {% if tpl.variables %}
+        <div class="info-row">
+            <span class="info-label">Variables:</span>
+            <span class="info-value">{{ tpl.variables | join(', ') }}</span>
+        </div>
+        {% endif %}
+        {% if tpl.error %}
+        <div class="error-detail">{{ tpl.error }}</div>
+        {% endif %}
+        {% if tpl.source %}
+        <details>
+            <summary>View Template Source</summary>
+            <pre>{{ tpl.source }}</pre>
+        </details>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <h3>Templates</h3>
+    <p><em>No templates configured for this gateway.</em></p>
+</div>
+{% endif %}
+```
+
+### Tests for Enhancement 5
+
+```python
+# Test 5.1: Meta page shows templates section
+def test_meta_page_shows_templates_section():
+    """Meta page should show templates section when templates configured."""
+    pass
+
+# Test 5.2: Meta page lists all template names
+def test_meta_page_lists_template_names():
+    """Meta page should list all template names from config."""
+    pass
+
+# Test 5.3: Meta page shows template CIDs
+def test_meta_page_shows_template_cids():
+    """Meta page should show CID for each template."""
+    pass
+
+# Test 5.4: Meta page shows template source preview
+def test_meta_page_shows_template_source():
+    """Meta page should show template source in collapsible section."""
+    pass
+
+# Test 5.5: Meta page validates Jinja syntax
+def test_meta_page_validates_jinja_syntax():
+    """Meta page should show syntax validation status for templates."""
+    pass
+
+# Test 5.6: Meta page shows syntax errors
+def test_meta_page_shows_template_syntax_errors():
+    """Meta page should display Jinja syntax errors."""
+    pass
+
+# Test 5.7: Meta page lists template variables
+def test_meta_page_lists_template_variables():
+    """Meta page should list detected template variables."""
+    pass
+
+# Test 5.8: Meta page handles missing template CID
+def test_meta_page_handles_missing_template_cid():
+    """Meta page should handle templates with unresolvable CIDs."""
+    pass
+
+# Test 5.9: Meta page with no templates config
+def test_meta_page_no_templates_configured():
+    """Meta page should show message when no templates configured."""
+    pass
+
+# Test 5.10: Meta page template CID links
+def test_meta_page_template_cid_links():
+    """Template CIDs should be clickable links."""
+    pass
+```
+
+---
+
+## Complete Test List
+
+### Unit Tests (tests/test_gateway_server.py)
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| 1.1 | test_request_transform_direct_response_bypasses_server | Request transform returning response dict should bypass server execution |
+| 1.2 | test_request_transform_direct_response_content_type | Direct response from request transform should preserve content_type |
+| 1.3 | test_request_transform_direct_response_status_code | Direct response can specify custom status_code |
+| 1.4 | test_request_transform_normal_dict_continues | Request transform returning normal dict should continue to server |
+| 1.5 | test_request_transform_direct_response_binary_output | Direct response output can be bytes |
+| 1.6 | test_request_transform_direct_response_clarifying_menu | Request transform can return a clarifying menu HTML page |
+| 1.7 | test_request_transform_response_key_precedence | If both 'response' and 'path' keys present, 'response' takes precedence |
+| 2.1 | test_response_details_source_server | Response details from server should have source='server' |
+| 2.2 | test_response_details_source_request_transform | Response details from request transform should have source='request_transform' |
+| 2.3 | test_response_transform_receives_source | Response transform should receive the source field in response_details |
+| 2.4 | test_response_transform_conditional_on_source | Response transform can conditionally process based on source |
+| 2.5 | test_response_details_source_defaults_server | Source field should default to 'server' for backwards compatibility |
+| 3.1 | test_template_resolver_creation | Template resolver should be created from gateway config |
+| 3.2 | test_template_resolver_returns_jinja_template | resolve_template should return a jinja2.Template object |
+| 3.3 | test_template_resolver_unknown_template | resolve_template should raise ValueError for unknown template name |
+| 3.4 | test_template_resolver_missing_cid | resolve_template should raise LookupError if CID cannot be resolved |
+| 3.5 | test_transform_receives_template_resolver | Transforms should receive resolve_template function in context |
+| 3.6 | test_template_rendering_with_variables | Resolved template can be rendered with variables |
+| 3.7 | test_empty_templates_config | Gateway with no templates config should still work |
+| 3.8 | test_request_transform_receives_template_resolver | Request transform should receive resolve_template in context |
+| 3.9 | test_response_transform_receives_template_resolver | Response transform should receive resolve_template in context |
+| 4.1 | test_man_transform_uses_external_template | Man response transform should use external template when available |
+| 4.2 | test_man_transform_fallback_inline | Man transform should fall back to inline template if external unavailable |
+| 4.3 | test_tldr_transform_uses_external_template | TLDR transform should use external template when available |
+| 4.4 | test_jsonplaceholder_transform_uses_external_template | JSONPlaceholder transform should use external template when available |
+| 4.5 | test_hrx_transform_uses_external_template | HRX transform should use external template when available |
+| 4.6 | test_transforms_backwards_compatible | Existing transforms should work without templates config |
+| 5.1 | test_meta_page_shows_templates_section | Meta page should show templates section when templates configured |
+| 5.2 | test_meta_page_lists_template_names | Meta page should list all template names from config |
+| 5.3 | test_meta_page_shows_template_cids | Meta page should show CID for each template |
+| 5.4 | test_meta_page_shows_template_source | Meta page should show template source in collapsible section |
+| 5.5 | test_meta_page_validates_jinja_syntax | Meta page should show syntax validation status for templates |
+| 5.6 | test_meta_page_shows_template_syntax_errors | Meta page should display Jinja syntax errors |
+| 5.7 | test_meta_page_lists_template_variables | Meta page should list detected template variables |
+| 5.8 | test_meta_page_handles_missing_template_cid | Meta page should handle templates with unresolvable CIDs |
+| 5.9 | test_meta_page_no_templates_configured | Meta page should show message when no templates configured |
+| 5.10 | test_meta_page_template_cid_links | Template CIDs should be clickable links |
+
+### Integration Tests (tests/integration/test_gateway_server.py)
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| 1.8 | test_gateway_request_transform_direct_response_integration | Full integration test for request transform returning direct response |
+| 1.9 | test_gateway_direct_response_then_response_transform | Response transform should be called even for direct responses |
+| 3.10 | test_gateway_template_resolution_integration | Full integration test for template resolution from CID |
+| 3.11 | test_response_transform_external_template | Response transform can use external template via resolve_template |
+
+---
+
+## Edge Cases and Error Handling
+
+### Edge Case Tests
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| E.1 | test_request_transform_returns_none | Handle request transform returning None |
+| E.2 | test_request_transform_returns_empty_dict | Handle request transform returning {} |
+| E.3 | test_response_in_request_transform_with_none_output | Handle response with output=None |
+| E.4 | test_template_with_undefined_variable | Template rendering with undefined variable |
+| E.5 | test_template_with_circular_include | Template with circular include (if supported) |
+| E.6 | test_very_large_template | Template that exceeds reasonable size limits |
+| E.7 | test_template_cid_pointing_to_non_template | CID pointing to binary/non-text content |
+| E.8 | test_concurrent_template_resolution | Multiple concurrent resolve_template calls |
+| E.9 | test_source_field_preserved_through_transform_chain | Source field preserved if response transform re-wraps |
+| E.10 | test_request_transform_response_with_headers | Direct response with custom headers dict |
+
+---
+
+## Open Questions
+
+1. **Template Caching**: Should resolved templates be cached during a request? Across requests?
+   - *Proposed Answer*: No caching initially. Templates are resolved per-request to ensure freshness. Caching can be added as an optimization later.
+
+2. **Template Include/Extend**: Should templates be able to include or extend other templates in the same gateway's template config?
+   - *Proposed Answer*: Not in initial implementation. Keep templates standalone for simplicity.
+
+3. **Template Errors at Runtime**: If a template fails to render (e.g., missing variable), should the transform fail or fall back?
+   - *Proposed Answer*: Let the exception propagate. The gateway error handler will catch it and display a diagnostic error page.
+
+4. **Response Transform for Direct Responses**: Should the response transform always be called for direct responses, or should there be an option to skip it?
+   - *Proposed Answer*: Always call it. The transform can check `source` and return early if desired.
+
+5. **Request Transform Direct Response Status Code**: Should direct responses default to 200, or require explicit status?
+   - *Proposed Answer*: Default to 200 for backwards compatibility and simplicity.
+
+6. **Template Variable Detection**: How accurate should variable detection be for the meta page?
+   - *Proposed Answer*: Use Jinja2's `meta.find_undeclared_variables()` which provides reasonable detection. Accept that it may miss some variables (e.g., those accessed via subscript notation).
+
+7. **Backwards Compatibility Period**: How long should inline templates be supported in existing transforms?
+   - *Proposed Answer*: Indefinitely. Keep fallback logic so transforms work with or without external templates.
+
+8. **Template Security**: Should templates have any sandboxing or restrictions?
+   - *Proposed Answer*: No additional sandboxing. Templates are already trusted content (stored as CIDs by the system administrator). Jinja2's default autoescaping provides basic XSS protection.
+
+---
+
+## Implementation Order
+
+### Phase 1: Core Infrastructure
+1. Implement request transform direct response detection
+2. Add `source` field to response details
+3. Implement template resolver function
+4. Write unit tests for phases 1-3
+
+### Phase 2: Transform Updates
+5. Update gateway config schema to support templates
+6. Update man_response.py to use external templates (as reference implementation)
+7. Create man page template files
+8. Update remaining transforms (tldr, jsonplaceholder, hrx)
+
+### Phase 3: Meta Page Enhancement
+9. Update `_handle_meta_page()` to load templates info
+10. Add template validation function
+11. Update meta.html template with templates section
+12. Write tests for meta page changes
+
+### Phase 4: Integration and Polish
+13. Write integration tests
+14. Update documentation
+15. Update gateways.json with template CIDs
+16. End-to-end testing
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `reference_templates/servers/definitions/gateway.py` | Add direct response detection, source field, template resolver |
+| `reference_templates/servers/templates/gateway/meta.html` | Add templates section |
+| `reference_templates/gateways/transforms/man_request.py` | Add template support (optional) |
+| `reference_templates/gateways/transforms/man_response.py` | Use external templates |
+| `reference_templates/gateways/transforms/tldr_request.py` | Add template support (optional) |
+| `reference_templates/gateways/transforms/tldr_response.py` | Use external templates |
+| `reference_templates/gateways/transforms/jsonplaceholder_response.py` | Use external templates |
+| `reference_templates/gateways/transforms/hrx_response.py` | Use external templates |
+| `reference_templates/gateways.json` | Add templates config |
+| `reference_templates/gateways.source.json` | Add templates config (source) |
+| `tests/test_gateway_server.py` | Add unit tests |
+| `tests/integration/test_gateway_server.py` | Add integration tests |
+
+## New Files to Create
+
+| File | Purpose |
+|------|---------|
+| `reference_templates/gateways/templates/man_page.html` | Man page main template |
+| `reference_templates/gateways/templates/man_error.html` | Man page error template |
+| `reference_templates/gateways/templates/tldr_page.html` | TLDR page template |
+| `reference_templates/gateways/templates/tldr_error.html` | TLDR error template |
+| `reference_templates/gateways/templates/jsonplaceholder_item.html` | JSONPlaceholder item template |
+| `reference_templates/gateways/templates/jsonplaceholder_list.html` | JSONPlaceholder list template |
+| `reference_templates/gateways/templates/hrx_viewer.html` | HRX archive viewer template |
+
+---
+
+## Success Criteria
+
+1. All listed tests pass
+2. Existing gateways continue to work without modification (backwards compatibility)
+3. New gateways can be configured with external templates
+4. Meta page displays template information and validation
+5. Request transforms can return clarifying menus
+6. Response transforms know the source of responses
