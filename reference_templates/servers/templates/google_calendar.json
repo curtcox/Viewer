@@ -1,0 +1,18 @@
+{
+  "id": "google_calendar",
+  "name": "Google Calendar API",
+  "description": "Manage events in Google Calendar.",
+  "definition_file": "definitions/google_calendar.py",
+  "documentation_url": "https://developers.google.com/calendar/api",
+  "operations": {
+    "read": [
+      "list_events - List calendar events",
+      "get_event - Get event details"
+    ],
+    "write": [
+      "create_event - Create a new event",
+      "update_event - Update an existing event",
+      "delete_event - Delete an event"
+    ]
+  }
+}

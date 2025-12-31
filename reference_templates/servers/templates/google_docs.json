@@ -1,0 +1,16 @@
+{
+  "id": "google_docs",
+  "name": "Google Docs API",
+  "description": "Create and manage Google Docs documents.",
+  "definition_file": "definitions/google_docs.py",
+  "documentation_url": "https://developers.google.com/docs/api",
+  "operations": {
+    "read": [
+      "get_document - Get document content"
+    ],
+    "write": [
+      "create_document - Create a new document",
+      "batch_update - Update document content"
+    ]
+  }
+}

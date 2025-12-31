@@ -1,0 +1,18 @@
+{
+  "id": "google_contacts",
+  "name": "Google Contacts API",
+  "description": "Manage contacts via Google People API.",
+  "definition_file": "definitions/google_contacts.py",
+  "documentation_url": "https://developers.google.com/people",
+  "operations": {
+    "read": [
+      "list_contacts - List contacts",
+      "get_contact - Get contact details"
+    ],
+    "write": [
+      "create_contact - Create a new contact",
+      "update_contact - Update an existing contact",
+      "delete_contact - Delete a contact"
+    ]
+  }
+}
