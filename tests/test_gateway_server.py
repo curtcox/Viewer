@@ -623,3 +623,89 @@ def test_empty_templates_config():
     # But should fail when trying to resolve a template
     with pytest.raises(ValueError):
         resolver("any.html")
+
+
+def test_man_transform_uses_external_template(monkeypatch):
+    """Man response transform should use external template via resolve_template."""
+    # Create a simple mock transform that uses resolve_template
+    def mock_transform(response_details, context):
+        resolve_template = context.get("resolve_template")
+        if not resolve_template:
+            raise RuntimeError("resolve_template not available")
+        
+        template = resolve_template("man_page.html")
+        html = template.render(command="grep", sections=None, content="test content")
+        return {"output": html, "content_type": "text/html"}
+    
+    # Create mock templates
+    from jinja2 import Template
+    
+    def mock_resolve_cid(cid_value, as_bytes=False):
+        # Handle both with and without leading slash
+        cid = cid_value.lstrip("/")
+        if "man_page" in cid or cid == "FAKE_TEMPLATE":
+            content = "<!DOCTYPE html><html><body>man {{ command }}: {{ content }}</body></html>"
+            if as_bytes:
+                return content.encode("utf-8")
+            return content
+        return None
+    
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Mock the CID resolution
+    monkeypatch.setattr(gateway_definition, "_resolve_cid_content", mock_resolve_cid)
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", lambda cid, ctx: mock_transform)
+    
+    gateways = {
+        "test": {
+            "response_transform_cid": "FAKE",
+            "templates": {
+                "man_page.html": "FAKE_TEMPLATE",
+            },
+        }
+    }
+    
+    # Mock server execution
+    def mock_execute(target, request_details):
+        class MockResponse:
+            status_code = 200
+            headers = {"Content-Type": "text/plain"}
+            content = b"test output"
+            text = "test output"
+            def json(self):
+                return None
+        return MockResponse()
+    
+    monkeypatch.setattr(gateway_definition, "_execute_target_request", mock_execute)
+    
+    with app.test_request_context("/gateway/test/path"):
+        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    # Should return HTML with templated content
+    assert result["content_type"] == "text/html"
+    assert "<!DOCTYPE html>" in result["output"]
+    assert "man grep" in result["output"]
+    assert "test content" in result["output"]
+
+
+
+def test_man_transform_requires_templates():
+    """Man transform should raise error if resolve_template not available."""
+    # Create a simple mock transform that requires resolve_template
+    def mock_transform(response_details, context):
+        resolve_template = context.get("resolve_template")
+        if not resolve_template:
+            raise RuntimeError("resolve_template not available - templates must be configured")
+        return {"output": "test", "content_type": "text/html"}
+    
+    # Call without resolve_template in context
+    response_details = {
+        "status_code": 200,
+        "text": "grep - print lines",
+        "request_path": "grep",
+    }
+    
+    with pytest.raises(RuntimeError) as exc_info:
+        mock_transform(response_details, {})
+    
+    assert "resolve_template not available" in str(exc_info.value)

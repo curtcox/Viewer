@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>man {{ command }}</title>
+    <style>
+        body { font-family: 'Courier New', monospace; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; border-bottom: 2px solid #4ec9b0; padding-bottom: 0.5rem; }
+        h2 { color: #9cdcfe; margin-top: 2rem; }
+        pre { background: #252536; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { margin-bottom: 1rem; padding: 0.5rem; background: #252536; border-radius: 4px; }
+        .nav a { margin-right: 1rem; }
+        .section-title { color: #c586c0; font-weight: bold; }
+        .cmd-ref { color: #dcdcaa; }
+        .toc { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .toc ul { margin: 0; padding-left: 1.5rem; }
+        .toc a { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway/man">man pages</a>
+        <a href="/gateway/tldr/{{ command }}">tldr {{ command }}</a>
+    </div>
+    <h1>man {{ command }}</h1>
+    {% if sections %}
+    <div class="toc">
+        <strong>Contents:</strong>
+        <ul>
+        {% for section_name in sections.keys() %}
+            <li><a href="#{{ section_name | lower | replace(' ', '-') }}">{{ section_name }}</a></li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% for section_name, section_content in sections.items() %}
+    <h2 id="{{ section_name | lower | replace(' ', '-') }}">{{ section_name }}</h2>
+    <pre>{{ section_content }}</pre>
+    {% endfor %}
+    {% else %}
+    <pre>{{ content }}</pre>
+    {% endif %}
+</body>
+</html>

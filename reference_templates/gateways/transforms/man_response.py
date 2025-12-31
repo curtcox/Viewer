@@ -3,6 +3,7 @@
 """Response transform for man page gateway.
 
 Transforms man page output into formatted HTML with command links.
+Uses external Jinja templates from the gateway config.
 """
 
 import re
@@ -25,121 +26,40 @@ def transform_response(response_details: dict, context: dict) -> dict:
 
     # Extract command name from path
     command = request_path.strip("/").split("/")[0] if request_path.strip("/") else "man"
+    
+    # Get template resolver from context
+    resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured in gateway config")
 
     if status_code >= 400 or not text:
+        template = resolve_template("man_error.html")
+        html = template.render(command=command, message=text or "Command not found")
         return {
-            "output": _render_error_page(command, text or "Command not found"),
+            "output": html,
             "content_type": "text/html",
         }
 
     text = _normalize_man_terminal_formatting(text)
-
-    # Convert man page to HTML
-    html_output = _render_man_as_html(text, command)
-
-    return {
-        "output": html_output,
-        "content_type": "text/html",
-    }
-
-
-def _render_error_page(command: str, message: str) -> str:
-    """Render an error page."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>man {escape(command)} - Error</title>
-    <style>
-        body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }}
-        .error {{ background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; }}
-        h1 {{ color: #f44; }}
-        a {{ color: #4ec9b0; }}
-        .nav {{ margin-bottom: 1rem; }}
-    </style>
-</head>
-<body>
-    <div class="nav">
-        <a href="/gateway/man">man pages</a> |
-        <a href="/gateway/tldr/{escape(command)}">Try tldr {escape(command)}</a>
-    </div>
-    <div class="error">
-        <h1>man {escape(command)}</h1>
-        <p>{escape(message)}</p>
-    </div>
-</body>
-</html>"""
-
-
-def _render_man_as_html(text: str, command: str) -> str:
-    """Render man page text as formatted HTML."""
+    
     # Convert command references like "ls(1)" to links
     converted_text = _convert_command_references(text)
-
-    # Detect sections in man page
+    
+    # Parse sections
     sections = _parse_man_sections(converted_text)
-
-    html_parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        '    <meta charset="utf-8">',
-        '    <title>man ' + escape(command) + '</title>',
-        "    <style>",
-        "        body { font-family: 'Courier New', monospace; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }",
-        "        h1 { color: #4ec9b0; border-bottom: 2px solid #4ec9b0; padding-bottom: 0.5rem; }",
-        "        h2 { color: #9cdcfe; margin-top: 2rem; }",
-        "        pre { background: #252536; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }",
-        "        a { color: #4ec9b0; text-decoration: none; }",
-        "        a:hover { text-decoration: underline; }",
-        "        .nav { margin-bottom: 1rem; padding: 0.5rem; background: #252536; border-radius: 4px; }",
-        "        .nav a { margin-right: 1rem; }",
-        "        .section-title { color: #c586c0; font-weight: bold; }",
-        "        .cmd-ref { color: #dcdcaa; }",
-        "        .toc { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }",
-        "        .toc ul { margin: 0; padding-left: 1.5rem; }",
-        "        .toc a { color: #9cdcfe; }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        '    <div class="nav">',
-        '        <a href="/gateway/man">man pages</a>',
-        f'        <a href="/gateway/tldr/{escape(command)}">tldr {escape(command)}</a>',
-        "    </div>",
-        f"    <h1>man {escape(command)}</h1>",
-    ]
-
-    # Add table of contents if we have sections
-    if sections:
-        html_parts.append('    <div class="toc">')
-        html_parts.append("        <strong>Contents:</strong>")
-        html_parts.append("        <ul>")
-        for section_name in sections.keys():
-            anchor = section_name.lower().replace(" ", "-")
-            html_parts.append(
-                f'            <li><a href="#{escape(anchor)}">{escape(section_name)}</a></li>'
-            )
-        html_parts.append("        </ul>")
-        html_parts.append("    </div>")
-
-    # Render sections
-    if sections:
-        for section_name, section_content in sections.items():
-            anchor = section_name.lower().replace(" ", "-")
-            html_parts.append(f'    <h2 id="{escape(anchor)}">{escape(section_name)}</h2>')
-            html_parts.append(f"    <pre>{section_content}</pre>")
-    else:
-        # No sections detected, just render the whole thing
-        html_parts.append(f"    <pre>{converted_text}</pre>")
-
-    html_parts.extend(
-        [
-            "</body>",
-            "</html>",
-        ]
+    
+    # Render with external template
+    template = resolve_template("man_page.html")
+    html = template.render(
+        command=command,
+        sections=sections if sections else None,
+        content=converted_text if not sections else None,
     )
 
-    return "\n".join(html_parts)
+    return {
+        "output": html,
+        "content_type": "text/html",
+    }
 
 
 def _convert_command_references(text: str) -> str:

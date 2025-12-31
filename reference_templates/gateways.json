@@ -6,8 +6,12 @@
   },
   "man": {
     "request_transform_cid": "AAAAAAaMsYabK_PVL6O5dzLo5umUZVUNc4TCX9_jpOmgZRfYS7q9ucBUhXLj5xUbrDGu7usooPXFj52vkLuEPHVi0RfO2Q",
-    "response_transform_cid": "AAAAAB22Wg2fhkyu551DRhFBhFAQ_qBxDEiKccl86ByxrzsnCnYdoVx6TPZ19O9vFYSkO3CoSWUFhA6Jjx9M1mYm8ct8Ig",
-    "description": "HTML formatted man pages with command links"
+    "response_transform_cid": "AAAAABEhMEsVwkSw--l_hKIKzuWx80gGZCG3oRRTI2kqs53kOB1qJ5ytuYYQ3Wdg6WBovrxLB4bj7g4iIbybYgYZhwuPFg",
+    "description": "HTML formatted man pages with command links",
+    "templates": {
+      "man_page.html": "AAAAAAcpR6M09vjoOhhEfG4MW8rzdip7Zs-84Rm20v2k9e3DjZBQz4_7wluqglA43-7mqiWDkqPN-Gcag2FYeRzzH9b6_A",
+      "man_error.html": "AAAAAAL-PjC1egoy-pbqvf5z5VRlUMtxocUvad492y7MrFyvo7H_6IEA6maujNEVdIK_z5wP8hJ50Hua8qPLsstbH-68Xw"
+    }
   },
   "tldr": {
     "request_transform_cid": "AAAAAANoBblFXSuVP9YdpuFSVnFCrdLo-HftAHX5Mhw-zmN68Mb4enBZvWitTork0eAIOYc5jAx8lxX8cUUlyVYH07ohoA",
