@@ -1,15 +1,26 @@
 # Gateway Enhancement Plan
  
 ## Overview
- 
-Status: Not implemented yet. The current `gateway.py` supports variable-driven gateways and templates for gateway pages, but does not appear to include the additional enhancements described here (direct response from request transforms, template CID plumbing via `resolve_template`, response `source` indicator, and template previews in meta).
- 
-This plan details enhancements to the gateway facility to support:
-1. Request transforms that can directly return responses (bypassing the server)
-2. Response transforms that know whether the response came from a request transform or the server
-3. External Jinja templates resolved via a template function passed to transforms
-4. Template CIDs specified in the gateways variable
-5. Enhanced `/gateways/meta/{server}` to list and preview gateway templates
+
+Status: Phase 1 complete, Phase 2 in progress. The gateway.py now supports:
+- ✅ Request transforms that can directly return responses (bypassing the server)
+- ✅ Response transforms that know whether the response came from a request transform or the server via the `source` field
+- ✅ External Jinja templates resolved via a template function passed to transforms (`resolve_template`)
+- ✅ Template CIDs specified in the gateways variable
+- ✅ Man gateway updated to use external templates
+- ⏳ Enhanced `/gateways/meta/{server}` to list and preview gateway templates (planned)
+
+The following enhancements have been implemented:
+1. Request transforms can return direct responses using `{"response": {...}}` syntax
+2. Response details include a `source` field ("server" or "request_transform")
+3. Template resolver function (`resolve_template`) available in transform context
+4. Man gateway uses external templates (man_page.html, man_error.html)
+5. Comprehensive unit tests for all Phase 1 functionality
+
+Remaining work:
+- Update remaining gateways (tldr, jsonplaceholder, hrx) to use external templates
+- Enhance meta page to show template information
+- Integration tests for end-to-end flows
 
 ---
 
