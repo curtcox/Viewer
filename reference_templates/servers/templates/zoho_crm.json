@@ -1,0 +1,81 @@
+{
+  "id": "zoho_crm",
+  "name": "Zoho CRM",
+  "description": "Interact with Zoho CRM to manage accounts, contacts, leads, and deals",
+  "definition_file": "definitions/zoho_crm.py",
+  "documentation_url": "https://www.zoho.com/crm/developer/docs/api/v2/",
+  "operations": {
+    "read": [
+      "list_records - List records from a module",
+      "get_record - Get a specific record by ID",
+      "search_records - Search records with criteria"
+    ],
+    "write": [
+      "create_record - Create a new record",
+      "update_record - Update an existing record",
+      "delete_record - Delete a record"
+    ]
+  },
+  "secrets": {
+    "ZOHO_ACCESS_TOKEN": "OAuth access token for Zoho CRM API"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_records",
+        "get_record",
+        "create_record",
+        "update_record",
+        "delete_record",
+        "search_records"
+      ],
+      "default": "list_records"
+    },
+    "module": {
+      "type": "string",
+      "description": "Zoho CRM module",
+      "options": [
+        "Accounts",
+        "Contacts",
+        "Leads",
+        "Deals",
+        "Tasks",
+        "Calls",
+        "Meetings"
+      ],
+      "default": "Accounts"
+    },
+    "record_id": {
+      "type": "string",
+      "description": "Record ID",
+      "required_for": ["get_record", "update_record", "delete_record"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data for creating or updating records",
+      "required_for": ["create_record", "update_record"]
+    },
+    "criteria": {
+      "type": "string",
+      "description": "Search criteria (e.g., '(Email:equals:john@example.com)')",
+      "required_for": ["search_records"]
+    },
+    "page": {
+      "type": "integer",
+      "description": "Page number for pagination",
+      "default": 1
+    },
+    "per_page": {
+      "type": "integer",
+      "description": "Number of records per page (max 200)",
+      "default": 200
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

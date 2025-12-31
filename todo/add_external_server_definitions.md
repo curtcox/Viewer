@@ -104,6 +104,28 @@ Each external service requires:
 - Total external server tests: 412 tests passing.
 - Ready to proceed to Phase 6: CRM & Sales servers (6 servers).
 
+## Progress Notes (2025-12-31 - Phase 6)
+
+- **Phase 6 CRM & Sales Servers COMPLETED**: All 6 CRM & Sales servers implemented.
+- Implemented salesforce: Query with SOQL, get/create/update/delete records, describe objects (17 tests passing).
+- Implemented pipedrive: List/get/create/update deals, list/get/create persons/organizations (13 tests passing).
+- Implemented close_crm: List/get/create/update leads, list/get/create contacts/opportunities (13 tests passing).
+- Implemented zoho_crm: List/get/create/update/delete/search records across multiple modules (14 tests passing).
+- Implemented insightly: List/get/create/update contacts/organizations/opportunities (13 tests passing).
+- Implemented calendly: Get user, list/get event types/events/invitees, cancel events (15 tests passing).
+- Salesforce uses OAuth Bearer token with instance URL configuration.
+- Pipedrive uses API token appended to URL query string.
+- Close CRM uses Basic Authentication with API key as username.
+- Zoho CRM uses custom "Zoho-oauthtoken" header format with OAuth access token.
+- Insightly uses Basic Authentication with API key as username.
+- Calendly uses OAuth Bearer token for API access.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 13 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 6 tests: 85 new tests passing.
+- Total external server tests: 497 tests passing (412 from previous phases + 85 new).
+- Ready to proceed to Phase 7: Customer Support servers (7 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1451,13 +1473,13 @@ First servers using shared infrastructure as validation:
 - ✅ whatsapp - Added 2025-12-31
 - ✅ telegram - Added 2025-12-31
 
-### Phase 6: CRM & Sales (6 servers)
-- salesforce
-- pipedrive
-- close_crm
-- zoho_crm
-- insightly
-- calendly
+### Phase 6: CRM & Sales (6 servers) ✅ COMPLETE
+- ✅ salesforce - Added 2025-12-31
+- ✅ pipedrive - Added 2025-12-31
+- ✅ close_crm - Added 2025-12-31
+- ✅ zoho_crm - Added 2025-12-31
+- ✅ insightly - Added 2025-12-31
+- ✅ calendly - Added 2025-12-31
 
 ### Phase 7: Customer Support (7 servers)
 - intercom

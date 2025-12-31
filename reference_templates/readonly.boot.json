@@ -571,6 +571,36 @@
       "enabled": true
     },
     {
+      "name": "salesforce",
+      "definition_cid": "AAAAABm0RcaLSNbp5CXTTYZhJIO3QDORJ7wJ-lEv7LLh6YkLfO1E0KY0zgX3V8Cwvv5HDNz4woYYranXkm0KafiAG3HUgQ",
+      "enabled": true
+    },
+    {
+      "name": "pipedrive",
+      "definition_cid": "AAAAABhspfuxZqXYW-eA_EL6PR-B57OzRnjJzAEFLwTMTPgA-fj8N8033JYMuimHFqnZWv3cUk-6jvPdCpj3650x9AtMjA",
+      "enabled": true
+    },
+    {
+      "name": "close_crm",
+      "definition_cid": "AAAAABgg0fpQ_wsP_q870011M8mTVIlBbvIEh_c4YsDAaZ3jugIyLFyDGumTyqXX9AZNxhGwjhU-KddmjqCeuhhB3JArEw",
+      "enabled": true
+    },
+    {
+      "name": "zoho_crm",
+      "definition_cid": "AAAAABbQLoAGFQPPKWVSRxTrORUl0G8uCPZ6t3SXG8mJTtu0KBdB5RrP0fFxjCbFx0V1EDJRr1BkVJchpJK6cXNmen8PBA",
+      "enabled": true
+    },
+    {
+      "name": "insightly",
+      "definition_cid": "AAAAABmgKm0I1bJabPYSCl-c4hoLa7yb0ebZcysAtEbNTXsfvbb3XXARIredCCb0DS3sXmddDGDKFg3IV75on2-7mv94IQ",
+      "enabled": true
+    },
+    {
+      "name": "calendly",
+      "definition_cid": "AAAAABegYLEj_Si3R3kNXid4ht4cx4VloJzVOutsBeLH3QpsK_BmK6k2G7MbfMJJ46M5wIm1QaKv9pR5S5AvMHjyBfKIaA",
+      "enabled": true
+    },
+    {
       "name": "mailchimp",
       "definition_cid": "AAAAABiFTNWfljZW7u_oRBGgIUff6HKeEbYO6cEw07OujvpS22qdVJmMlg1ijFwABjzbvFqe6S2r70SS_ie84Mt0yROlFg",
       "enabled": true

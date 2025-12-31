@@ -58,6 +58,7 @@ class ExternalApiClient:
         data: Optional[Any] = None,
         params: Optional[Dict[str, str]] = None,
         timeout: Optional[int] = None,
+        auth: Optional[tuple] = None,
     ) -> Response:
         """Send an HTTP request with retry support and safe logging."""
 
@@ -73,6 +74,7 @@ class ExternalApiClient:
                 data=data,
                 params=params,
                 timeout=request_timeout,
+                auth=auth,
             )
         except RequestException as exc:  # pragma: no cover - exercised via tests
             self._log_error(method, url, str(exc))

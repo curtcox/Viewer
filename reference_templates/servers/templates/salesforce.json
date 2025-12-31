@@ -1,0 +1,63 @@
+{
+  "id": "salesforce",
+  "name": "Salesforce",
+  "description": "Interact with Salesforce CRM to manage objects like accounts, contacts, and opportunities",
+  "definition_file": "definitions/salesforce.py",
+  "documentation_url": "https://developer.salesforce.com/docs/apis",
+  "operations": {
+    "read": [
+      "query - Execute SOQL query",
+      "get_record - Get a specific record by ID",
+      "describe_object - Get metadata for an object type"
+    ],
+    "write": [
+      "create_record - Create a new record",
+      "update_record - Update an existing record",
+      "delete_record - Delete a record"
+    ]
+  },
+  "secrets": {
+    "SALESFORCE_ACCESS_TOKEN": "OAuth access token for Salesforce API",
+    "SALESFORCE_INSTANCE_URL": "Salesforce instance URL (e.g., https://na1.salesforce.com)"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "query",
+        "get_record",
+        "create_record",
+        "update_record",
+        "delete_record",
+        "describe_object"
+      ],
+      "default": "query"
+    },
+    "soql_query": {
+      "type": "string",
+      "description": "SOQL query string (required for query)",
+      "required_for": ["query"]
+    },
+    "sobject_type": {
+      "type": "string",
+      "description": "Salesforce object type (e.g., Account, Contact, Opportunity)",
+      "required_for": ["get_record", "create_record", "update_record", "delete_record", "describe_object"]
+    },
+    "record_id": {
+      "type": "string",
+      "description": "Record ID",
+      "required_for": ["get_record", "update_record", "delete_record"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data for creating or updating records",
+      "required_for": ["create_record", "update_record"]
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "id": "insightly",
+  "name": "Insightly",
+  "description": "Interact with Insightly CRM to manage contacts, organizations, and opportunities",
+  "definition_file": "definitions/insightly.py",
+  "documentation_url": "https://api.insightly.com/v3.1/Help",
+  "operations": {
+    "read": [
+      "list_contacts - List all contacts",
+      "get_contact - Get a specific contact by ID",
+      "list_organizations - List all organizations",
+      "get_organization - Get a specific organization by ID",
+      "list_opportunities - List all opportunities",
+      "get_opportunity - Get a specific opportunity by ID"
+    ],
+    "write": [
+      "create_contact - Create a new contact",
+      "update_contact - Update an existing contact",
+      "create_organization - Create a new organization",
+      "create_opportunity - Create a new opportunity"
+    ]
+  },
+  "secrets": {
+    "INSIGHTLY_API_KEY": "API key for Insightly"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_contacts",
+        "get_contact",
+        "create_contact",
+        "update_contact",
+        "list_organizations",
+        "get_organization",
+        "create_organization",
+        "list_opportunities",
+        "get_opportunity",
+        "create_opportunity"
+      ],
+      "default": "list_contacts"
+    },
+    "contact_id": {
+      "type": "integer",
+      "description": "Contact ID",
+      "required_for": ["get_contact", "update_contact"]
+    },
+    "organization_id": {
+      "type": "integer",
+      "description": "Organization ID",
+      "required_for": ["get_organization"]
+    },
+    "opportunity_id": {
+      "type": "integer",
+      "description": "Opportunity ID",
+      "required_for": ["get_opportunity"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data for creating or updating records",
+      "required_for": ["create_contact", "update_contact", "create_organization", "create_opportunity"]
+    },
+    "top": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 100
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}
