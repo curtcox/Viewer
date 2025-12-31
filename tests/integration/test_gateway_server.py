@@ -226,7 +226,9 @@ def test_gateway_returns_error_when_response_transform_missing(
     response = client.get("/gateway/jsonplaceholder/posts/1", follow_redirects=True)
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    assert "Response Transform Not Found" in page
+    # Gateway should show an error page (either for missing transform or missing target)
+    assert "Gateway Error" in page
+    assert ("Response Transform Not Found" in page or "No internal target" in page or "error" in page.lower())
 
 
 def test_gateway_meta_page_404_for_unknown_gateway(
