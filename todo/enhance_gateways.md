@@ -825,21 +825,8 @@ The following decisions have been made:
 | 6 | **Template Variable Detection** | Use Jinja2's `meta.find_undeclared_variables()`. Accept that it may miss some variables. |
 | 7 | **Inline Template Support** | The gateway maintains inline template support for backwards compatibility, but transforms should ONLY use external templates. No transform should use inline templates. |
 | 8 | **Template Security** | No additional sandboxing. Templates are trusted content stored as CIDs. |
-
----
-
-## Open Questions
-
-1. **Transform Behavior Without Templates**: Since transforms must use external templates exclusively, what should happen when a transform is invoked but `resolve_template` is not available (i.e., no templates configured in the gateway)?
-   - **Option A**: Raise a `RuntimeError` with a clear message indicating templates must be configured
-   - **Option B**: Return the raw/unformatted content with a basic wrapper
-   - **Option C**: Return an error page explaining the misconfiguration
-   - *Recommendation*: Option A - fail fast with a clear error message
-
-2. **Meta Page Template Validation Warning**: Should the meta page show a warning when a gateway has transforms configured but no templates?
-   - **Option A**: Yes, show a warning that templates are required for the transforms to function
-   - **Option B**: No, this is implicit from the templates section being empty
-   - *Recommendation*: Option A - explicit validation helps users diagnose issues
+| 9 | **Transform Behavior Without Templates** | Raise a `RuntimeError` with a clear message indicating templates must be configured. Fail fast. |
+| 10 | **Meta Page Template Validation Warning** | Show a warning when a gateway has transforms configured but no templates. Explicit validation helps users diagnose issues. |
 
 ---
 
