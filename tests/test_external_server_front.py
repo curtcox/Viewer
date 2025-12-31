@@ -5,7 +5,8 @@ class DummyResponse:
     def __init__(self, status_code: int = 200, json_data=None, text: str = ""):
         self.status_code, self._json_data, self.text, self.ok = status_code, json_data if json_data is not None else {}, text, status_code < 400
     def json(self):
-        if isinstance(self._json_data, Exception): raise self._json_data
+        if isinstance(self._json_data, Exception):
+            raise self._json_data
         return self._json_data
 
 class FakeClient:
@@ -13,11 +14,13 @@ class FakeClient:
         self.response, self.exc, self.calls = response, exc, []
     def get(self, url: str, **kwargs):
         self.calls.append(("GET", url, kwargs))
-        if self.exc: raise self.exc
+        if self.exc:
+            raise self.exc
         return self.response
     def post(self, url: str, **kwargs):
         self.calls.append(("POST", url, kwargs))
-        if self.exc: raise self.exc
+        if self.exc:
+            raise self.exc
         return self.response
 
 def test_missing_api_token(): assert front.main(FRONT_API_TOKEN="", dry_run=False)["output"]["error"] == "Missing FRONT_API_TOKEN"
