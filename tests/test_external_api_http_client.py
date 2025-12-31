@@ -76,3 +76,24 @@ def test_request_logs_and_raises_request_exception(caplog: pytest.LogCaptureFixt
             client.delete("https://example.test")
 
     assert "API Error: DELETE https://example.test -> boom" in caplog.text
+
+
+def test_request_passes_auth_parameter() -> None:
+    """Test that auth parameter is correctly passed to session.request()."""
+    session = DummySession()
+    client = ExternalApiClient(session=session)
+
+    client.get("https://example.test", auth=("user", "pass"))
+
+    assert session.calls == [
+        {
+            "method": "GET",
+            "url": "https://example.test",
+            "headers": None,
+            "json": None,
+            "data": None,
+            "params": None,
+            "timeout": 60,
+            "auth": ("user", "pass"),
+        }
+    ]
