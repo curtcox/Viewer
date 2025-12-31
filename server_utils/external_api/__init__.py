@@ -1,5 +1,6 @@
 """Utilities for external API server definitions."""
 
+from .content_decoder import auto_decode_response, decode_content
 from .error_response import (
     api_error,
     error_output,
@@ -16,6 +17,8 @@ from .secret_validator import validate_api_key_with_endpoint, validate_secret
 from .webhook_receiver import WebhookConfig, WebhookReceiver
 
 __all__ = [
+    "auto_decode_response",
+    "decode_content",
     "error_output",
     "error_response",
     "missing_secret_error",

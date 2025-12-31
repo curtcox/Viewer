@@ -6,6 +6,8 @@ from urllib.parse import urlsplit, urlunsplit
 import requests
 from flask import request as flask_request
 
+from server_utils.external_api import auto_decode_response
+
 PLACEHOLDER_TARGET_URL = "https://example.com/replace-me"
 # Update this value to point at the upstream service you want to proxy to when
 # you do not plan to use Viewer variables or secrets for configuration.
@@ -116,7 +118,9 @@ def _proxy_request(base_url: str, request_info: dict) -> dict:
     )
 
     content_type = response.headers.get("Content-Type", "application/octet-stream")
-    return {"output": response.content, "content_type": content_type}
+    # Decompress content if the upstream server sent a compressed response
+    output = auto_decode_response(response)
+    return {"output": output, "content_type": content_type}
 
 
 def _normalize_server_token(server_name: str) -> str:

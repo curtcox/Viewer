@@ -14,55 +14,13 @@ Usage:
 
 from urllib.parse import urljoin
 
-import gzip
-import zlib
-
 import requests
 from flask import request as flask_request
 
+from server_utils.external_api import auto_decode_response
+
 
 BASE_URL = "https://jsonplaceholder.typicode.com"
-
-
-def _decode_content(content: bytes, content_encoding: str | None) -> bytes:
-    if not isinstance(content, (bytes, bytearray)):
-        return str(content).encode("utf-8")
-
-    body = bytes(content)
-    if not content_encoding:
-        return body
-
-    encodings = [
-        encoding.strip().lower()
-        for encoding in str(content_encoding).split(",")
-        if encoding and str(encoding).strip()
-    ]
-    if not encodings:
-        return body
-
-    for encoding in reversed(encodings):
-        if encoding in {"identity", "none"}:
-            continue
-        if encoding == "gzip":
-            body = gzip.decompress(body)
-            continue
-        if encoding == "deflate":
-            try:
-                body = zlib.decompress(body)
-            except zlib.error:
-                body = zlib.decompress(body, -zlib.MAX_WBITS)
-            continue
-        if encoding == "br":
-            try:
-                import brotli  # type: ignore
-            except Exception as exc:  # pylint: disable=broad-except
-                raise ValueError(
-                    "Upstream response was brotli-compressed (Content-Encoding: br), but brotli is not available"
-                ) from exc
-            body = brotli.decompress(body)
-            continue
-
-    return body
 
 
 def _split_server_path(path: str) -> tuple[str, str]:
@@ -143,8 +101,7 @@ def _proxy_request(req) -> dict:
     )
 
     content_type = response.headers.get("Content-Type", "application/json")
-    content_encoding = response.headers.get("Content-Encoding")
-    output = _decode_content(response.content, content_encoding)
+    output = auto_decode_response(response)
     return {"output": output, "content_type": content_type}
 
 
