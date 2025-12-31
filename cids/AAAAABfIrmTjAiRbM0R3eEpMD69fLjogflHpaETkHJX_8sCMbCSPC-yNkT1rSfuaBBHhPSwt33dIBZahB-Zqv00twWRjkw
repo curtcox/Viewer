@@ -1,0 +1,189 @@
+# ruff: noqa: F821, F706
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import requests
+
+from server_utils.external_api import ExternalApiClient, error_output, validation_error
+
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+
+def _build_preview(
+    *,
+    operation: str,
+    conversation_id: Optional[str],
+    admin_id: Optional[str],
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    base_url = "https://api.intercom.io"
+    
+    if operation == "list_conversations":
+        url = f"{base_url}/conversations"
+        method = "GET"
+    elif operation == "get_conversation":
+        url = f"{base_url}/conversations/{conversation_id}"
+        method = "GET"
+    elif operation == "reply_to_conversation":
+        url = f"{base_url}/conversations/{conversation_id}/reply"
+        method = "POST"
+    elif operation == "list_contacts":
+        url = f"{base_url}/contacts"
+        method = "GET"
+    elif operation == "get_contact":
+        url = f"{base_url}/contacts/{conversation_id}"  # reusing conversation_id for contact_id
+        method = "GET"
+    elif operation == "create_contact":
+        url = f"{base_url}/contacts"
+        method = "POST"
+    else:
+        url = base_url
+        method = "GET"
+
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "url": url,
+        "method": method,
+        "auth": "bearer",
+    }
+    if payload:
+        preview["payload"] = payload
+
+    return preview
+
+
+def main(
+    *,
+    operation: str = "list_conversations",
+    conversation_id: Optional[str] = None,
+    contact_id: Optional[str] = None,
+    admin_id: Optional[str] = None,
+    message: str = "",
+    email: str = "",
+    name: str = "",
+    role: str = "",
+    INTERCOM_ACCESS_TOKEN: str = "",
+    dry_run: bool = True,
+    timeout: int = 60,
+    client: Optional[ExternalApiClient] = None,
+    context=None,
+) -> Dict[str, Any]:
+    """Interact with Intercom conversations and contacts."""
+
+    if not INTERCOM_ACCESS_TOKEN:
+        return error_output(
+            "Missing INTERCOM_ACCESS_TOKEN",
+            status_code=401,
+            details="Provide an Intercom access token for Bearer authentication",
+        )
+
+    normalized_operation = operation.lower()
+    valid_operations = {
+        "list_conversations",
+        "get_conversation",
+        "reply_to_conversation",
+        "list_contacts",
+        "get_contact",
+        "create_contact",
+    }
+    if normalized_operation not in valid_operations:
+        return validation_error("Unsupported operation", field="operation")
+
+    # Validation for specific operations
+    if normalized_operation in {"get_conversation", "reply_to_conversation"}:
+        if not conversation_id:
+            return validation_error("Missing required conversation_id", field="conversation_id")
+
+    if normalized_operation == "reply_to_conversation":
+        if not message:
+            return validation_error("Missing required message", field="message")
+        if not admin_id:
+            return validation_error("Missing required admin_id", field="admin_id")
+
+    if normalized_operation == "get_contact":
+        if not contact_id:
+            return validation_error("Missing required contact_id", field="contact_id")
+
+    if normalized_operation == "create_contact":
+        if not email:
+            return validation_error("Missing required email", field="email")
+
+    headers = {
+        "Authorization": f"Bearer {INTERCOM_ACCESS_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    base_url = "https://api.intercom.io"
+    payload: Optional[Dict[str, Any]] = None
+
+    # Build URL and payload based on operation
+    if normalized_operation == "list_conversations":
+        url = f"{base_url}/conversations"
+        method = "GET"
+    elif normalized_operation == "get_conversation":
+        url = f"{base_url}/conversations/{conversation_id}"
+        method = "GET"
+    elif normalized_operation == "reply_to_conversation":
+        url = f"{base_url}/conversations/{conversation_id}/reply"
+        method = "POST"
+        payload = {
+            "message_type": "comment",
+            "type": "admin",
+            "admin_id": admin_id,
+            "body": message,
+        }
+    elif normalized_operation == "list_contacts":
+        url = f"{base_url}/contacts"
+        method = "GET"
+    elif normalized_operation == "get_contact":
+        url = f"{base_url}/contacts/{contact_id}"
+        method = "GET"
+    elif normalized_operation == "create_contact":
+        url = f"{base_url}/contacts"
+        method = "POST"
+        payload = {"email": email}
+        if name:
+            payload["name"] = name
+        if role:
+            payload["role"] = role
+    else:
+        url = base_url
+        method = "GET"
+
+    if dry_run:
+        preview = _build_preview(
+            operation=normalized_operation,
+            conversation_id=conversation_id or contact_id,
+            admin_id=admin_id,
+            payload=payload,
+        )
+        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
+
+    api_client = client or _DEFAULT_CLIENT
+
+    try:
+        if method == "POST":
+            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
+        else:
+            response = api_client.get(url, headers=headers, timeout=timeout)
+    except requests.RequestException as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        return error_output("Intercom request failed", status_code=status, details=str(exc))
+
+    try:
+        data = response.json()
+    except ValueError:
+        return error_output(
+            "Invalid JSON response",
+            status_code=getattr(response, "status_code", None),
+            details=getattr(response, "text", None),
+        )
+
+    if not getattr(response, "ok", False):
+        message = data.get("errors", [{}])[0].get("message") or "Intercom API error"
+        return error_output(message, status_code=response.status_code, response=data)
+
+    return {"output": data}

@@ -1,0 +1,18 @@
+{
+  "id": "intercom",
+  "name": "Intercom",
+  "description": "List, retrieve conversations and contacts, reply to conversations using Bearer token authentication.",
+  "definition_cid": "reference_templates/servers/definitions/intercom.py",
+  "operations": [
+    "list_conversations",
+    "get_conversation",
+    "reply_to_conversation",
+    "list_contacts",
+    "get_contact",
+    "create_contact"
+  ],
+  "secrets": [
+    "INTERCOM_ACCESS_TOKEN"
+  ],
+  "notes": "Requires an access token from Intercom. Supports dry-run previews by default."
+}

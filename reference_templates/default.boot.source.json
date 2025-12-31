@@ -131,6 +131,36 @@
       "enabled": true
     },
     {
+      "name": "intercom",
+      "definition_cid": "reference_templates/servers/definitions/intercom.py",
+      "enabled": true
+    },
+    {
+      "name": "freshdesk",
+      "definition_cid": "reference_templates/servers/definitions/freshdesk.py",
+      "enabled": true
+    },
+    {
+      "name": "helpscout",
+      "definition_cid": "reference_templates/servers/definitions/helpscout.py",
+      "enabled": true
+    },
+    {
+      "name": "front",
+      "definition_cid": "reference_templates/servers/definitions/front.py",
+      "enabled": true
+    },
+    {
+      "name": "gorgias",
+      "definition_cid": "reference_templates/servers/definitions/gorgias.py",
+      "enabled": true
+    },
+    {
+      "name": "servicenow",
+      "definition_cid": "reference_templates/servers/definitions/servicenow.py",
+      "enabled": true
+    },
+    {
       "name": "slack",
       "definition_cid": "reference_templates/servers/definitions/slack.py",
       "enabled": true
