@@ -2,13 +2,14 @@
  
 ## Overview
 
-Status: Phases 1, 2 (mostly), and 3 complete. The gateway.py now supports:
+Status: Phases 1, 2 (mostly), 3, and 4 (mostly) complete. The gateway.py now supports:
 - ✅ Request transforms that can directly return responses (bypassing the server)
 - ✅ Response transforms that know whether the response came from a request transform or the server via the `source` field
 - ✅ External Jinja templates resolved via a template function passed to transforms (`resolve_template`)
 - ✅ Template CIDs specified in the gateways variable
 - ✅ Man, tldr, and jsonplaceholder gateways updated to use external templates
 - ✅ Enhanced `/gateway/meta/{server}` to list and preview gateway templates
+- ✅ Integration tests for template functionality
 - ⏳ HRX gateway uses complex multi-format rendering (not yet externalized)
 
 The following enhancements have been implemented:
@@ -18,11 +19,11 @@ The following enhancements have been implemented:
 4. Man, tldr, and jsonplaceholder gateways use external templates
 5. Comprehensive unit tests for all Phase 1 functionality
 6. Meta page displays template information including validation status, variables, and source
+7. Integration tests verify end-to-end template functionality
 
 Remaining work:
 - HRX gateway template externalization (complex due to multiple rendering modes)
-- Unit tests for Phase 3 meta page enhancements
-- Integration tests for end-to-end flows
+- Additional end-to-end tests for complete coverage
 
 ---
 
