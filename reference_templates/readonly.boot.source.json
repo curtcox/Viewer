@@ -649,6 +649,66 @@
       "name": "dynamics365",
       "definition_cid": "reference_templates/servers/definitions/dynamics365.py",
       "enabled": true
+    },
+    {
+      "name": "trello",
+      "definition_cid": "reference_templates/servers/definitions/trello.py",
+      "enabled": true
+    },
+    {
+      "name": "monday",
+      "definition_cid": "reference_templates/servers/definitions/monday.py",
+      "enabled": true
+    },
+    {
+      "name": "clickup",
+      "definition_cid": "reference_templates/servers/definitions/clickup.py",
+      "enabled": true
+    },
+    {
+      "name": "jira",
+      "definition_cid": "reference_templates/servers/definitions/jira.py",
+      "enabled": true
+    },
+    {
+      "name": "confluence",
+      "definition_cid": "reference_templates/servers/definitions/confluence.py",
+      "enabled": true
+    },
+    {
+      "name": "basecamp",
+      "definition_cid": "reference_templates/servers/definitions/basecamp.py",
+      "enabled": true
+    },
+    {
+      "name": "smartsheet",
+      "definition_cid": "reference_templates/servers/definitions/smartsheet.py",
+      "enabled": true
+    },
+    {
+      "name": "todoist",
+      "definition_cid": "reference_templates/servers/definitions/todoist.py",
+      "enabled": true
+    },
+    {
+      "name": "discord",
+      "definition_cid": "reference_templates/servers/definitions/discord.py",
+      "enabled": true
+    },
+    {
+      "name": "twilio",
+      "definition_cid": "reference_templates/servers/definitions/twilio.py",
+      "enabled": true
+    },
+    {
+      "name": "whatsapp",
+      "definition_cid": "reference_templates/servers/definitions/whatsapp.py",
+      "enabled": true
+    },
+    {
+      "name": "telegram",
+      "definition_cid": "reference_templates/servers/definitions/telegram.py",
+      "enabled": true
     }
   ],
   "variables": [

@@ -62,7 +62,7 @@
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAKyiJmhR09aKPWmgy6VOtwGtsPgLePrbiB6IUBbeAOPiMplNuNf3Y5f5-GZe1nqCuL472YwC0cnrc3m8639kf5X8DA",
+      "definition_cid": "AAAAALNFRsdFYltVH6Qmgeeexp9g1O2uRXxy0zJKaYe4pQdR_LRAvugdtyiqvMj1Cooy2OqLrGnOrSI_uMNxPULvGDIz_w",
       "enabled": true
     },
     {
@@ -72,7 +72,7 @@
     },
     {
       "name": "jsonplaceholder",
-      "definition_cid": "AAAAABKk0AIuACp5ttAKF-glWRohCL65iRr1R4CU6TT2JwgnyOvAKWEc5jVj7NI7wCRGr-c0ToGOg9OR7cgEIBdDuDUqUA",
+      "definition_cid": "AAAAAAzeRHohEBtBmD3CGfiX4fYirg0W3iHmMP5yG07gJGrJAxpvyllwYe4dmOsU0bOP92VC99OlYQuRZBJiMps2PztPOA",
       "enabled": true
     },
     {
@@ -803,26 +803,6 @@
     {
       "name": "todoist",
       "definition_cid": "AAAAABS7T1f0e0wMEfDENYghPzISLLDlUcvkwe8YTLZT1A7di0IzoerdvgWp9QABgfySV-YAecLtOW_i1A2_6GmFFSU87w",
-      "enabled": true
-    },
-    {
-      "name": "discord",
-      "definition_cid": "AAAAABXoe0wP3L1d6StWslQvhde59kUciIm6j0MzBIWtHPksk6D7pIwkUJcOgjj7k0R7o5R1GVlEFX3k6UkG0oCNiBIqTQ",
-      "enabled": true
-    },
-    {
-      "name": "twilio",
-      "definition_cid": "AAAAABg5GW5KGr1Z8PMeToIVXeztg69WZcmrKkrCJga9J3pIWtNEcRPjPHp_mg9intdikEUpvY1g42IEL6FT2xwBjxdIJQ",
-      "enabled": true
-    },
-    {
-      "name": "whatsapp",
-      "definition_cid": "AAAAABeh5nIfBhhHRSygwb0lJxhigu_Sc6XCWOOYqm1QSOIyYM7Q3vakdgIwwUy-x6GAkRmOOMOy1bx4QAfBA1d2Hj8hUA",
-      "enabled": true
-    },
-    {
-      "name": "telegram",
-      "definition_cid": "AAAAABmksiDFhMDZX7y3uO-AmbjSW3Ljtvd38xx28SXMbrn6Em6RzWRW-mIqPLib3rMLY9gfP20nWQFoga6Rt9nKaPQNag",
       "enabled": true
     }
   ],
