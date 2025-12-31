@@ -13,6 +13,23 @@ This plan details enhancements to the gateway facility to support:
 
 ## Current Architecture Summary
 
+### Background: Content-Addressed Storage (CIDs)
+
+A **CID (Content Identifier)** is a content-addressed identifier used throughout this codebase. CIDs are cryptographic hashes of file contents, ensuring immutability and deduplication.
+
+**Key characteristics:**
+- CIDs start with `AAAAA` (base64-encoded hash)
+- Content is stored in `cid_storage` module and accessible via `db_access.get_cid_by_path()`
+- The `_resolve_cid_content()` function in `gateway.py` handles CID resolution
+- If a CID is invalid or corrupted, resolution returns `None` and the gateway displays an error page
+
+**Resolution flow:**
+```
+CID string → _normalize_cid_lookup() → get_cid_by_path() → file_data bytes → decode to string
+```
+
+**Existing documentation:** See `cid_storage.py` and `cid_utils.py` for implementation details.
+
 ### Key Files
 - `reference_templates/servers/definitions/gateway.py` - Main gateway server (1234 lines)
 - `reference_templates/gateways.json` - Gateway configuration with CIDs
@@ -84,6 +101,44 @@ def transform_request(request_details: dict, context: dict) -> dict:
 ### Detection Logic
 The gateway will check if the return value contains a `response` key. If present, it skips server execution and proceeds directly to the response transform (if configured).
 
+**Precedence rule:** If a dict contains both `response` and other keys (like `path`), the `response` key takes precedence and the request is treated as a direct response.
+
+### Direct Response Validation
+
+The gateway validates direct response dicts to prevent malformed responses:
+
+```python
+def _validate_direct_response(direct_response: dict) -> tuple[bool, str | None]:
+    """Validate a direct response dict from request transform.
+
+    Returns: (is_valid, error_message)
+    """
+    if not isinstance(direct_response, dict):
+        return False, "Direct response must be a dict"
+
+    # 'output' is required (can be str or bytes, but must be present)
+    if "output" not in direct_response:
+        return False, "Direct response must contain 'output' key"
+
+    output = direct_response.get("output")
+    if output is not None and not isinstance(output, (str, bytes)):
+        return False, f"Direct response 'output' must be str or bytes, got {type(output).__name__}"
+
+    # 'content_type' is optional but must be string if present
+    content_type = direct_response.get("content_type")
+    if content_type is not None and not isinstance(content_type, str):
+        return False, f"Direct response 'content_type' must be str, got {type(content_type).__name__}"
+
+    # 'status_code' is optional but must be int if present
+    status_code = direct_response.get("status_code")
+    if status_code is not None and not isinstance(status_code, int):
+        return False, f"Direct response 'status_code' must be int, got {type(status_code).__name__}"
+
+    return True, None
+```
+
+**Handling malformed responses:** If validation fails, the gateway returns an error page with a diagnostic message indicating what was wrong with the direct response.
+
 ### Implementation Changes
 
 **File: `reference_templates/servers/definitions/gateway.py`**
@@ -151,6 +206,21 @@ def test_request_transform_direct_response_clarifying_menu():
 # Test 1.7: Request transform response key takes precedence
 def test_request_transform_response_key_precedence():
     """If both 'response' and 'path' keys present, 'response' takes precedence."""
+    pass
+
+# Test 1.10: Direct response validation - missing output
+def test_request_transform_direct_response_missing_output():
+    """Direct response without 'output' key should return validation error."""
+    pass
+
+# Test 1.11: Direct response validation - invalid output type
+def test_request_transform_direct_response_invalid_output_type():
+    """Direct response with non-str/bytes output should return validation error."""
+    pass
+
+# Test 1.12: Direct response validation - invalid status_code type
+def test_request_transform_direct_response_invalid_status_code():
+    """Direct response with non-int status_code should return validation error."""
     pass
 ```
 
@@ -652,7 +722,10 @@ Add templates section:
         {% if tpl.variables %}
         <div class="info-row">
             <span class="info-label">Variables:</span>
-            <span class="info-value">{{ tpl.variables | join(', ') }}</span>
+            <span class="info-value">
+                {{ tpl.variables | join(', ') }}
+                <span class="note">(auto-detected, may be incomplete)</span>
+            </span>
         </div>
         {% endif %}
         {% if tpl.error %}
@@ -744,6 +817,9 @@ def test_meta_page_template_cid_links():
 | 1.5 | test_request_transform_direct_response_binary_output | Direct response output can be bytes |
 | 1.6 | test_request_transform_direct_response_clarifying_menu | Request transform can return a clarifying menu HTML page |
 | 1.7 | test_request_transform_response_key_precedence | If both 'response' and 'path' keys present, 'response' takes precedence |
+| 1.10 | test_request_transform_direct_response_missing_output | Direct response without 'output' key should return validation error |
+| 1.11 | test_request_transform_direct_response_invalid_output_type | Direct response with non-str/bytes output should return validation error |
+| 1.12 | test_request_transform_direct_response_invalid_status_code | Direct response with non-int status_code should return validation error |
 | 2.1 | test_response_details_source_server | Response details from server should have source='server' |
 | 2.2 | test_response_details_source_request_transform | Response details from request transform should have source='request_transform' |
 | 2.3 | test_response_transform_receives_source | Response transform should receive the source field in response_details |
@@ -808,6 +884,7 @@ def test_meta_page_template_cid_links():
 | E.10 | test_request_transform_response_with_headers | Direct response with custom headers dict |
 | E.11 | test_transform_error_when_no_templates_configured | Transform raises clear error when templates not configured |
 | E.12 | test_gateway_error_page_for_missing_templates | Gateway shows helpful error when transform fails due to missing templates |
+| E.13 | test_template_with_non_ascii_content | Template containing non-ASCII characters (emoji, CJK) renders correctly |
 
 ---
 
@@ -827,6 +904,157 @@ The following decisions have been made:
 | 8 | **Template Security** | No additional sandboxing. Templates are trusted content stored as CIDs. |
 | 9 | **Transform Behavior Without Templates** | Raise a `RuntimeError` with a clear message indicating templates must be configured. Fail fast. |
 | 10 | **Meta Page Template Validation Warning** | Show a warning when a gateway has transforms configured but no templates. Explicit validation helps users diagnose issues. |
+
+---
+
+## Migration Strategy: Inline to External Templates
+
+### Overview
+
+This section clarifies the transition path for existing transforms that currently use inline templates.
+
+### Current State
+
+Existing transforms (man, tldr, jsonplaceholder, hrx) currently embed HTML templates as Python string literals within the transform code. For example, `man_response.py` contains `_render_man_as_html()` with ~60 lines of inline HTML.
+
+### Target State
+
+All transforms will use external Jinja templates via `resolve_template()`. The inline HTML will be extracted to separate `.html` files stored as CIDs.
+
+### Migration Path
+
+| Phase | Action | Timeline |
+|-------|--------|----------|
+| 1 | Create external template files for all transforms | Phase 2 of implementation |
+| 2 | Update transforms to require external templates (fail if not configured) | Phase 2 of implementation |
+| 3 | Update `gateways.json` to include template CIDs | Phase 2 of implementation |
+| 4 | Remove inline template code from transforms | Phase 2 of implementation |
+
+### Developer Guidelines
+
+**When modifying existing transforms:**
+- Use `resolve_template()` to load templates
+- Do NOT add inline HTML - create external template files instead
+- Raise `RuntimeError` if `resolve_template` is not available
+
+**When creating new transforms:**
+- Always use external templates
+- Create corresponding `.html` files in `reference_templates/gateways/templates/`
+- Add template CIDs to gateway config
+
+### Backwards Compatibility Note
+
+The **gateway server** (`gateway.py`) maintains inline template support indefinitely for:
+- Gateway UI pages (instruction.html, meta.html, etc.)
+- Third-party transforms that may not have migrated
+
+However, **first-party transforms** (man, tldr, jsonplaceholder, hrx) will exclusively use external templates after migration. There is no deprecation period for inline templates in first-party transforms.
+
+---
+
+## Performance Considerations
+
+### Per-Request Template Resolution
+
+Design Decision #1 specifies no template caching. This means each request:
+1. Looks up template CID from config
+2. Fetches template content from CID storage
+3. Parses template with Jinja2
+
+### Expected Latency Impact
+
+| Operation | Typical Latency |
+|-----------|-----------------|
+| CID lookup (database) | ~1-5ms |
+| Template parsing (Jinja2) | ~0.5-2ms |
+| **Total overhead per template** | **~2-7ms** |
+
+For requests using multiple templates, this overhead is additive.
+
+### Why No Caching?
+
+Template "freshness" means templates can be updated (new CID in config) and take effect immediately without server restart or cache invalidation. This is valuable for:
+- Rapid iteration during development
+- Hot-fixing template issues in production
+- A/B testing different template versions
+
+### Future Optimization
+
+If performance becomes a bottleneck, consider:
+1. **Request-scoped caching**: Cache templates within a single request (no cross-request caching)
+2. **TTL-based caching**: Cache with short TTL (e.g., 60 seconds)
+3. **Config-version caching**: Invalidate cache when gateways config changes
+
+**Performance testing requirement:** During Phase 4, run load tests on the gateway to validate that per-request resolution meets latency requirements (<100ms p95).
+
+---
+
+## Template Variable Detection Limitations
+
+### Implementation
+
+The meta page uses Jinja2's `meta.find_undeclared_variables()` to detect template variables. This provides reasonable but incomplete detection.
+
+### Known Limitations
+
+| Pattern | Detected? | Example |
+|---------|-----------|---------|
+| Simple variables | Yes | `{{ name }}` |
+| Attribute access | Partial | `{{ user.name }}` → detects `user` only |
+| Subscript access | No | `{{ items[0] }}` → misses `items` |
+| Loop variables | No | `{% for x in items %}` → misses `items` |
+| Filter chains | Partial | `{{ name | upper }}` → detects `name` |
+| Nested conditionals | Partial | Complex logic may be missed |
+
+### UI Disclosure
+
+The meta page template should include a disclaimer:
+
+```html
+{% if tpl.variables %}
+<div class="info-row">
+    <span class="info-label">Variables:</span>
+    <span class="info-value">
+        {{ tpl.variables | join(', ') }}
+        <span class="note">(auto-detected, may be incomplete)</span>
+    </span>
+</div>
+{% endif %}
+```
+
+---
+
+## Test Implementation Approach
+
+### Methodology: Test-Driven Development (TDD)
+
+Tests should be written **before or alongside** implementation, not after.
+
+| Phase | Test Approach |
+|-------|---------------|
+| Phase 1 | Write unit tests first, then implement |
+| Phase 2 | Write transform tests, then update transforms |
+| Phase 3 | Write meta page tests, then update templates |
+| Phase 4 | Integration tests verify end-to-end behavior |
+
+### Edge Case Test Priority
+
+Edge case tests (Section E) should be implemented during Phase 1 alongside core functionality:
+- E.1-E.3: During direct response implementation
+- E.4-E.8: During template resolver implementation
+- E.9-E.12: During transform update phase
+
+### Template Encoding
+
+All templates are assumed to be **UTF-8 encoded**. This is standard for HTML/Jinja2 templates.
+
+**Additional encoding test:**
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| E.13 | test_template_with_non_ascii_content | Template containing non-ASCII characters (e.g., emoji, CJK) renders correctly |
+
+Templates containing non-UTF-8 bytes will fail during CID content decoding and produce a clear error.
 
 ---
 
