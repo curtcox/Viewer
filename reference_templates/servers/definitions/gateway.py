@@ -424,6 +424,74 @@ def _handle_meta_page(server_name, gateways, context):
     return {"output": html, "content_type": "text/html"}
 
 
+def _validate_direct_response(direct_response: dict) -> tuple[bool, str | None]:
+    """Validate a direct response dict from request transform.
+
+    Returns: (is_valid, error_message)
+    """
+    if not isinstance(direct_response, dict):
+        return False, "Direct response must be a dict"
+
+    # 'output' is required (can be str or bytes, but must be present)
+    if "output" not in direct_response:
+        return False, "Direct response must contain 'output' key"
+
+    output = direct_response.get("output")
+    if output is not None and not isinstance(output, (str, bytes)):
+        return False, f"Direct response 'output' must be str or bytes, got {type(output).__name__}"
+
+    # 'content_type' is optional but must be string if present
+    content_type = direct_response.get("content_type")
+    if content_type is not None and not isinstance(content_type, str):
+        return False, f"Direct response 'content_type' must be str, got {type(content_type).__name__}"
+
+    # 'status_code' is optional but must be int if present
+    status_code = direct_response.get("status_code")
+    if status_code is not None and not isinstance(status_code, int):
+        return False, f"Direct response 'status_code' must be int, got {type(status_code).__name__}"
+
+    return True, None
+
+
+def _create_template_resolver(config: dict, context: dict):
+    """Create a template resolution function for a gateway config.
+
+    Args:
+        config: Gateway configuration dict with optional 'templates' key
+        context: Server execution context
+
+    Returns:
+        Function that takes template name and returns Jinja2 Template
+    """
+    templates_config = config.get("templates", {})
+
+    def resolve_template(template_name: str):
+        """Resolve a template by name from the gateway's templates config.
+
+        Args:
+            template_name: Name of the template (e.g., "man_page.html")
+
+        Returns:
+            jinja2.Template object
+
+        Raises:
+            ValueError: If template not found in config
+            LookupError: If template CID cannot be resolved
+        """
+        if template_name not in templates_config:
+            raise ValueError(f"Template '{template_name}' not found in gateway config. "
+                           f"Available templates: {list(templates_config.keys())}")
+
+        template_cid = templates_config[template_name]
+        content = _resolve_cid_content(template_cid)
+        if content is None:
+            raise LookupError(f"Could not resolve template CID: {template_cid}")
+
+        return Template(content)
+
+    return resolve_template
+
+
 def _handle_gateway_request(server_name, rest_path, gateways, context):
     """Handle an actual gateway request to a configured server."""
     if server_name not in gateways:
@@ -469,11 +537,20 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
         "method": request_details.get("method"),
     }
 
+    # Create template resolver and enhance context
+    template_resolver = _create_template_resolver(config, context)
+    enhanced_context = {
+        **(context or {}),
+        "resolve_template": template_resolver,
+    }
+
     # Load and execute request transform
     request_cid = config.get("request_transform_cid")
+    response_details = None  # Will be set if request transform returns direct response
+    
     if request_cid:
         try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), context)
+            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), enhanced_context)
             if not transform_fn:
                 return _render_error(
                     "Request Transform Not Found",
@@ -488,9 +565,48 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                     ),
                 )
             if transform_fn:
-                transformed = transform_fn(request_details, context)
+                transformed = transform_fn(request_details, enhanced_context)
                 if isinstance(transformed, dict):
-                    request_details = transformed
+                    # Check if this is a direct response
+                    if "response" in transformed:
+                        direct_response = transformed["response"]
+                        # Validate the direct response
+                        is_valid, error_msg = _validate_direct_response(direct_response)
+                        if not is_valid:
+                            return _render_error(
+                                "Invalid Direct Response",
+                                f"Request transform returned invalid direct response: {error_msg}",
+                                gateways,
+                                error_detail=json.dumps(
+                                    {
+                                        "gateway": server_name,
+                                        "request_transform_cid": request_cid,
+                                        "validation_error": error_msg,
+                                        "direct_response": str(direct_response)[:500],
+                                    },
+                                    indent=2,
+                                ),
+                            )
+                        
+                        # Build response_details from direct response
+                        output = direct_response.get("output", "")
+                        content = output.encode("utf-8") if isinstance(output, str) else output
+                        text = output if isinstance(output, str) else output.decode("utf-8", errors="replace")
+                        
+                        response_details = {
+                            "status_code": direct_response.get("status_code", 200),
+                            "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
+                            "content": content,
+                            "text": text,
+                            "json": None,
+                            "request_path": rest_path,
+                            "source": "request_transform",
+                            "_original_output": output,  # Keep original output type for default return
+                            "_original_content_type": direct_response.get("content_type", "text/html"),
+                        }
+                    else:
+                        # Normal request transformation
+                        request_details = transformed
         except Exception as e:
             logger.error(f"Request transform error: {e}")
             return _render_error(
@@ -506,44 +622,47 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                 ),
             )
 
-    debug_context["request_details_after_transform"] = _safe_preview_request_details(
-        request_details
-    )
-
-    resolved_target = _resolve_target(config, server_name, request_details)
-    debug_context["resolved_target"] = resolved_target
-
-    try:
-        response = _execute_target_request(resolved_target, request_details)
-    except Exception as e:
-        logger.error(f"Target request error: {e}")
-        return _render_error(
-            "Request Failed",
-            f"Failed to connect to target: {escape(str(e))}",
-            gateways,
-            error_detail=_format_exception_detail(e, debug_context=debug_context),
+    # Skip server execution if we have a direct response
+    if response_details is None:
+        debug_context["request_details_after_transform"] = _safe_preview_request_details(
+            request_details
         )
 
-    # Build response details
-    try:
-        response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
-    except Exception:
-        response_json = None
+        resolved_target = _resolve_target(config, server_name, request_details)
+        debug_context["resolved_target"] = resolved_target
 
-    response_details = {
-        "status_code": response.status_code,
-        "headers": dict(response.headers),
-        "content": response.content,
-        "text": response.text,
-        "json": response_json,
-        "request_path": rest_path,
-    }
+        try:
+            response = _execute_target_request(resolved_target, request_details)
+        except Exception as e:
+            logger.error(f"Target request error: {e}")
+            return _render_error(
+                "Request Failed",
+                f"Failed to connect to target: {escape(str(e))}",
+                gateways,
+                error_detail=_format_exception_detail(e, debug_context=debug_context),
+            )
+
+        # Build response details
+        try:
+            response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
+        except Exception:
+            response_json = None
+
+        response_details = {
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "content": response.content,
+            "text": response.text,
+            "json": response_json,
+            "request_path": rest_path,
+            "source": "server",
+        }
 
     # Load and execute response transform
     response_cid = config.get("response_transform_cid")
     if response_cid:
         try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), context)
+            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), enhanced_context)
             if not transform_fn:
                 return _render_error(
                     "Response Transform Not Found",
@@ -558,7 +677,7 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                     ),
                 )
             if transform_fn:
-                result = transform_fn(response_details, context)
+                result = transform_fn(response_details, enhanced_context)
                 if isinstance(result, dict) and "output" in result:
                     return result
         except Exception as e:
@@ -570,10 +689,17 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
             )
 
     # Default: return raw response
-    return {
-        "output": response.content,
-        "content_type": response.headers.get("Content-Type", "text/plain"),
-    }
+    # Use _original_output if available (from direct response), otherwise use content (from server)
+    if "_original_output" in response_details:
+        return {
+            "output": response_details["_original_output"],
+            "content_type": response_details.get("_original_content_type", "text/plain"),
+        }
+    else:
+        return {
+            "output": response_details.get("content", b""),
+            "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
+        }
 
 
 def _execute_target_request(target, request_details):

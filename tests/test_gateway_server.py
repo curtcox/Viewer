@@ -242,3 +242,384 @@ def test_gateway_man_executes_internally_without_http(mock_request):
     assert result["content_type"] == "text/html"
     assert "Failed to connect" not in result["output"]
     assert "<html" in result["output"].lower()
+
+
+# Phase 1: Request Transform Direct Response Tests
+
+
+def test_validate_direct_response_valid():
+    """Test _validate_direct_response with valid direct response."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    valid_response = {
+        "output": "<html>test</html>",
+        "content_type": "text/html",
+        "status_code": 200,
+    }
+    is_valid, error_msg = gateway_definition._validate_direct_response(valid_response)
+    assert is_valid is True
+    assert error_msg is None
+
+
+def test_validate_direct_response_missing_output():
+    """Test _validate_direct_response with missing output key."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    invalid_response = {
+        "content_type": "text/html",
+    }
+    is_valid, error_msg = gateway_definition._validate_direct_response(invalid_response)
+    assert is_valid is False
+    assert "output" in error_msg
+
+
+def test_validate_direct_response_invalid_output_type():
+    """Test _validate_direct_response with invalid output type."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    invalid_response = {
+        "output": 123,  # Should be str or bytes
+        "content_type": "text/html",
+    }
+    is_valid, error_msg = gateway_definition._validate_direct_response(invalid_response)
+    assert is_valid is False
+    assert "output" in error_msg
+    assert "str or bytes" in error_msg
+
+
+def test_validate_direct_response_invalid_status_code():
+    """Test _validate_direct_response with invalid status_code type."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    invalid_response = {
+        "output": "test",
+        "status_code": "200",  # Should be int
+    }
+    is_valid, error_msg = gateway_definition._validate_direct_response(invalid_response)
+    assert is_valid is False
+    assert "status_code" in error_msg
+    assert "int" in error_msg
+
+
+def test_validate_direct_response_bytes_output():
+    """Test _validate_direct_response accepts bytes output."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+
+    valid_response = {
+        "output": b"<html>test</html>",
+        "content_type": "text/html",
+    }
+    is_valid, error_msg = gateway_definition._validate_direct_response(valid_response)
+    assert is_valid is True
+    assert error_msg is None
+
+
+def test_request_transform_direct_response_bypasses_server(monkeypatch):
+    """Request transform returning response dict should bypass server execution."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Create a request transform that returns a direct response
+    def mock_transform(request_details, context):
+        return {
+            "response": {
+                "output": "<html>Direct Response</html>",
+                "content_type": "text/html",
+                "status_code": 200,
+            }
+        }
+    
+    # Track if _execute_target_request is called
+    execute_called = {"called": False}
+    original_execute = gateway_definition._execute_target_request
+    
+    def mock_execute(*args, **kwargs):
+        execute_called["called"] = True
+        return original_execute(*args, **kwargs)
+    
+    monkeypatch.setattr(gateway_definition, "_execute_target_request", mock_execute)
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", lambda cid, ctx: mock_transform)
+    
+    # Call _handle_gateway_request with a gateway that has a request transform
+    gateways = {
+        "test": {
+            "request_transform_cid": "AAAAAFAKE",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    # Server should not have been called
+    assert execute_called["called"] is False
+    assert result["output"] == "<html>Direct Response</html>"
+    assert result["content_type"] == "text/html"
+
+
+def test_request_transform_direct_response_content_type():
+    """Direct response from request transform should preserve content_type."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Create a request transform that returns a direct response with JSON
+    def mock_transform(request_details, context):
+        return {
+            "response": {
+                "output": '{"message": "test"}',
+                "content_type": "application/json",
+            }
+        }
+    
+    gateway_definition._load_transform_function = lambda cid, ctx: mock_transform
+    
+    gateways = {
+        "test": {
+            "request_transform_cid": "AAAAAFAKE",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    assert result["output"] == '{"message": "test"}'
+    # When passed to response transform, should have correct content type
+    # For now we're testing the direct result
+
+
+def test_request_transform_normal_dict_continues(monkeypatch):
+    """Request transform returning normal dict should continue to server."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Create a request transform that returns a normal transformation
+    def mock_transform(request_details, context):
+        return {
+            "method": "GET",
+            "path": "/modified",
+        }
+    
+    # Track if _execute_target_request is called
+    execute_called = {"called": False}
+    
+    def mock_execute(target, request_details):
+        execute_called["called"] = True
+        # Return a mock response
+        class MockResponse:
+            status_code = 200
+            headers = {"Content-Type": "text/plain"}
+            content = b"OK"
+            text = "OK"
+            def json(self):
+                return {}
+        return MockResponse()
+    
+    monkeypatch.setattr(gateway_definition, "_execute_target_request", mock_execute)
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", lambda cid, ctx: mock_transform)
+    
+    gateways = {
+        "test": {
+            "request_transform_cid": "AAAAAFAKE",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    # Server should have been called
+    assert execute_called["called"] is True
+
+
+def test_request_transform_response_key_precedence(monkeypatch):
+    """If both 'response' and 'path' keys present, 'response' takes precedence."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Create a request transform that returns both response and path
+    def mock_transform(request_details, context):
+        return {
+            "response": {
+                "output": "<html>Direct Response</html>",
+                "content_type": "text/html",
+            },
+            "path": "/should-be-ignored",
+        }
+    
+    # Track if _execute_target_request is called
+    execute_called = {"called": False}
+    original_execute = gateway_definition._execute_target_request
+    
+    def mock_execute(*args, **kwargs):
+        execute_called["called"] = True
+        return original_execute(*args, **kwargs)
+    
+    monkeypatch.setattr(gateway_definition, "_execute_target_request", mock_execute)
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", lambda cid, ctx: mock_transform)
+    
+    gateways = {
+        "test": {
+            "request_transform_cid": "AAAAAFAKE",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    # Server should not have been called
+    assert execute_called["called"] is False
+    assert result["output"] == "<html>Direct Response</html>"
+
+
+# Phase 1: Response Transform Source Indicator Tests
+
+
+def test_response_details_source_server(monkeypatch):
+    """Response details from server should have source='server'."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Mock response transform to capture response_details
+    captured_response_details = {"captured": None}
+    
+    def mock_response_transform(response_details, context):
+        captured_response_details["captured"] = response_details
+        return {"output": "transformed", "content_type": "text/html"}
+    
+    def mock_execute(target, request_details):
+        class MockResponse:
+            status_code = 200
+            headers = {"Content-Type": "text/plain"}
+            content = b"OK"
+            text = "OK"
+            def json(self):
+                return {}
+        return MockResponse()
+    
+    monkeypatch.setattr(gateway_definition, "_execute_target_request", mock_execute)
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", lambda cid, ctx: mock_response_transform)
+    
+    gateways = {
+        "test": {
+            "response_transform_cid": "AAAAAFAKE",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    assert captured_response_details["captured"] is not None
+    assert captured_response_details["captured"]["source"] == "server"
+
+
+def test_response_details_source_request_transform(monkeypatch):
+    """Response details from request transform should have source='request_transform'."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    # Mock request transform to return direct response
+    def mock_request_transform(request_details, context):
+        return {
+            "response": {
+                "output": "Direct",
+                "content_type": "text/html",
+            }
+        }
+    
+    # Mock response transform to capture response_details
+    captured_response_details = {"captured": None}
+    
+    def mock_response_transform(response_details, context):
+        captured_response_details["captured"] = response_details
+        return {"output": "transformed", "content_type": "text/html"}
+    
+    # Track which transform is being loaded
+    load_count = {"count": 0}
+    
+    def mock_load(cid, ctx):
+        load_count["count"] += 1
+        if load_count["count"] == 1:
+            return mock_request_transform
+        else:
+            return mock_response_transform
+    
+    monkeypatch.setattr(gateway_definition, "_load_transform_function", mock_load)
+    
+    gateways = {
+        "test": {
+            "request_transform_cid": "AAAAAFAKE1",
+            "response_transform_cid": "AAAAAFAKE2",
+            "description": "Test gateway",
+        }
+    }
+    
+    with app.test_request_context("/gateway/test/path"):
+        gateway_definition._handle_gateway_request("test", "path", gateways, {})
+    
+    assert captured_response_details["captured"] is not None
+    assert captured_response_details["captured"]["source"] == "request_transform"
+
+
+# Phase 1: Template Resolver Tests
+
+
+def test_template_resolver_creation():
+    """Template resolver should be created from gateway config."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    config = {
+        "templates": {
+            "test.html": "AAAAAFAKE",
+        }
+    }
+    
+    resolver = gateway_definition._create_template_resolver(config, {})
+    assert callable(resolver)
+
+
+def test_template_resolver_unknown_template():
+    """resolve_template should raise ValueError for unknown template name."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    config = {
+        "templates": {
+            "known.html": "AAAAAFAKE",
+        }
+    }
+    
+    resolver = gateway_definition._create_template_resolver(config, {})
+    
+    with pytest.raises(ValueError) as exc_info:
+        resolver("unknown.html")
+    
+    assert "not found in gateway config" in str(exc_info.value)
+
+
+def test_template_resolver_missing_cid():
+    """resolve_template should raise LookupError if CID cannot be resolved."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    config = {
+        "templates": {
+            "test.html": "AAAAAFAKE_NONEXISTENT",
+        }
+    }
+    
+    resolver = gateway_definition._create_template_resolver(config, {})
+    
+    with pytest.raises(LookupError) as exc_info:
+        resolver("test.html")
+    
+    assert "Could not resolve template CID" in str(exc_info.value)
+
+
+def test_empty_templates_config():
+    """Gateway with no templates config should still work."""
+    from reference_templates.servers.definitions import gateway as gateway_definition
+    
+    config = {}
+    
+    # Should not raise an error
+    resolver = gateway_definition._create_template_resolver(config, {})
+    assert callable(resolver)
+    
+    # But should fail when trying to resolve a template
+    with pytest.raises(ValueError):
+        resolver("any.html")
