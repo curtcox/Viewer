@@ -423,7 +423,7 @@ def test_request_transform_normal_dict_continues(monkeypatch):
     }
     
     with app.test_request_context("/gateway/test/path"):
-        result = gateway_definition._handle_gateway_request("test", "path", gateways, {})
+        gateway_definition._handle_gateway_request("test", "path", gateways, {})
     
     # Server should have been called
     assert execute_called["called"] is True
@@ -636,9 +636,6 @@ def test_man_transform_uses_external_template(monkeypatch):
         template = resolve_template("man_page.html")
         html = template.render(command="grep", sections=None, content="test content")
         return {"output": html, "content_type": "text/html"}
-    
-    # Create mock templates
-    from jinja2 import Template
     
     def mock_resolve_cid(cid_value, as_bytes=False):
         # Handle both with and without leading slash
