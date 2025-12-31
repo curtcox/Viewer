@@ -1,0 +1,75 @@
+{
+  "id": "pipedrive",
+  "name": "Pipedrive",
+  "description": "Interact with Pipedrive CRM to manage deals, persons, and organizations",
+  "definition_file": "definitions/pipedrive.py",
+  "documentation_url": "https://developers.pipedrive.com/docs/api/v1",
+  "operations": {
+    "read": [
+      "list_deals - List all deals",
+      "get_deal - Get a specific deal by ID",
+      "list_persons - List all persons",
+      "get_person - Get a specific person by ID",
+      "list_organizations - List all organizations",
+      "get_organization - Get a specific organization by ID"
+    ],
+    "write": [
+      "create_deal - Create a new deal",
+      "update_deal - Update an existing deal",
+      "create_person - Create a new person",
+      "create_organization - Create a new organization"
+    ]
+  },
+  "secrets": {
+    "PIPEDRIVE_API_TOKEN": "API token for Pipedrive"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_deals",
+        "get_deal",
+        "create_deal",
+        "update_deal",
+        "list_persons",
+        "get_person",
+        "create_person",
+        "list_organizations",
+        "get_organization",
+        "create_organization"
+      ],
+      "default": "list_deals"
+    },
+    "deal_id": {
+      "type": "integer",
+      "description": "Deal ID",
+      "required_for": ["get_deal", "update_deal"]
+    },
+    "person_id": {
+      "type": "integer",
+      "description": "Person ID",
+      "required_for": ["get_person"]
+    },
+    "organization_id": {
+      "type": "integer",
+      "description": "Organization ID",
+      "required_for": ["get_organization"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data for creating or updating records",
+      "required_for": ["create_deal", "update_deal", "create_person", "create_organization"]
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 100
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

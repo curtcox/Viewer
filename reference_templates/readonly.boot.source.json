@@ -571,6 +571,36 @@
       "enabled": true
     },
     {
+      "name": "salesforce",
+      "definition_cid": "reference_templates/servers/definitions/salesforce.py",
+      "enabled": true
+    },
+    {
+      "name": "pipedrive",
+      "definition_cid": "reference_templates/servers/definitions/pipedrive.py",
+      "enabled": true
+    },
+    {
+      "name": "close_crm",
+      "definition_cid": "reference_templates/servers/definitions/close_crm.py",
+      "enabled": true
+    },
+    {
+      "name": "zoho_crm",
+      "definition_cid": "reference_templates/servers/definitions/zoho_crm.py",
+      "enabled": true
+    },
+    {
+      "name": "insightly",
+      "definition_cid": "reference_templates/servers/definitions/insightly.py",
+      "enabled": true
+    },
+    {
+      "name": "calendly",
+      "definition_cid": "reference_templates/servers/definitions/calendly.py",
+      "enabled": true
+    },
+    {
       "name": "mailchimp",
       "definition_cid": "reference_templates/servers/definitions/mailchimp.py",
       "enabled": true

@@ -1,0 +1,71 @@
+{
+  "id": "calendly",
+  "name": "Calendly",
+  "description": "Interact with Calendly to manage scheduling and event types",
+  "definition_file": "definitions/calendly.py",
+  "documentation_url": "https://developer.calendly.com/api-docs",
+  "operations": {
+    "read": [
+      "get_user - Get current user information",
+      "list_event_types - List event types for a user",
+      "get_event_type - Get a specific event type",
+      "list_events - List scheduled events for a user",
+      "get_event - Get a specific scheduled event",
+      "list_invitees - List invitees for an event",
+      "get_invitee - Get a specific invitee"
+    ],
+    "write": [
+      "cancel_event - Cancel a scheduled event"
+    ]
+  },
+  "secrets": {
+    "CALENDLY_API_KEY": "API key (OAuth token) for Calendly"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "get_user",
+        "list_event_types",
+        "get_event_type",
+        "list_events",
+        "get_event",
+        "list_invitees",
+        "get_invitee",
+        "cancel_event"
+      ],
+      "default": "get_user"
+    },
+    "user_uri": {
+      "type": "string",
+      "description": "User URI (e.g., https://api.calendly.com/users/XXXXXX)",
+      "required_for": ["list_event_types", "list_events"]
+    },
+    "event_type_uuid": {
+      "type": "string",
+      "description": "Event type UUID",
+      "required_for": ["get_event_type"]
+    },
+    "event_uuid": {
+      "type": "string",
+      "description": "Event UUID",
+      "required_for": ["get_event", "list_invitees", "cancel_event"]
+    },
+    "invitee_uuid": {
+      "type": "string",
+      "description": "Invitee UUID",
+      "required_for": ["get_invitee"]
+    },
+    "count": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 20
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

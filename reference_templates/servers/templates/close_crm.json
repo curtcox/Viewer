@@ -1,0 +1,75 @@
+{
+  "id": "close_crm",
+  "name": "Close CRM",
+  "description": "Interact with Close CRM to manage leads, contacts, and opportunities",
+  "definition_file": "definitions/close_crm.py",
+  "documentation_url": "https://developer.close.com/",
+  "operations": {
+    "read": [
+      "list_leads - List all leads",
+      "get_lead - Get a specific lead by ID",
+      "list_contacts - List all contacts",
+      "get_contact - Get a specific contact by ID",
+      "list_opportunities - List all opportunities",
+      "get_opportunity - Get a specific opportunity by ID"
+    ],
+    "write": [
+      "create_lead - Create a new lead",
+      "update_lead - Update an existing lead",
+      "create_contact - Create a new contact",
+      "create_opportunity - Create a new opportunity"
+    ]
+  },
+  "secrets": {
+    "CLOSE_API_KEY": "API key for Close CRM"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_leads",
+        "get_lead",
+        "create_lead",
+        "update_lead",
+        "list_contacts",
+        "get_contact",
+        "create_contact",
+        "list_opportunities",
+        "get_opportunity",
+        "create_opportunity"
+      ],
+      "default": "list_leads"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Lead ID",
+      "required_for": ["get_lead", "update_lead"]
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Contact ID",
+      "required_for": ["get_contact"]
+    },
+    "opportunity_id": {
+      "type": "string",
+      "description": "Opportunity ID",
+      "required_for": ["get_opportunity"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data for creating or updating records",
+      "required_for": ["create_lead", "update_lead", "create_contact", "create_opportunity"]
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 100
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}
