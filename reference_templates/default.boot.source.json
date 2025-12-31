@@ -804,6 +804,26 @@
       "name": "todoist",
       "definition_cid": "reference_templates/servers/definitions/todoist.py",
       "enabled": true
+    },
+    {
+      "name": "discord",
+      "definition_cid": "reference_templates/servers/definitions/discord.py",
+      "enabled": true
+    },
+    {
+      "name": "twilio",
+      "definition_cid": "reference_templates/servers/definitions/twilio.py",
+      "enabled": true
+    },
+    {
+      "name": "whatsapp",
+      "definition_cid": "reference_templates/servers/definitions/whatsapp.py",
+      "enabled": true
+    },
+    {
+      "name": "telegram",
+      "definition_cid": "reference_templates/servers/definitions/telegram.py",
+      "enabled": true
     }
   ],
   "variables": [
