@@ -396,6 +396,41 @@ def _handle_meta_page(server_name, gateways, context):
     if server_exists:
         server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
 
+    # Load template information
+    templates_config = config.get("templates", {})
+    templates_info = []
+
+    for template_name, template_cid in templates_config.items():
+        template_info = {
+            "name": template_name,
+            "cid": template_cid,
+            "cid_link_html": "",
+            "source": None,
+            "status": "error",
+            "status_text": "Not Found",
+            "error": None,
+            "variables": [],
+        }
+
+        # Generate CID link
+        template_cid_lookup = _normalize_cid_lookup(template_cid)
+        if template_cid_lookup and template_cid_lookup.startswith("/"):
+            template_info["cid_link_html"] = str(render_cid_link(template_cid_lookup))
+
+        # Load and validate template
+        source, error, variables = _load_and_validate_template(template_cid, context)
+        template_info["source"] = source
+        if error:
+            template_info["error"] = error
+            template_info["status"] = "error"
+            template_info["status_text"] = "Error"
+        else:
+            template_info["status"] = "valid"
+            template_info["status_text"] = "Valid"
+            template_info["variables"] = variables
+
+        templates_info.append(template_info)
+
     # Generate test paths based on server type
     test_paths = _get_test_paths(server_name)
 
@@ -419,6 +454,7 @@ def _handle_meta_page(server_name, gateways, context):
         response_transform_status_text=response_transform_status_text,
         response_transform_error=response_transform_error,
         response_transform_warnings=response_transform_warnings,
+        templates_info=templates_info,
         test_paths=test_paths,
     )
     return {"output": html, "content_type": "text/html"}
@@ -1005,6 +1041,41 @@ def _load_and_validate_transform(cid, expected_fn_name, context):
 
     except Exception as e:
         return source, f"Validation error: {str(e)}", []
+
+
+def _load_and_validate_template(cid, context):
+    """Load and validate a Jinja template.
+
+    Args:
+        cid: Template CID to load
+        context: Server execution context
+
+    Returns:
+        (source, error, variables) tuple where:
+        - source: Template source code (str) or None if not found
+        - error: Error message (str) or None if valid
+        - variables: List of detected template variables (list[str])
+    """
+    try:
+        cid_lookup = _normalize_cid_lookup(cid)
+        content = _resolve_cid_content(cid_lookup)
+        if not content:
+            return None, f"Template not found at CID: {cid}", []
+
+        # Try to parse as Jinja template
+        from jinja2 import Environment, meta
+        env = Environment()
+        try:
+            ast_node = env.parse(content)
+            # Extract referenced variables
+            variables = sorted(list(meta.find_undeclared_variables(ast_node)))
+        except Exception as e:
+            return content, f"Jinja syntax error: {e}", []
+
+        return content, None, variables
+
+    except Exception as e:
+        return None, f"Validation error: {e}", []
 
 
 def _check_server_exists(server_name, context):

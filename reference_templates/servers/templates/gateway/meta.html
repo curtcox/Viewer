@@ -144,6 +144,54 @@
         {% endif %}
     </div>
 
+    {% if templates_info %}
+    <div class="card">
+        <h3>Templates</h3>
+        {% for tpl in templates_info %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #333;">
+            <h4 style="color: #9cdcfe; margin-top: 0;">
+                {{ tpl.name }}
+                <span class="status {{ tpl.status }}">{{ tpl.status_text }}</span>
+            </h4>
+            <div class="info-row">
+                <span class="info-label">CID:</span>
+                <span class="info-value">
+                    {% if tpl.cid_link_html %}
+                        {{ tpl.cid_link_html | safe }}
+                    {% else %}
+                        <code>{{ tpl.cid }}</code>
+                    {% endif %}
+                </span>
+            </div>
+            {% if tpl.variables %}
+            <div class="info-row">
+                <span class="info-label">Variables:</span>
+                <span class="info-value">
+                    <code>{{ tpl.variables | join(', ') }}</code>
+                    <span style="color: #858585; font-size: 0.9rem;">(auto-detected, may be incomplete)</span>
+                </span>
+            </div>
+            {% endif %}
+            {% if tpl.error %}
+            <div class="error-detail">{{ tpl.error }}</div>
+            {% endif %}
+            {% if tpl.source %}
+            <details style="margin-top: 0.5rem;">
+                <summary style="cursor: pointer; color: #9cdcfe;">View Template Source</summary>
+                <pre style="margin-top: 0.5rem;">{{ tpl.source }}</pre>
+            </details>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif config.response_transform_cid or config.request_transform_cid %}
+    <div class="card">
+        <h3>Templates</h3>
+        <p><em>No templates configured for this gateway.</em></p>
+        <p style="color: #858585; font-size: 0.9rem;">Note: Transforms may use inline templates or external templates may need to be configured.</p>
+    </div>
+    {% endif %}
+
     <div class="card">
         <h3>Test Links</h3>
         <div class="test-links">
