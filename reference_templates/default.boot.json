@@ -126,6 +126,31 @@
       "enabled": true
     },
     {
+      "name": "shopify",
+      "definition_cid": "AAAAAB_ccexEY2d4owu4A4J9cXNyprPOqJuYAbeaAxd1ZYpdOSWQb2bG8e4cGaA3_A-mX2aWLCqyJlN_vxOOS3Yl2OZdGA",
+      "enabled": true
+    },
+    {
+      "name": "woocommerce",
+      "definition_cid": "AAAAABl1wHVYofaUDI7IY8ZaiZwdr3bmHHBqf5GO4r7AgYpySTm1nZCbgoEcjocGLTGSXG-Mql-uZOMdvMYM_rYL6sRjDg",
+      "enabled": true
+    },
+    {
+      "name": "ebay",
+      "definition_cid": "AAAAABCWYEwzWOnQHzT38s7RZ5dpCCejLz-iUUFdmCPZFQA16-ToutBKZ2kRBTPc3tMl53zJ0FliTpHyQcE9f_hdPuxc1Q",
+      "enabled": true
+    },
+    {
+      "name": "etsy",
+      "definition_cid": "AAAAABb3ety_4WtlBO4vjskELhE5BzgK7DobpKxuxNVOgNqsC-RIL2VsXm4OmvkMyagKNPgwQWC_CSskiwY18xn0nPgojw",
+      "enabled": true
+    },
+    {
+      "name": "paypal",
+      "definition_cid": "AAAAABzSvFM5UdWXL9dWg9e4oEu09etaTUuZf_hUqykxsDQJ9KLCQyI4dd882YaLLDsK3EgOb7Ln36rmM8ilxD1JprzTkQ",
+      "enabled": true
+    },
+    {
       "name": "zendesk",
       "definition_cid": "AAAAABJnVPpIbgAFju1TQhkGl3m4uLGbfkBiWIoFKTGt0d8e31K865Rb-TBVAHOVArKsj8xnUePvTGGIKJy0EFuquNwUpw",
       "enabled": true

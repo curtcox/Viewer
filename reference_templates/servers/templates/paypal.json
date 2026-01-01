@@ -1,0 +1,17 @@
+{
+  "id": "paypal",
+  "name": "PayPal",
+  "description": "Create orders, capture payments, and list transactions in PayPal",
+  "definition_cid": "reference_templates/servers/definitions/paypal.py",
+  "operations": [
+    "create_order",
+    "get_order",
+    "capture_payment",
+    "list_transactions"
+  ],
+  "secrets": [
+    "PAYPAL_CLIENT_ID",
+    "PAYPAL_CLIENT_SECRET"
+  ],
+  "notes": "Uses PayPal REST API with OAuth client credentials flow. Supports both sandbox and production environments. Supports dry-run previews for all operations."
+}

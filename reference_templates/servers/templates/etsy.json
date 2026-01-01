@@ -1,0 +1,18 @@
+{
+  "id": "etsy",
+  "name": "Etsy",
+  "description": "List or create shops and listings in Etsy",
+  "definition_cid": "reference_templates/servers/definitions/etsy.py",
+  "operations": [
+    "list_shops",
+    "get_shop",
+    "list_listings",
+    "get_listing",
+    "create_listing",
+    "update_listing"
+  ],
+  "secrets": [
+    "ETSY_ACCESS_TOKEN"
+  ],
+  "notes": "Uses Etsy OAuth access token for API calls. Supports managing shops and listings. Supports dry-run previews for all operations."
+}
