@@ -35,7 +35,7 @@ def main(archive=None, path=None, *, context=None):
     # Validate that archive is provided
     if archive is None or (isinstance(archive, str) and not archive.strip()):
         raise ValueError(
-            "HRX archive is required. Usage: hrx(archive, path) where archive is the HRX string."
+            "HRX archive is required. Usage: hrx(archive, path) where archive is the HRX string (or a CID containing it)."
         )
 
     # Parse the archive

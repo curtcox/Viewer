@@ -14,6 +14,46 @@ from cid_core import generate_cid, is_literal_cid
 from cid_presenter import cid_path, format_cid
 
 
+def resolve_cid_text(value: Any) -> str | None:
+    """Resolve a string that may be a CID reference to its text contents.
+
+    Returns None when the input does not look like a CID reference.
+    Raises ValueError when the input looks like a CID reference but cannot be
+    resolved.
+    """
+    if not isinstance(value, (str, CID)):
+        return None
+
+    from cid_core import is_normalized_cid, is_probable_cid_component
+    from cid_presenter import extract_cid_from_path
+
+    candidate = None
+    if isinstance(value, CID):
+        candidate = format_cid(value)
+    else:
+        extracted = extract_cid_from_path(value)
+        if extracted:
+            candidate = extracted
+        else:
+            normalized = format_cid(value)
+            if normalized and is_probable_cid_component(normalized) and is_normalized_cid(normalized):
+                candidate = normalized
+
+    if not candidate:
+        return None
+
+    record_path = cid_path(candidate)
+    record = db_access.get_cid_by_path(record_path) if record_path else None
+    if record is None:
+        raise ValueError(f"CID not found: {candidate}")
+
+    data = getattr(record, "file_data", None)
+    if not isinstance(data, (bytes, bytearray)):
+        raise ValueError(f"CID record has no content: {candidate}")
+
+    return bytes(data).decode("utf-8", errors="replace")
+
+
 # ============================================================================
 # CID STORAGE HELPERS
 # ============================================================================
