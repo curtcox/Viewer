@@ -1,9 +1,5 @@
 """Tests for the WordPress server definition."""
 
-from unittest.mock import Mock
-
-import requests
-
 from reference_templates.servers.definitions import wordpress
 
 
