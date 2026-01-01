@@ -98,6 +98,10 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "zendesk": "zendesk.py",
     "zoho_crm": "zoho_crm.py",
     "zoom": "zoom.py",
+    "docusign": "docusign.py",
+    "pandadoc": "pandadoc.py",
+    "dropbox": "dropbox.py",
+    "box": "box.py",
 }
 
 

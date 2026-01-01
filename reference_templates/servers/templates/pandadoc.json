@@ -1,0 +1,19 @@
+{
+  "id": "pandadoc",
+  "name": "PandaDoc",
+  "description": "Manage PandaDoc documents and templates for document automation and e-signature.",
+  "definition_cid": "reference_templates/servers/definitions/pandadoc.py",
+  "operations": [
+    "list_documents",
+    "get_document",
+    "create_document",
+    "send_document",
+    "download_document",
+    "list_templates",
+    "get_template"
+  ],
+  "secrets": [
+    "PANDADOC_API_KEY"
+  ],
+  "notes": "Uses API Key authentication with 'API-Key' header format. Supports dry-run previews by default. Download operation returns binary PDF data."
+}
