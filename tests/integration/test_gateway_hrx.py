@@ -667,5 +667,17 @@ class TestGatewayGeneralIntegration:
             assert "ValueError: HRX archive is required" in head
 
 
+    def test_gateway_hrx_error_page_shows_archive_and_path(self, app_with_gateway):
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/hrx/foo/bar", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "Archive" in data
+            assert "foo" in data
+            assert "Path" in data
+            assert "bar" in data
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
