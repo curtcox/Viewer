@@ -655,5 +655,17 @@ class TestGatewayGeneralIntegration:
             )
 
 
+    def test_gateway_hrx_missing_archive_shows_root_cause_prominently(self, app_with_gateway):
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/hrx", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "Root cause" in data
+            assert "HRX archive is required" in data
+            head = data[:1200]
+            assert "ValueError: HRX archive is required" in head
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

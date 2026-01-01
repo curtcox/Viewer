@@ -53,31 +53,6 @@ def _derive_exception_summary_from_traceback(error_detail: str | None) -> str | 
     return last_line
 
 
-def _extract_exception_summary_from_internal_error_html(html: str | None) -> str | None:
-    if not isinstance(html, str) or not html:
-        return None
-
-    match = re.search(r"Exception:</strong>\s*([^<]+)", html)
-    if not match:
-        return None
-
-    return match.group(1).strip() or None
-
-
-def _extract_stack_trace_list_from_internal_error_html(html: str | None) -> str | None:
-    if not isinstance(html, str) or not html:
-        return None
-
-    exception_match = re.search(r"Exception:</strong>\s*([^<]+)", html)
-    ol_match = re.search(r"(<ol[^>]*>.*?</ol>)", html, re.DOTALL)
-    if not ol_match:
-        return None
-
-    exception_text = exception_match.group(1).strip() if exception_match else "Exception"
-    ol_html = ol_match.group(1)
-    return f"<div class=\"stack-trace\"><h2>Stack trace</h2><div><strong>{escape(exception_text)}</strong></div>{ol_html}</div>"
-
-
 def _normalize_cid_lookup(value: str | None) -> str | None:
     if not isinstance(value, str) or not value:
         return None
@@ -746,26 +721,6 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                 gateways,
                 exception_summary=f"TargetRequestError: {type(e).__name__}: {str(e)}",
                 error_detail=_format_exception_detail(e, debug_context=debug_context),
-            )
-
-        status_code = getattr(response, "status_code", 200)
-        response_text = getattr(response, "text", "")
-        if isinstance(status_code, int) and status_code >= 500:
-            exception_summary = _extract_exception_summary_from_internal_error_html(response_text)
-            stack_trace_html = _extract_stack_trace_list_from_internal_error_html(response_text)
-            return _render_error(
-                "Gateway Error",
-                "An internal server error occurred.",
-                gateways,
-                exception_summary=exception_summary,
-                stack_trace_html=stack_trace_html,
-                server_args_json=json.dumps(
-                    {
-                        "target": resolved_target,
-                        "request": _safe_preview_request_details(request_details),
-                    },
-                    indent=2,
-                ),
             )
 
         # Build response details
@@ -1479,16 +1434,7 @@ def _transform_response(ctx, gateways, context):
     return ctx
 
 
-def _render_error(
-    title,
-    message,
-    gateways,
-    *,
-    error_detail=None,
-    exception_summary=None,
-    server_args_json=None,
-    stack_trace_html=None,
-):
+def _render_error(title, message, gateways, *, error_detail=None, exception_summary=None):
     """Render an error page with optional diagnostic details."""
     if not exception_summary:
         exception_summary = _derive_exception_summary_from_traceback(error_detail)
@@ -1498,8 +1444,6 @@ def _render_error(
         error_message=message,
         error_detail=error_detail,
         exception_summary=exception_summary,
-        server_args_json=server_args_json,
-        stack_trace_html=stack_trace_html,
         available_gateways=gateways,
     )
     return {"output": html, "content_type": "text/html"}
