@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>JSONPlaceholder - {{ request_path or "/" }}</title>
+    <style>
+        body { font-family: 'Courier New', monospace; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background: #1e1e1e; color: #d4d4d4; }
+        pre { background: #252526; padding: 1.5rem; border-radius: 8px; overflow-x: auto; line-height: 1.5; }
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .json-boolean { color: #569cd6; }
+        .json-null { color: #569cd6; }
+        .json-link { color: #4ec9b0; text-decoration: underline; cursor: pointer; }
+        .json-link:hover { color: #4fc3f7; }
+        h1 { color: #4ec9b0; font-size: 1.5rem; }
+        .breadcrumb { color: #858585; margin-bottom: 1rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { color: #4ec9b0; margin-right: 1rem; text-decoration: none; }
+        .nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    <div class="nav">
+        <a href="/gateway/jsonplaceholder/posts">Posts</a>
+        <a href="/gateway/jsonplaceholder/users">Users</a>
+        <a href="/gateway/jsonplaceholder/comments">Comments</a>
+        <a href="/gateway/jsonplaceholder/albums">Albums</a>
+        <a href="/gateway/jsonplaceholder/photos">Photos</a>
+        <a href="/gateway/jsonplaceholder/todos">Todos</a>
+    </div>
+    <h1>API Response</h1>
+    <pre>{{ formatted_json | safe }}</pre>
+</body>
+</html>

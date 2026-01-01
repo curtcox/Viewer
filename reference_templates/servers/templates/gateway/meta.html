@@ -3,6 +3,11 @@
 <head>
     <meta charset="utf-8">
     <title>Gateway Meta: {{ server_name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/custom.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
         h1 { color: #4ec9b0; }
@@ -27,6 +32,47 @@
         .test-links { margin-top: 1rem; }
         .test-links a { display: inline-block; margin-right: 1rem; padding: 0.5rem 1rem; background: #333; border-radius: 4px; }
         .test-links a:hover { background: #444; }
+
+        /* Ensure source/code blocks remain readable on the dark theme. */
+        pre { color: #eee; }
+        code { color: #dcdcaa; }
+
+        /* CID dropdown styling: the app-wide CID controls assume light pages; this page is dark. */
+        .cid-display { color: #eee; }
+        .cid-display .cid-link { color: #4ec9b0; }
+        .cid-display .cid-link:hover,
+        .cid-display .cid-link:focus { color: #9cdcfe; }
+
+        .cid-display .cid-menu-btn.btn-outline-secondary {
+            color: #eee;
+            border-color: #666;
+            background: transparent;
+        }
+        .cid-display .cid-menu-btn.btn-outline-secondary:hover,
+        .cid-display .cid-menu-btn.btn-outline-secondary:focus {
+            color: #1a1a2e;
+            background: #9cdcfe;
+            border-color: #9cdcfe;
+        }
+
+        .cid-display .dropdown-menu {
+            background: #1e1e2e;
+            border: 1px solid #333;
+        }
+        .cid-display .dropdown-menu .dropdown-item {
+            color: #eee;
+        }
+        .cid-display .dropdown-menu .dropdown-item:hover,
+        .cid-display .dropdown-menu .dropdown-item:focus {
+            background: #252536;
+            color: #fff;
+        }
+        .cid-display .dropdown-menu .dropdown-divider {
+            border-top-color: #333;
+        }
+        .cid-display .dropdown-menu .dropdown-item i {
+            color: #a0a0a0 !important;
+        }
     </style>
 </head>
 <body>
@@ -108,7 +154,7 @@
         {% endfor %}
         {% endif %}
         {% if request_transform_source %}
-        <pre>{{ request_transform_source }}</pre>
+        <pre>{{ request_transform_source | e }}</pre>
         {% else %}
         <p><em>Transform source not available</em></p>
         {% endif %}
@@ -138,11 +184,59 @@
         {% endfor %}
         {% endif %}
         {% if response_transform_source %}
-        <pre>{{ response_transform_source }}</pre>
+        <pre>{{ response_transform_source | e }}</pre>
         {% else %}
         <p><em>Transform source not available</em></p>
         {% endif %}
     </div>
+
+    {% if templates_info %}
+    <div class="card">
+        <h3>Templates</h3>
+        {% for tpl in templates_info %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #333;">
+            <h4 style="color: #9cdcfe; margin-top: 0;">
+                {{ tpl.name }}
+                <span class="status {{ tpl.status }}">{{ tpl.status_text }}</span>
+            </h4>
+            <div class="info-row">
+                <span class="info-label">CID:</span>
+                <span class="info-value">
+                    {% if tpl.cid_link_html %}
+                        {{ tpl.cid_link_html | safe }}
+                    {% else %}
+                        <code>{{ tpl.cid }}</code>
+                    {% endif %}
+                </span>
+            </div>
+            {% if tpl.variables %}
+            <div class="info-row">
+                <span class="info-label">Variables:</span>
+                <span class="info-value">
+                    <code>{{ tpl.variables | join(', ') }}</code>
+                    <span style="color: #858585; font-size: 0.9rem;">(auto-detected, may be incomplete)</span>
+                </span>
+            </div>
+            {% endif %}
+            {% if tpl.error %}
+            <div class="error-detail">{{ tpl.error }}</div>
+            {% endif %}
+            {% if tpl.source %}
+            <details style="margin-top: 0.5rem;">
+                <summary style="cursor: pointer; color: #9cdcfe;">View Template Source</summary>
+                <pre style="margin-top: 0.5rem;">{{ tpl.source | e }}</pre>
+            </details>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif config.response_transform_cid or config.request_transform_cid %}
+    <div class="card">
+        <h3>Templates</h3>
+        <p><em>No templates configured for this gateway.</em></p>
+        <p style="color: #858585; font-size: 0.9rem;">Note: Transforms may use inline templates or external templates may need to be configured.</p>
+    </div>
+    {% endif %}
 
     <div class="card">
         <h3>Test Links</h3>
@@ -153,6 +247,45 @@
             {% endfor %}
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('.cid-copy-action');
+        if (!trigger) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const copyPath = trigger.getAttribute('data-copy-path');
+        if (!copyPath) {
+            return;
+        }
+
+        const originalHtml = trigger.innerHTML;
+
+        navigator.clipboard.writeText(`${window.location.origin}${copyPath}`).then(() => {
+            trigger.innerHTML = '<i class="fas fa-check text-success me-2"></i>Copied!';
+            trigger.classList.add('disabled');
+
+            const dropdownToggle = trigger.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
+            if (dropdownToggle && window.bootstrap && window.bootstrap.Dropdown) {
+                const dropdownInstance = window.bootstrap.Dropdown.getInstance(dropdownToggle) || new window.bootstrap.Dropdown(dropdownToggle);
+                dropdownInstance.hide();
+            }
+
+            setTimeout(() => {
+                trigger.innerHTML = originalHtml;
+                trigger.classList.remove('disabled');
+            }, 2000);
+        }).catch(() => {
+            trigger.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-2"></i>Copy failed';
+            setTimeout(() => {
+                trigger.innerHTML = originalHtml;
+            }, 2000);
+        });
+    });
+    </script>
     <script src="/static/js/cid_editor_controls.js"></script>
 </body>
 </html>

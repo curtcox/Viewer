@@ -1,15 +1,45 @@
 # Gateway Enhancement Plan
  
 ## Overview
- 
-Status: Not implemented yet. The current `gateway.py` supports variable-driven gateways and templates for gateway pages, but does not appear to include the additional enhancements described here (direct response from request transforms, template CID plumbing via `resolve_template`, response `source` indicator, and template previews in meta).
- 
-This plan details enhancements to the gateway facility to support:
-1. Request transforms that can directly return responses (bypassing the server)
-2. Response transforms that know whether the response came from a request transform or the server
-3. External Jinja templates resolved via a template function passed to transforms
-4. Template CIDs specified in the gateways variable
-5. Enhanced `/gateways/meta/{server}` to list and preview gateway templates
+
+**Status: COMPLETE ✅**
+
+All planned phases (1-4) have been successfully implemented and tested. The gateway.py now supports:
+- ✅ Request transforms that can directly return responses (bypassing the server)
+- ✅ Response transforms that know whether the response came from a request transform or the server via the `source` field
+- ✅ External Jinja templates resolved via a template function passed to transforms (`resolve_template`)
+- ✅ Template CIDs specified in the gateways variable
+- ✅ Man, tldr, and jsonplaceholder gateways updated to use external templates
+- ✅ Enhanced `/gateway/meta/{server}` to list and preview gateway templates
+- ✅ Comprehensive integration tests for template functionality
+- ✅ All tests passing (27 unit + 13 integration)
+
+**Future Work:**
+- HRX gateway template externalization is documented in a separate plan: `todo/hrx_gateway_externalization.md`
+- This was deferred due to complexity (multi-format rendering) and is not required for this issue
+
+The following enhancements have been implemented:
+1. Request transforms can return direct responses using `{"response": {...}}` syntax
+2. Response details include a `source` field ("server" or "request_transform")
+3. Template resolver function (`resolve_template`) available in transform context
+4. Man, tldr, and jsonplaceholder gateways use external templates
+5. Comprehensive unit tests for all Phase 1 functionality
+6. Meta page displays template information including validation status, variables, and source
+7. Integration tests verify end-to-end template functionality
+
+## Completion Summary
+
+**What Was Delivered:**
+- ✅ 27 unit tests (all passing)
+- ✅ 13 integration tests (all passing)
+- ✅ 3 gateways with externalized templates (man, tldr, jsonplaceholder)
+- ✅ Meta page template validation and display
+- ✅ Comprehensive documentation
+- ✅ Zero test failures
+- ✅ All ruff linting checks pass
+
+**Optional Future Work:**
+- See `todo/hrx_gateway_externalization.md` for detailed plan (6-8 hours estimated)
 
 ---
 

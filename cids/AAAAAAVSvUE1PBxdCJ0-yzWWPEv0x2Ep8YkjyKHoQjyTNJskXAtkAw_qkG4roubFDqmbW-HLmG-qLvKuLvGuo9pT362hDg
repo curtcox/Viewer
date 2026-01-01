@@ -2,29 +2,17 @@
   "jsonplaceholder": {
     "request_transform_cid": "AAAAAAcDEabo_ndn5uPJMow30GGL0RLFsoYfI9pnnqEv8WCexbJ83SRmjz9Ami1Mm107AgKEYZityZOHnuis0XRqxz91Cw",
     "response_transform_cid": "AAAAABMBka1ujKT8nnLo5eRCI5bk6nFk2lkKxAmOs77UHn3LAHZRtS4lAseIzmoRd4EF-xTOr1ihmX_AWlND_k6fjGMhOg",
-    "description": "JSONPlaceholder fake REST API for testing",
-    "templates": {
-      "jsonplaceholder_data.html": "AAAAAAadOwnWJJZIzVUgVozR_MzC-7shgL0tXbXfA2oU1LgLtdnhmdYHKOjgtdRfp98GEgYGV0l0Ks-FL5EocXrBtEFaMA",
-      "jsonplaceholder_error.html": "AAAAAAKQWG0ef5l6OUZ-8j_vWthCXyDxa1uIBjm-a_UlOm5cJhXSspOWd-FGdAIbgxUj2MeWSh8TmO4j8S9La1BfZihJCQ"
-    }
+    "description": "JSONPlaceholder fake REST API for testing"
   },
   "man": {
     "request_transform_cid": "AAAAAAaMsYabK_PVL6O5dzLo5umUZVUNc4TCX9_jpOmgZRfYS7q9ucBUhXLj5xUbrDGu7usooPXFj52vkLuEPHVi0RfO2Q",
     "response_transform_cid": "AAAAABEhMEsVwkSw--l_hKIKzuWx80gGZCG3oRRTI2kqs53kOB1qJ5ytuYYQ3Wdg6WBovrxLB4bj7g4iIbybYgYZhwuPFg",
-    "description": "HTML formatted man pages with command links",
-    "templates": {
-      "man_page.html": "AAAAAAcpR6M09vjoOhhEfG4MW8rzdip7Zs-84Rm20v2k9e3DjZBQz4_7wluqglA43-7mqiWDkqPN-Gcag2FYeRzzH9b6_A",
-      "man_error.html": "AAAAAAL-PjC1egoy-pbqvf5z5VRlUMtxocUvad492y7MrFyvo7H_6IEA6maujNEVdIK_z5wP8hJ50Hua8qPLsstbH-68Xw"
-    }
+    "description": "HTML formatted man pages with command links"
   },
   "tldr": {
     "request_transform_cid": "AAAAAANoBblFXSuVP9YdpuFSVnFCrdLo-HftAHX5Mhw-zmN68Mb4enBZvWitTork0eAIOYc5jAx8lxX8cUUlyVYH07ohoA",
     "response_transform_cid": "AAAAABz3PdY-xiUbKRPt3GKKm22WnGY-P6WIW7FugDgXvsU5ps_8q9JTyouwiPG7kBubYafAf4YoUWCNbVWVtEtXT4ePUQ",
-    "description": "HTML formatted tldr pages with command links",
-    "templates": {
-      "tldr_page.html": "AAAAAAe_8lwEyA8qDtMFn3TIOfti_T17Hba9py-tMVBiUDzB2ZExy8TunTdVU79tF1vckJBY9lULP0oAbkve3D-5fyf-5g",
-      "tldr_error.html": "AAAAAAMAt2PW3_ihzW5YVSc6WmM0Ak9JfyU8VsjCqRCjM99wg2zdW5uKDK0y5zWpKbKW3RSTw-h2dYElysskErhUNw9l-A"
-    }
+    "description": "HTML formatted tldr pages with command links"
   },
   "hrx": {
     "request_transform_cid": "AAAAAASijDU5-aN9Ie5ukCEoN7KU4lJSxI8EJz3SiIcmJ5LQ1bAdKhJQSnDN5dZlFCqMs52vn0qMo_kTJcV_YbY_oe1_Lw",
