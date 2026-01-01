@@ -1,0 +1,20 @@
+{
+  "id": "postmark",
+  "name": "Postmark API",
+  "description": "Send transactional email via Postmark email delivery platform.",
+  "definition_file": "definitions/postmark.py",
+  "documentation_url": "https://postmarkapp.com/developer",
+  "operations": {
+    "read": [
+      "get_message - Get message details",
+      "list_bounces - Get bounce events",
+      "get_stats - Get email statistics",
+      "list_templates - Get all email templates",
+      "get_template - Get specific template by ID"
+    ],
+    "write": [
+      "send_email - Send an email",
+      "send_template_email - Send email using template"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "mailgun",
+  "name": "Mailgun API",
+  "description": "Send and manage emails with Mailgun email delivery platform.",
+  "definition_file": "definitions/mailgun.py",
+  "documentation_url": "https://documentation.mailgun.com/en/latest/api_reference.html",
+  "operations": {
+    "read": [
+      "get_message - Get message details",
+      "list_events - Get email events",
+      "get_stats - Get email statistics",
+      "list_domains - Get all domains",
+      "validate_email - Validate email address"
+    ],
+    "write": [
+      "send_message - Send an email message"
+    ]
+  }
+}
