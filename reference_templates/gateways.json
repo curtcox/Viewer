@@ -28,7 +28,13 @@
   },
   "hrx": {
     "request_transform_cid": "AAAAAASijDU5-aN9Ie5ukCEoN7KU4lJSxI8EJz3SiIcmJ5LQ1bAdKhJQSnDN5dZlFCqMs52vn0qMo_kTJcV_YbY_oe1_Lw",
-    "response_transform_cid": "AAAAAC2TmBBtmc9IkwmWU0P5BxJgfWZGnm4iYix5_7zfXndE7zL2y_9H7kDytAU5E2bv1T2sI0Fm4knlnMpgZUsukJXcaw",
-    "description": "HRX archive web viewer with relative URL fixing"
+    "response_transform_cid": "AAAAACL6kshTBMtrejWFPricsMgSWsMRA1WR-LoVBcW-EfhVBy--iWOXWz9BvyrjxPrgB7x7L9TNeg1zA45DAnVjdIPyUg",
+    "description": "HRX archive viewer with markdown and code highlighting",
+    "templates": {
+      "hrx_error.html": "AAAAAAMy20H6rkqwbY8yJBNetLS0Ch-vDTIH1Y69s9s_1jtPw9bDAs56UsUpiG2NBCrGhHb6vzPoNPqt05nNyo3NwYvuKQ",
+      "hrx_directory.html": "AAAAAAWv8TEbN2yocs5gv20y69gwxBcKdoQoUezuQw5-8bP_XdsqvgtzeXNW5jZG_4unFDAFALmgGkqdYy7gNc1oeT0_7A",
+      "hrx_markdown.html": "AAAAAARysOxr22N5s9bp9-pSfJXJ15esPbL0O_UDXZUElsNge3Pwoc0DL45bHIDPpfoqo0Eag3JmAkg-cPbWcCu0S6NW1w",
+      "hrx_text.html": "AAAAAALEJg_dS_zJzd0xPRkjKPzjdE77ECL3opBH63k0ztMqSTOqVxfE-ZOAWxUi7UoOx8Xk6b2qztVm8008HyualvRVfQ"
+    }
   }
 }
