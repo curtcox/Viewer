@@ -1,0 +1,24 @@
+{
+  "id": "box",
+  "name": "Box",
+  "description": "Manage files and folders in Box cloud storage and collaboration platform.",
+  "definition_cid": "reference_templates/servers/definitions/box.py",
+  "operations": [
+    "list_items",
+    "get_file",
+    "get_folder",
+    "download_file",
+    "upload_file",
+    "delete_file",
+    "delete_folder",
+    "create_folder",
+    "copy_file",
+    "move_file",
+    "search",
+    "get_user"
+  ],
+  "secrets": [
+    "BOX_ACCESS_TOKEN"
+  ],
+  "notes": "Uses OAuth Bearer token authentication. Supports dry-run previews by default. Root folder has ID '0'."
+}

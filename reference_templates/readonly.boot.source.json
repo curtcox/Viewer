@@ -824,6 +824,26 @@
       "name": "telegram",
       "definition_cid": "reference_templates/servers/definitions/telegram.py",
       "enabled": true
+    },
+    {
+      "name": "docusign",
+      "definition_cid": "reference_templates/servers/definitions/docusign.py",
+      "enabled": true
+    },
+    {
+      "name": "pandadoc",
+      "definition_cid": "reference_templates/servers/definitions/pandadoc.py",
+      "enabled": true
+    },
+    {
+      "name": "dropbox",
+      "definition_cid": "reference_templates/servers/definitions/dropbox.py",
+      "enabled": true
+    },
+    {
+      "name": "box",
+      "definition_cid": "reference_templates/servers/definitions/box.py",
+      "enabled": true
     }
   ],
   "variables": [
