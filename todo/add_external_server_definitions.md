@@ -192,6 +192,24 @@ Each external service requires:
 - Total external server tests: 730 tests passing (656 from previous phases + 74 new).
 - Ready to proceed to Phase 10: Document & Storage servers (4 servers).
 
+## Progress Notes (2026-01-01 - Phase 10)
+
+- **Phase 10 Document & Storage Servers COMPLETED**: All 4 Document & Storage servers implemented.
+- Implemented docusign: List/get envelopes, create/send envelopes, list/get templates, download documents (18 tests passing).
+- Implemented pandadoc: List/get/create/send documents, download PDFs, list/get templates (20 tests passing).
+- Implemented dropbox: List/get/upload/download/delete files, create folders, move/copy files, search (21 tests passing).
+- Implemented box: List/get/upload/download/delete files/folders, create folders, move/copy files, search (27 tests passing).
+- DocuSign uses OAuth Bearer token authentication for DocuSign REST API v2.1 (demo environment by default).
+- PandaDoc uses custom "API-Key" header format for PandaDoc API v1.
+- Dropbox uses OAuth Bearer token authentication for Dropbox API v2.
+- Box uses OAuth Bearer token authentication for Box API v2.0.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 18 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 10 tests: 86 new tests passing.
+- Total external server tests: 816 tests passing (730 from previous phases + 86 new).
+- Ready to proceed to Phase 11: Developer & Design servers (4 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1650,11 +1668,11 @@ First servers using shared infrastructure as validation:
 - ✅ postmark - Added 2026-01-01
 - ✅ mailchimp (already in Phase 1)
 
-### Phase 10: Document & Storage (4 servers)
-- docusign
-- pandadoc
-- dropbox
-- box
+### Phase 10: Document & Storage (4 servers) ✅ COMPLETE
+- ✅ docusign - Added 2026-01-01
+- ✅ pandadoc - Added 2026-01-01
+- ✅ dropbox - Added 2026-01-01
+- ✅ box - Added 2026-01-01
 
 ### Phase 11: Developer & Design (4 servers)
 - gitlab
