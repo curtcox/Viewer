@@ -1,0 +1,300 @@
+# ruff: noqa: F821, F706
+"""Interact with WordPress REST API to manage posts, pages, and media."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import requests
+
+from server_utils.external_api import ExternalApiClient, error_output, validation_error
+
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+
+def _build_preview(
+    *,
+    operation: str,
+    site_url: str,
+    resource_id: Optional[str],
+    payload: Optional[Dict[str, Any]],
+    params: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    base_url = f"{site_url.rstrip('/')}/wp-json/wp/v2"
+    
+    if operation == "list_posts":
+        url = f"{base_url}/posts"
+        method = "GET"
+    elif operation == "get_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "GET"
+    elif operation == "create_post":
+        url = f"{base_url}/posts"
+        method = "POST"
+    elif operation == "update_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "POST"
+    elif operation == "delete_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "DELETE"
+    elif operation == "list_pages":
+        url = f"{base_url}/pages"
+        method = "GET"
+    elif operation == "get_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "GET"
+    elif operation == "create_page":
+        url = f"{base_url}/pages"
+        method = "POST"
+    elif operation == "update_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "POST"
+    elif operation == "delete_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "DELETE"
+    elif operation == "list_media":
+        url = f"{base_url}/media"
+        method = "GET"
+    elif operation == "get_media":
+        url = f"{base_url}/media/{resource_id}"
+        method = "GET"
+    else:
+        url = base_url
+        method = "GET"
+
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "url": url,
+        "method": method,
+        "auth": "Application Password",
+    }
+    if params:
+        preview["params"] = params
+    if payload:
+        preview["payload"] = payload
+    return preview
+
+
+def main(
+    *,
+    operation: str = "list_posts",
+    site_url: str = "",
+    resource_id: str = "",
+    title: str = "",
+    content: str = "",
+    status: str = "draft",
+    author: Optional[int] = None,
+    per_page: int = 10,
+    page: int = 1,
+    WORDPRESS_USERNAME: str = "",
+    WORDPRESS_APP_PASSWORD: str = "",
+    WORDPRESS_SITE_URL: str = "",
+    dry_run: bool = True,
+    timeout: int = 60,
+    client: Optional[ExternalApiClient] = None,
+    context=None,
+) -> Dict[str, Any]:
+    """List and manage posts, pages, and media in WordPress.
+    
+    Operations:
+    - list_posts: List all posts (supports pagination with page and per_page)
+    - get_post: Get post details (requires resource_id)
+    - create_post: Create a new post (requires title and content)
+    - update_post: Update a post (requires resource_id, title, and/or content)
+    - delete_post: Delete a post (requires resource_id)
+    - list_pages: List all pages (supports pagination)
+    - get_page: Get page details (requires resource_id)
+    - create_page: Create a new page (requires title and content)
+    - update_page: Update a page (requires resource_id, title, and/or content)
+    - delete_page: Delete a page (requires resource_id)
+    - list_media: List all media items (supports pagination)
+    - get_media: Get media details (requires resource_id)
+    
+    Args:
+        operation: The operation to perform
+        site_url: WordPress site URL (falls back to WORDPRESS_SITE_URL)
+        resource_id: Post/Page/Media ID for get/update/delete operations
+        title: Title for create/update operations
+        content: Content for create/update operations
+        status: Post status (draft, publish, private, etc.)
+        author: Author ID for create/update operations
+        per_page: Number of items per page for list operations
+        page: Page number for list operations
+        WORDPRESS_USERNAME: WordPress username
+        WORDPRESS_APP_PASSWORD: Application Password from WordPress profile
+        WORDPRESS_SITE_URL: WordPress site URL (e.g., https://example.com)
+        dry_run: If True, return preview without making actual API call
+        timeout: Request timeout in seconds
+        client: Optional ExternalApiClient for testing
+        context: Request context
+    """
+
+    # Use WORDPRESS_SITE_URL if site_url not provided
+    effective_site_url = site_url or WORDPRESS_SITE_URL
+
+    normalized_operation = operation.lower()
+    valid_operations = {
+        "list_posts", "get_post", "create_post", "update_post", "delete_post",
+        "list_pages", "get_page", "create_page", "update_page", "delete_page",
+        "list_media", "get_media"
+    }
+    
+    if normalized_operation not in valid_operations:
+        return validation_error(
+            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(valid_operations))}",
+            field="operation"
+        )
+
+    if not effective_site_url:
+        return validation_error("Missing required site_url or WORDPRESS_SITE_URL", field="site_url")
+
+    # Validate required parameters based on operation
+    if normalized_operation in {"get_post", "update_post", "delete_post", 
+                                 "get_page", "update_page", "delete_page",
+                                 "get_media"} and not resource_id:
+        return validation_error(f"Missing required resource_id for {normalized_operation}", field="resource_id")
+
+    if normalized_operation in {"create_post", "create_page"} and not title:
+        return validation_error(f"Missing required title for {normalized_operation}", field="title")
+
+    if not WORDPRESS_USERNAME or not WORDPRESS_APP_PASSWORD:
+        return error_output(
+            "Missing WORDPRESS_USERNAME or WORDPRESS_APP_PASSWORD. Create an Application Password in your WordPress profile settings",
+            status_code=401
+        )
+
+    # Build payload for create/update operations
+    payload = None
+    params = None
+    if normalized_operation in {"create_post", "update_post", "create_page", "update_page"}:
+        payload = {}
+        if title:
+            payload["title"] = title
+        if content:
+            payload["content"] = content
+        if status:
+            payload["status"] = status
+        if author:
+            payload["author"] = author
+    elif normalized_operation in {"list_posts", "list_pages", "list_media"}:
+        params = {
+            "per_page": per_page,
+            "page": page,
+        }
+
+    # Dry-run preview
+    if dry_run:
+        preview = _build_preview(
+            operation=normalized_operation,
+            site_url=effective_site_url,
+            resource_id=resource_id,
+            payload=payload,
+            params=params,
+        )
+        return {"output": {"dry_run": True, "preview": preview}, "content_type": "application/json"}
+
+    # Make the actual API call
+    api_client = client or _DEFAULT_CLIENT
+    base_url = f"{effective_site_url.rstrip('/')}/wp-json/wp/v2"
+    
+    # WordPress uses Basic Authentication with username and Application Password
+    from requests.auth import HTTPBasicAuth
+    auth = HTTPBasicAuth(WORDPRESS_USERNAME, WORDPRESS_APP_PASSWORD)
+    
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    # Build URL based on operation
+    if normalized_operation == "list_posts":
+        url = f"{base_url}/posts"
+        method = "GET"
+    elif normalized_operation == "get_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "GET"
+    elif normalized_operation == "create_post":
+        url = f"{base_url}/posts"
+        method = "POST"
+    elif normalized_operation == "update_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "POST"
+    elif normalized_operation == "delete_post":
+        url = f"{base_url}/posts/{resource_id}"
+        method = "DELETE"
+    elif normalized_operation == "list_pages":
+        url = f"{base_url}/pages"
+        method = "GET"
+    elif normalized_operation == "get_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "GET"
+    elif normalized_operation == "create_page":
+        url = f"{base_url}/pages"
+        method = "POST"
+    elif normalized_operation == "update_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "POST"
+    elif normalized_operation == "delete_page":
+        url = f"{base_url}/pages/{resource_id}"
+        method = "DELETE"
+    elif normalized_operation == "list_media":
+        url = f"{base_url}/media"
+        method = "GET"
+    elif normalized_operation == "get_media":
+        url = f"{base_url}/media/{resource_id}"
+        method = "GET"
+    else:
+        return validation_error(f"Unknown operation: {operation}")
+
+    try:
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            auth=auth,
+            json=payload if payload else None,
+            params=params if params else None,
+            timeout=timeout,
+        )
+
+        if response.status_code == 401:
+            return error_output(
+                "Invalid WordPress credentials. Check your username and Application Password",
+                status_code=401
+            )
+        elif response.status_code == 403:
+            return error_output(
+                "Insufficient permissions for this operation. Check your user role has permission for this action",
+                status_code=403
+            )
+        elif response.status_code == 404:
+            return error_output(
+                f"Resource not found (id={resource_id})",
+                status_code=404
+            )
+
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+            return {"output": data, "content_type": "application/json"}
+        except requests.exceptions.JSONDecodeError:
+            return error_output(
+                "Failed to parse API response as JSON",
+                status_code=response.status_code,
+                response=response.text[:500]
+            )
+
+    except requests.exceptions.Timeout:
+        return error_output(
+            f"Request timed out after {timeout} seconds. Try increasing the timeout parameter",
+            status_code=408
+        )
+    except requests.exceptions.RequestException as e:
+        status_code = e.response.status_code if e.response else None
+        error_detail = e.response.text[:500] if e.response else str(e)
+        return error_output(
+            f"WordPress API request failed: {str(e)}",
+            status_code=status_code,
+            response=error_detail
+        )

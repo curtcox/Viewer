@@ -1,0 +1,22 @@
+{
+  "id": "squarespace",
+  "name": "Squarespace",
+  "description": "Manage products, orders, and inventory in Squarespace Commerce.",
+  "definition_cid": "reference_templates/servers/definitions/squarespace.py",
+  "operations": [
+    "list_products",
+    "get_product",
+    "create_product",
+    "update_product",
+    "delete_product",
+    "list_orders",
+    "get_order",
+    "list_inventory",
+    "get_inventory",
+    "update_inventory"
+  ],
+  "secrets": [
+    "SQUARESPACE_API_KEY"
+  ],
+  "notes": "Uses Bearer token authentication. Get your API key from Squarespace Settings > Advanced > API Keys. Supports dry-run previews by default. Focused on commerce operations."
+}

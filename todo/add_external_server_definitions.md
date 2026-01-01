@@ -226,6 +226,24 @@ Each external service requires:
 - Total external server tests: 873 tests passing (816 from previous phases + 57 new).
 - Ready to proceed to Phase 12: Website Builders servers (4 servers).
 
+## Progress Notes (2026-01-01 - Phase 12)
+
+- **Phase 12 Website Builders Servers COMPLETED**: All 4 Website Builders servers implemented.
+- Implemented webflow: List sites, get site, publish site, manage collections and CMS items with Bearer token (18 tests passing).
+- Implemented wordpress: List/get/create/update/delete posts, pages, and media via REST API with Basic auth (18 tests passing).
+- Implemented wix: Get site, manage collections, query/get/create/update/delete data items with API Key auth (20 tests passing).
+- Implemented squarespace: Manage products, orders, and inventory in Squarespace Commerce with Bearer token (21 tests passing).
+- Webflow uses Bearer token authentication for Webflow API and supports dry-run previews.
+- WordPress uses Basic Authentication (username and Application Password) for WordPress REST API v2.
+- Wix uses API Key authentication for Wix Data API v2 with support for query filters.
+- Squarespace uses Bearer token authentication for Squarespace Commerce API v1.0.
+- All servers follow shared abstraction patterns with ExternalApiClient (Webflow, Wix, Squarespace) or direct requests (WordPress).
+- Each server includes comprehensive unit tests (minimum 18 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 12 tests: 77 new tests passing.
+- Total external server tests: 950 tests passing (873 from previous phases + 77 new).
+- Ready to proceed to Phase 13: Forms & Surveys servers (2 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1696,11 +1714,11 @@ First servers using shared infrastructure as validation:
 - ✅ figma - Added 2026-01-01
 - ✅ github (already in Phase 1)
 
-### Phase 12: Website Builders (4 servers)
-- webflow
-- wordpress
-- wix
-- squarespace
+### Phase 12: Website Builders (4 servers) ✅ COMPLETE
+- ✅ webflow - Added 2026-01-01
+- ✅ wordpress - Added 2026-01-01
+- ✅ wix - Added 2026-01-01
+- ✅ squarespace - Added 2026-01-01
 
 ### Phase 13: Forms & Surveys (2 servers)
 - typeform

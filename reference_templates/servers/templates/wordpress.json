@@ -1,0 +1,26 @@
+{
+  "id": "wordpress",
+  "name": "WordPress",
+  "description": "Manage posts, pages, and media in WordPress via REST API.",
+  "definition_cid": "reference_templates/servers/definitions/wordpress.py",
+  "operations": [
+    "list_posts",
+    "get_post",
+    "create_post",
+    "update_post",
+    "delete_post",
+    "list_pages",
+    "get_page",
+    "create_page",
+    "update_page",
+    "delete_page",
+    "list_media",
+    "get_media"
+  ],
+  "secrets": [
+    "WORDPRESS_USERNAME",
+    "WORDPRESS_APP_PASSWORD",
+    "WORDPRESS_SITE_URL"
+  ],
+  "notes": "Uses Basic Authentication with username and Application Password. Create an Application Password in your WordPress profile settings. Supports dry-run previews by default."
+}
