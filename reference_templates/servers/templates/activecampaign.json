@@ -1,0 +1,21 @@
+{
+  "id": "activecampaign",
+  "name": "ActiveCampaign API",
+  "description": "Access ActiveCampaign marketing automation and CRM platform for managing contacts, lists, and campaigns.",
+  "definition_file": "definitions/activecampaign.py",
+  "documentation_url": "https://developers.activecampaign.com/reference",
+  "operations": {
+    "read": [
+      "list_contacts - Get all contacts",
+      "get_contact - Get specific contact by ID",
+      "list_lists - Get all lists",
+      "get_list - Get specific list by ID",
+      "list_campaigns - Get all campaigns",
+      "get_campaign - Get specific campaign by ID"
+    ],
+    "write": [
+      "create_contact - Create a new contact",
+      "update_contact - Update an existing contact"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "mailerlite",
+  "name": "MailerLite API",
+  "description": "Access MailerLite email marketing platform for managing subscribers, groups, and campaigns.",
+  "definition_file": "definitions/mailerlite.py",
+  "documentation_url": "https://developers.mailerlite.com/docs",
+  "operations": {
+    "read": [
+      "list_subscribers - Get all subscribers",
+      "get_subscriber - Get specific subscriber by ID",
+      "list_groups - Get all groups",
+      "get_group - Get specific group by ID",
+      "list_campaigns - Get all campaigns",
+      "get_campaign - Get specific campaign by ID"
+    ],
+    "write": [
+      "create_subscriber - Create a new subscriber",
+      "update_subscriber - Update an existing subscriber"
+    ]
+  }
+}

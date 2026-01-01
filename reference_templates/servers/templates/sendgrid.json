@@ -1,0 +1,21 @@
+{
+  "id": "sendgrid",
+  "name": "SendGrid API",
+  "description": "Send transactional and marketing email via SendGrid platform.",
+  "definition_file": "definitions/sendgrid.py",
+  "documentation_url": "https://docs.sendgrid.com/api-reference",
+  "operations": {
+    "read": [
+      "list_templates - Get all email templates",
+      "get_template - Get specific template by ID",
+      "list_contacts - Get all contacts",
+      "get_contact - Get specific contact by ID",
+      "list_lists - Get all contact lists",
+      "get_list - Get specific list by ID"
+    ],
+    "write": [
+      "send_mail - Send an email",
+      "add_contact - Add a new contact"
+    ]
+  }
+}

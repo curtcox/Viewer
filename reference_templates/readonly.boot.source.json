@@ -666,6 +666,31 @@
       "enabled": true
     },
     {
+      "name": "activecampaign",
+      "definition_cid": "reference_templates/servers/definitions/activecampaign.py",
+      "enabled": true
+    },
+    {
+      "name": "mailerlite",
+      "definition_cid": "reference_templates/servers/definitions/mailerlite.py",
+      "enabled": true
+    },
+    {
+      "name": "sendgrid",
+      "definition_cid": "reference_templates/servers/definitions/sendgrid.py",
+      "enabled": true
+    },
+    {
+      "name": "mailgun",
+      "definition_cid": "reference_templates/servers/definitions/mailgun.py",
+      "enabled": true
+    },
+    {
+      "name": "postmark",
+      "definition_cid": "reference_templates/servers/definitions/postmark.py",
+      "enabled": true
+    },
+    {
       "name": "zoom",
       "definition_cid": "reference_templates/servers/definitions/zoom.py",
       "enabled": true
