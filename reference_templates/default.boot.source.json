@@ -776,6 +776,11 @@
       "enabled": true
     },
     {
+      "name": "klaviyo",
+      "definition_cid": "reference_templates/servers/definitions/klaviyo.py",
+      "enabled": true
+    },
+    {
       "name": "zoom",
       "definition_cid": "reference_templates/servers/definitions/zoom.py",
       "enabled": true

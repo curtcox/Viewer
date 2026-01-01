@@ -1,0 +1,21 @@
+{
+  "id": "klaviyo",
+  "name": "Klaviyo API",
+  "description": "Access Klaviyo email marketing and customer data platform for managing profiles, lists, and events.",
+  "definition_file": "definitions/klaviyo.py",
+  "documentation_url": "https://developers.klaviyo.com/en/reference/api-overview",
+  "operations": {
+    "read": [
+      "list_profiles - Get all profiles",
+      "get_profile - Get specific profile by ID",
+      "list_lists - Get all lists",
+      "get_list - Get specific list by ID",
+      "get_events - Get all events"
+    ],
+    "write": [
+      "create_profile - Create a new profile",
+      "create_list - Create a new list",
+      "add_profile_to_list - Add profile to a list"
+    ]
+  }
+}
