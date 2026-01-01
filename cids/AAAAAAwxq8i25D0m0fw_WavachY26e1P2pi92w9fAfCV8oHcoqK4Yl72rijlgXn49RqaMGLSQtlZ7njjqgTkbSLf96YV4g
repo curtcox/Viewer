@@ -8,6 +8,8 @@ HRX format specification: https://github.com/google/hrx
 
 import json
 
+from flask import Response
+
 
 def main(archive=None, path=None, *, context=None):
     """Parse and serve HRX archive files.
@@ -70,10 +72,8 @@ def main(archive=None, path=None, *, context=None):
     # If no path specified, return list of files
     if path is None or (isinstance(path, str) and not path.strip()):
         entries = _list_directory("")
-        return {
-            "output": "\n".join(entries) if entries else "",
-            "content_type": "text/plain",
-        }
+        body = "\n".join(entries) if entries else ""
+        return Response(body, mimetype="text/hrx-directory")
 
     requested = str(path)
     normalized_requested = requested.lstrip("/")
@@ -89,10 +89,7 @@ def main(archive=None, path=None, *, context=None):
 
     directory_entries = _list_directory(normalized_requested)
     if directory_entries:
-        return {
-            "output": "\n".join(directory_entries),
-            "content_type": "text/plain",
-        }
+        return Response("\n".join(directory_entries), mimetype="text/hrx-directory")
 
     root_entries = _list_directory("")
     payload = {
@@ -101,8 +98,8 @@ def main(archive=None, path=None, *, context=None):
         "root_entries": root_entries,
     }
 
-    return {
-        "output": json.dumps(payload, indent=2, sort_keys=True),
-        "content_type": "application/json",
-        "status": 404,
-    }
+    return Response(
+        json.dumps(payload, indent=2, sort_keys=True),
+        status=404,
+        mimetype="application/json",
+    )

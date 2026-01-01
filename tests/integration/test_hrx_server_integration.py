@@ -66,11 +66,9 @@ def main():
             "/hrx", data={"archive": hrx_archive}, follow_redirects=True
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"HRX Archive Contents", response.data)
         self.assertIn(b"readme.txt", response.data)
         self.assertIn(b"config.json", response.data)
-        self.assertIn(b"src/main.py", response.data)
-        self.assertIn(b"3 total", response.data)
+        self.assertIn(b"src/", response.data)
 
         # Step 2: Retrieve the readme file
         response = self.client.post(
@@ -112,9 +110,10 @@ def main():
             data={"archive": hrx_archive, "path": "nonexistent.txt"},
             follow_redirects=True,
         )
-        self.assertEqual(response.status_code, 500)
-        self.assertIn(b"File not found: nonexistent.txt", response.data)
-        self.assertIn(b"valid.txt", response.data)  # Should show available files
+        self.assertEqual(response.status_code, 404)
+        self.assertIn(b"Path not found", response.data)
+        self.assertIn(b"nonexistent.txt", response.data)
+        self.assertIn(b"valid.txt", response.data)
 
         # Test missing archive
         response = self.client.post(

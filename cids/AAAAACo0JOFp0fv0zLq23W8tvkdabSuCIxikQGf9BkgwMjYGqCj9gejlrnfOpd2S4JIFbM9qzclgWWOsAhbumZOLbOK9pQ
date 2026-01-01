@@ -59,36 +59,16 @@ def transform_response(response_details: dict, context: dict) -> dict:
             "status_code": int(status_code) if isinstance(status_code, int) else 500,
         }
 
-    def _looks_like_directory_listing(value: str) -> bool:
-        if not isinstance(value, str):
-            return False
-        stripped = value.strip()
-        if not stripped:
-            return True
-        if stripped.startswith("<"):
-            return False
-        if stripped.startswith("{") and stripped.endswith("}"):
-            return False
-        lines = [line.strip() for line in value.splitlines() if line.strip()]
-        if not lines:
-            return True
-        # Heuristic: directory listings are newline-separated path-like entries.
-        for line in lines:
-            if line.startswith("<") or "\0" in line:
-                return False
-        return True
-
-    # If this is a directory listing, render navigation.
-    # Note: directory output is typically stored as a CID and served back as text/html,
-    # so we cannot rely on Content-Type.
+    # If this is a directory listing, render navigation
     directory_current_path = file_path
-    if _looks_like_directory_listing(text) and directory_current_path and not directory_current_path.endswith("/"):
-        directory_current_path += "/"
+    if isinstance(content_type, str) and "text/hrx-directory" in content_type:
+        if directory_current_path and not directory_current_path.endswith("/"):
+            directory_current_path += "/"
 
-    if _looks_like_directory_listing(text) and (
-        not file_path
-        or file_path.endswith("/")
-        or (isinstance(file_path, str) and "." not in file_path)
+    if (isinstance(content_type, str) and "text/hrx-directory" in content_type) or (
+        (not file_path or file_path.endswith("/"))
+        and text
+        and not text.strip().startswith("<")
     ):
         return {
             "output": _render_directory(archive_cid, directory_current_path, text, context),

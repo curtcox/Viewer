@@ -70,9 +70,15 @@ def main(archive=None, path=None, *, context=None):
     # If no path specified, return list of files
     if path is None or (isinstance(path, str) and not path.strip()):
         entries = _list_directory("")
+        if not entries:
+            return {
+                "output": "",
+                "content_type": "text/hrx-directory",
+            }
+
         return {
-            "output": "\n".join(entries) if entries else "",
-            "content_type": "text/plain",
+            "output": "\n".join(entries),
+            "content_type": "text/hrx-directory",
         }
 
     requested = str(path)
@@ -91,7 +97,7 @@ def main(archive=None, path=None, *, context=None):
     if directory_entries:
         return {
             "output": "\n".join(directory_entries),
-            "content_type": "text/plain",
+            "content_type": "text/hrx-directory",
         }
 
     root_entries = _list_directory("")
@@ -104,5 +110,5 @@ def main(archive=None, path=None, *, context=None):
     return {
         "output": json.dumps(payload, indent=2, sort_keys=True),
         "content_type": "application/json",
-        "status": 404,
+        "status_code": 404,
     }

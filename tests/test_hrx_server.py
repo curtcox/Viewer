@@ -60,7 +60,6 @@ class TestHRXServer(unittest.TestCase):
         hrx_archive = "<===> file1.txt\ncontent1\n\n<===> file2.txt\ncontent2\n"
         response = self.client.post("/hrx", data={"archive": hrx_archive}, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"HRX Archive Contents", response.data)
         self.assertIn(b"file1.txt", response.data)
         self.assertIn(b"file2.txt", response.data)
 
@@ -79,10 +78,12 @@ class TestHRXServer(unittest.TestCase):
         """Test that server raises error when file not found."""
         hrx_archive = "<===> exists.txt\ncontent\n"
         response = self.client.post(
-            "/hrx", data={"archive": hrx_archive, "path": "notfound.txt"}
+            "/hrx", data={"archive": hrx_archive, "path": "notfound.txt"}, follow_redirects=True
         )
-        self.assertEqual(response.status_code, 500)
-        self.assertIn(b"File not found: notfound.txt", response.data)
+        self.assertEqual(response.status_code, 404)
+        self.assertIn(b"Path not found", response.data)
+        self.assertIn(b"notfound.txt", response.data)
+        self.assertIn(b"exists.txt", response.data)
 
     def test_hrx_server_with_post_request(self):
         """Test HRX server with POST request containing archive in body."""
@@ -101,7 +102,6 @@ class TestHRXServer(unittest.TestCase):
         # List all files
         response = self.client.post("/hrx", data={"archive": hrx_archive}, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"3 total", response.data)
         self.assertIn(b"file1.txt", response.data)
         self.assertIn(b"file2.txt", response.data)
         self.assertIn(b"file3.txt", response.data)
@@ -120,7 +120,8 @@ class TestHRXServer(unittest.TestCase):
         hrx_archive = "<===> dir/subdir/nested.txt\nNested content\n"
         response = self.client.post("/hrx", data={"archive": hrx_archive}, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"dir/subdir/nested.txt", response.data)
+        # Root listing shows top-level directory
+        self.assertIn(b"dir/", response.data)
 
         response = self.client.post(
             "/hrx", data={"archive": hrx_archive, "path": "dir/subdir/nested.txt"}, follow_redirects=True
@@ -133,9 +134,8 @@ class TestHRXServer(unittest.TestCase):
         # Create an archive with a boundary but no actual files
         hrx_archive = "<===> "
         response = self.client.post("/hrx", data={"archive": hrx_archive}, follow_redirects=True)
-        # Should show empty archive message
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Empty Archive", response.data)
+        self.assertEqual(response.data.strip(), b"")
 
     def test_hrx_server_invalid_hrx_format(self):
         """Test that invalid HRX format raises appropriate error."""
