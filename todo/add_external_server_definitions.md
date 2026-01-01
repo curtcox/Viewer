@@ -150,6 +150,26 @@ Each external service requires:
 - Total external server tests: 591 tests passing (497 from previous phases + 94 new).
 - Ready to proceed to Phase 8: E-commerce & Payments servers (6 servers).
 
+## Progress Notes (2026-01-01 - Phase 8)
+
+- **Phase 8 E-commerce & Payments Servers COMPLETED**: All 5 E-commerce & Payments servers implemented.
+- Implemented shopify: List/get/create products, orders, customers, validate webhooks with HMAC-SHA256 (14 tests passing).
+- Implemented woocommerce: List/get/create products, orders, customers with Basic auth (13 tests passing).
+- Implemented ebay: Search items, get item details, support legacy item IDs (11 tests passing).
+- Implemented etsy: List/get/create/update shops and listings (12 tests passing).
+- Implemented paypal: Create orders, capture payments, list transactions with OAuth (15 tests passing).
+- Shopify uses Custom App token authentication and supports webhook validation for Shopify Admin API.
+- WooCommerce uses Basic Authentication (consumer key and secret) for WooCommerce REST API v3.
+- eBay uses OAuth Bearer token authentication for eBay Browse API.
+- Etsy uses OAuth Bearer token authentication for Etsy Open API v3.
+- PayPal uses OAuth client credentials flow with both sandbox and production environment support for PayPal REST API.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 11 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 8 tests: 65 new tests passing.
+- Total external server tests: 656 tests passing (591 from previous phases + 65 new).
+- Ready to proceed to Phase 9: Email Marketing servers (7 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1591,13 +1611,13 @@ First servers using shared infrastructure as validation:
 - ✅ gorgias - Added 2025-12-31
 - ✅ servicenow - Added 2025-12-31
 
-### Phase 8: E-commerce & Payments (6 servers)
-- shopify (with webhook support)
-- woocommerce
-- ebay
-- etsy
-- paypal
-- (stripe already in Phase 1)
+### Phase 8: E-commerce & Payments (6 servers) ✅ COMPLETE
+- ✅ shopify (with webhook support) - Added 2026-01-01
+- ✅ woocommerce - Added 2026-01-01
+- ✅ ebay - Added 2026-01-01
+- ✅ etsy - Added 2026-01-01
+- ✅ paypal - Added 2026-01-01
+- ✅ stripe (already in Phase 1)
 
 ### Phase 9: Email Marketing (7 servers)
 - klaviyo

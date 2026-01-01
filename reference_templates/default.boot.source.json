@@ -126,6 +126,31 @@
       "enabled": true
     },
     {
+      "name": "shopify",
+      "definition_cid": "reference_templates/servers/definitions/shopify.py",
+      "enabled": true
+    },
+    {
+      "name": "woocommerce",
+      "definition_cid": "reference_templates/servers/definitions/woocommerce.py",
+      "enabled": true
+    },
+    {
+      "name": "ebay",
+      "definition_cid": "reference_templates/servers/definitions/ebay.py",
+      "enabled": true
+    },
+    {
+      "name": "etsy",
+      "definition_cid": "reference_templates/servers/definitions/etsy.py",
+      "enabled": true
+    },
+    {
+      "name": "paypal",
+      "definition_cid": "reference_templates/servers/definitions/paypal.py",
+      "enabled": true
+    },
+    {
       "name": "zendesk",
       "definition_cid": "reference_templates/servers/definitions/zendesk.py",
       "enabled": true
