@@ -96,6 +96,19 @@ class BootImageGenerator:
         """
         if isinstance(data, dict):
             for key, value in data.items():
+                if key == "templates" and isinstance(value, dict):
+                    for template_name, template_value in value.items():
+                        if isinstance(template_value, str) and template_value.startswith(
+                            "reference_templates/"
+                        ):
+                            file_path = self.base_dir / template_value
+                            if file_path.exists():
+                                self.generate_and_store_cid(file_path, template_value)
+                            else:
+                                print(
+                                    f"  WARNING: File not found: {template_value} (template {template_name})"
+                                )
+                    continue
                 if key.endswith("_cid") or key.endswith("_file"):
                     # This is a file reference
                     if isinstance(value, str) and value.startswith(
@@ -184,6 +197,21 @@ class BootImageGenerator:
                 print(f"  WARNING: No CID found for {value}")
                 return value
             return value
+
+        if key == "templates" and isinstance(value, dict):
+            result: dict[str, Any] = {}
+            for template_name, template_value in value.items():
+                if isinstance(template_value, str) and template_value.startswith(
+                    "reference_templates/"
+                ):
+                    if template_value in self.file_to_cid:
+                        result[template_name] = self.file_to_cid[template_value]
+                    else:
+                        print(f"  WARNING: No CID found for {template_value}")
+                        result[template_name] = template_value
+                else:
+                    result[template_name] = template_value
+            return result
 
         # Special handling for server definitions
         if key == "definition_cid":

@@ -18,7 +18,6 @@ Routes:
 import ast
 import json
 import logging
-import re
 import traceback
 from html import escape
 from pathlib import Path
@@ -401,18 +400,7 @@ def _handle_meta_page(server_name, gateways, context):
     templates_config = config.get("templates", {})
     templates_info = []
 
-    def _extract_resolve_template_calls(source: str | None) -> set[str]:
-        if not source or not isinstance(source, str):
-            return set()
-        pattern = r"resolve_template\(\s*[\"\']([^\"\']+)[\"\']\s*\)"
-        return set(re.findall(pattern, source))
-
-    referenced_template_names = set(templates_config.keys())
-    referenced_template_names |= _extract_resolve_template_calls(request_transform_source)
-    referenced_template_names |= _extract_resolve_template_calls(response_transform_source)
-
-    for template_name in sorted(referenced_template_names):
-        template_cid = templates_config.get(template_name)
+    for template_name, template_cid in templates_config.items():
         template_info = {
             "name": template_name,
             "cid": template_cid,
@@ -423,13 +411,6 @@ def _handle_meta_page(server_name, gateways, context):
             "error": None,
             "variables": [],
         }
-
-        if not template_cid:
-            template_info["error"] = "Template referenced by gateway transforms but not configured in gateway templates map"
-            template_info["status"] = "error"
-            template_info["status_text"] = "Missing Mapping"
-            templates_info.append(template_info)
-            continue
 
         # Generate CID link
         template_cid_lookup = _normalize_cid_lookup(template_cid)

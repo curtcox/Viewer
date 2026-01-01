@@ -2,17 +2,29 @@
   "jsonplaceholder": {
     "request_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_request.py",
     "response_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_response.py",
-    "description": "JSONPlaceholder fake REST API for testing"
+    "description": "JSONPlaceholder fake REST API for testing",
+    "templates": {
+      "jsonplaceholder_data.html": "reference_templates/gateways/templates/jsonplaceholder_data.html",
+      "jsonplaceholder_error.html": "reference_templates/gateways/templates/jsonplaceholder_error.html"
+    }
   },
   "man": {
     "request_transform_cid": "reference_templates/gateways/transforms/man_request.py",
     "response_transform_cid": "reference_templates/gateways/transforms/man_response.py",
-    "description": "HTML formatted man pages with command links"
+    "description": "HTML formatted man pages with command links",
+    "templates": {
+      "man_page.html": "reference_templates/gateways/templates/man_page.html",
+      "man_error.html": "reference_templates/gateways/templates/man_error.html"
+    }
   },
   "tldr": {
     "request_transform_cid": "reference_templates/gateways/transforms/tldr_request.py",
     "response_transform_cid": "reference_templates/gateways/transforms/tldr_response.py",
-    "description": "HTML formatted tldr pages with command links"
+    "description": "HTML formatted tldr pages with command links",
+    "templates": {
+      "tldr_page.html": "reference_templates/gateways/templates/tldr_page.html",
+      "tldr_error.html": "reference_templates/gateways/templates/tldr_error.html"
+    }
   },
   "hrx": {
     "request_transform_cid": "reference_templates/gateways/transforms/hrx_request.py",

@@ -198,6 +198,60 @@ def test_gateway_meta_page_finds_transform_cids(
     assert "Valid" in page
 
 
+def test_gateway_meta_page_lists_templates_referenced_by_transform(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """Meta page should list templates referenced by resolve_template calls, even if not configured."""
+    import json
+
+    request_transform_source = """
+def transform_request(request_details: dict, context: dict) -> dict:
+    resolve_template = context.get("resolve_template")
+    if resolve_template:
+        resolve_template("man_error.html")
+    return {"method": "GET"}
+""".lstrip()
+
+    response_transform_source = """
+def transform_response(response_details: dict, context: dict) -> dict:
+    resolve_template = context.get("resolve_template")
+    if resolve_template:
+        resolve_template("man_page.html")
+    return {"output": "ok", "content_type": "text/plain"}
+""".lstrip()
+
+    request_cid = _create_transform_cid(integration_app, request_transform_source)
+    response_cid = _create_transform_cid(integration_app, response_transform_source)
+
+    gateways_config = {
+        "jsonplaceholder": {
+            "description": "JSONPlaceholder fake REST API for testing",
+            "request_transform_cid": request_cid,
+            "response_transform_cid": response_cid,
+        },
+    }
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="gateways",
+            definition=json.dumps(gateways_config),
+            enabled=True,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    response = client.get("/gateway/meta/jsonplaceholder", follow_redirects=True)
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Templates" in page
+    assert "man_error.html" in page
+    assert "man_page.html" in page
+    assert "Missing Mapping" in page
+
+
 def test_gateway_returns_error_when_response_transform_missing(
     client,
     integration_app,

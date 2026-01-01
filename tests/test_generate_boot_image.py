@@ -25,6 +25,7 @@ class TestBootImageGenerator:
         (ref_templates / "uploads" / "contents").mkdir()
         (ref_templates / "gateways").mkdir()
         (ref_templates / "gateways" / "transforms").mkdir()
+        (ref_templates / "gateways" / "templates").mkdir()
         (tmp_path / "cids").mkdir()
 
         # Create test files
@@ -521,6 +522,7 @@ class TestGatewaysInBootImage:
         (ref_templates / "servers" / "definitions").mkdir()
         (ref_templates / "gateways").mkdir()
         (ref_templates / "gateways" / "transforms").mkdir()
+        (ref_templates / "gateways" / "templates").mkdir()
         (ref_templates / "uploads").mkdir()
         (ref_templates / "uploads" / "contents").mkdir()
         (tmp_path / "cids").mkdir()
@@ -539,6 +541,12 @@ class TestGatewaysInBootImage:
     return {"output": "test output", "content_type": "text/html"}
 '''
         )
+
+        # Create test template files
+        page_template = ref_templates / "gateways" / "templates" / "test_page.html"
+        page_template.write_text("<html><body>{{ content }}</body></html>")
+        error_template = ref_templates / "gateways" / "templates" / "test_error.html"
+        error_template.write_text("<html><body>Error: {{ message }}</body></html>")
 
         # Create test files
         alias_file = ref_templates / "aliases" / "test.txt"
@@ -568,6 +576,10 @@ class TestGatewaysInBootImage:
                 "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
                 "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
                 "description": "Test gateway for unit testing",
+                "templates": {
+                    "test_page.html": "reference_templates/gateways/templates/test_page.html",
+                    "test_error.html": "reference_templates/gateways/templates/test_error.html",
+                },
             },
             "another-gateway": {
                 "target_url": "https://another.example.com",
@@ -663,6 +675,26 @@ class TestGatewaysInBootImage:
         assert not response_cid.startswith("reference_templates/"), (
             "Response transform CID should be replaced"
         )
+
+    def test_gateways_json_includes_template_cids(self, temp_project_with_gateways):
+        """Generated gateways.json should replace template file paths with CIDs."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+        generator.ensure_cids_directory()
+
+        gateways_cid = generator.generate_gateways_json()
+        assert gateways_cid
+
+        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        assert gateways_json_path.exists()
+
+        gateways_data = json.loads(gateways_json_path.read_text())
+        templates = gateways_data["test-gateway"].get("templates")
+        assert isinstance(templates, dict)
+        assert set(templates.keys()) == {"test_page.html", "test_error.html"}
+
+        # Should be CIDs, not reference_templates paths
+        assert templates["test_page.html"].startswith("AAAAA")
+        assert templates["test_error.html"].startswith("AAAAA")
 
     def test_gateways_variable_in_boot_json(self, temp_project_with_gateways):
         """Test that gateways variable is properly set in boot.json."""

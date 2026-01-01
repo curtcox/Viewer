@@ -1,0 +1,228 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""Response transform for tldr gateway.
+
+Transforms tldr output into formatted HTML with command links.
+Uses external Jinja templates from the gateway config.
+"""
+
+import re
+from html import escape
+
+
+def transform_response(response_details: dict, context: dict) -> dict:
+    """Transform tldr response to formatted HTML.
+
+    Args:
+        response_details: Dict containing status_code, headers, content, text, json, request_path
+        context: Full server execution context
+
+    Returns:
+        Dict with output (HTML) and content_type
+    """
+    request_path = response_details.get("request_path", "")
+    status_code = response_details.get("status_code", 200)
+    text = response_details.get("text", "")
+
+    # Extract command name from path
+    command = request_path.strip("/").split("/")[0] if request_path.strip("/") else "tldr"
+    
+    # Get template resolver from context
+    resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured in gateway config")
+
+    if status_code >= 400 or not text:
+        template = resolve_template("tldr_error.html")
+        html = template.render(command=command, message=text or "Command not found")
+        return {
+            "output": html,
+            "content_type": "text/html",
+        }
+
+    text = _normalize_tldr_terminal_output(text)
+
+    # Parse tldr format
+    description, examples, see_also_html = _parse_tldr_content(text)
+    
+    # Render with external template
+    template = resolve_template("tldr_page.html")
+    html = template.render(
+        command=command,
+        description=description,
+        examples=examples,
+        see_also=see_also_html,
+    )
+
+    return {
+        "output": html,
+        "content_type": "text/html",
+    }
+
+
+def _parse_tldr_content(text: str) -> tuple[str | None, list[tuple[str, str | None]], str | None]:
+    """Parse tldr content and return structured data.
+    
+    Returns:
+        (description_html, examples_list, see_also_html)
+    """
+    lines = text.split("\n")
+    description_lines = []
+    examples = []
+    current_example_desc = None
+    current_example_cmd_lines: list[str] = []
+    see_also = []
+
+    for line in lines:
+        line = line.rstrip()
+
+        # Skip title line (starts with #)
+        if line.startswith("#"):
+            continue
+
+        # Description lines start with >
+        if line.startswith(">"):
+            description_lines.append(line[1:].strip())
+            continue
+
+        # Example description starts with -
+        if line.startswith("-"):
+            if current_example_desc:
+                cmd = "\n".join(current_example_cmd_lines) if current_example_cmd_lines else None
+                examples.append((current_example_desc, cmd))
+            current_example_desc = line[1:].strip()
+            current_example_cmd_lines = []
+            continue
+
+        # Example command may be indented (standard tldr format)
+        if line[:1].isspace():
+            cmd_line = line.lstrip()
+            if (
+                current_example_desc
+                and cmd_line
+                and not cmd_line.startswith(("#", ">", "-"))
+            ):
+                current_example_cmd_lines.append(cmd_line)
+            continue
+
+        # Example command is backtick-wrapped
+        if line.startswith("`") and line.endswith("`"):
+            cmd_line = line[1:-1]
+            if current_example_desc and cmd_line:
+                current_example_cmd_lines.append(cmd_line)
+            continue
+
+        # Check for "See also:" section
+        if line.lower().startswith("see also:"):
+            see_also_text = line[9:].strip()
+            # Extract command names from "See also: cmd1, cmd2"
+            see_also = [c.strip() for c in see_also_text.split(",") if c.strip()]
+            continue
+
+    # Add remaining example if any
+    if current_example_desc:
+        cmd = "\n".join(current_example_cmd_lines) if current_example_cmd_lines else None
+        examples.append((current_example_desc, cmd))
+
+    # Process description
+    description_html = None
+    if description_lines:
+        desc_text = " ".join(description_lines)
+        description_html = _convert_command_references(desc_text)
+
+    # Process examples
+    processed_examples = []
+    for desc, cmd in examples:
+        desc_html = _convert_command_references(escape(desc))
+        cmd_html = None
+        if cmd:
+            cmd_html = _format_command(cmd).replace("\n", "<br>")
+        processed_examples.append((desc_html, cmd_html))
+
+    # Process see also
+    see_also_html = None
+    if see_also:
+        links = []
+        for cmd in see_also:
+            links.append(f'<a href="/gateway/tldr/{escape(cmd)}">{escape(cmd)}</a>')
+        see_also_html = ", ".join(links)
+
+    return description_html, processed_examples, see_also_html
+
+
+def _normalize_tldr_terminal_output(text: str) -> str:
+    """Normalize terminal formatting artifacts that may appear in tldr output."""
+    if not text:
+        return ""
+
+    # Strip ANSI escape sequences.
+    ansi_escape = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+    normalized = ansi_escape.sub("", text)
+
+    # Handle backspaces by simulating cursor movement.
+    out: list[str] = []
+    for ch in normalized:
+        if ch == "\b":
+            if out:
+                out.pop()
+            continue
+        out.append(ch)
+
+    return "".join(out).replace("\r", "")
+
+
+def _convert_command_references(text: str) -> str:
+    """Convert command names to links."""
+    # Pattern for backtick-wrapped commands in descriptions
+    pattern = r"`([a-zA-Z0-9_-]+)`"
+
+    def replace_cmd(match):
+        cmd = match.group(1)
+        return f'<a href="/gateway/tldr/{cmd}"><code>{escape(cmd)}</code></a>'
+
+    return re.sub(pattern, replace_cmd, text)
+
+
+def _format_command(cmd: str) -> str:
+    """Format a command, highlighting placeholders."""
+    # Escape HTML first
+    cmd = escape(cmd)
+
+    # Highlight placeholders like {{path}} or {{file}}
+    pattern = r"\{\{([^}]+)\}\}"
+
+    def replace_placeholder(match):
+        placeholder = match.group(1)
+        return f'<span class="placeholder">{{{{{placeholder}}}}}</span>'
+
+    cmd = re.sub(pattern, replace_placeholder, cmd)
+
+    def is_inside_html_tag(text: str, index: int) -> bool:
+        last_open = text.rfind("<", 0, index)
+        last_close = text.rfind(">", 0, index)
+        return last_open > last_close
+
+    # Link command tokens in example commands (e.g. "cat file | grep pattern").
+    # We link:
+    # - The first command in the line
+    # - Commands after separators like |, ;, &&, ||
+    # We avoid linking:
+    # - Flags (start with '-')
+    # - Paths (contain '/')
+    # - Anything that appears inside HTML tags (e.g. placeholder spans)
+    command_pattern = re.compile(r"(^|\|\s*|;\s*|&&\s*|\|\|\s*)([a-zA-Z0-9_-]+)")
+
+    def link_command(match: re.Match[str]) -> str:
+        prefix = match.group(1)
+        token = match.group(2)
+
+        token_start = match.start(2)
+        if is_inside_html_tag(cmd, token_start):
+            return match.group(0)
+
+        if token.startswith("-") or "/" in token:
+            return match.group(0)
+
+        return f'{prefix}<a href="/gateway/tldr/{escape(token)}">{escape(token)}</a>'
+
+    return command_pattern.sub(link_command, cmd)

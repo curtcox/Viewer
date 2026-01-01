@@ -1,0 +1,138 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""Response transform for man page gateway.
+
+Transforms man page output into formatted HTML with command links.
+Uses external Jinja templates from the gateway config.
+"""
+
+import re
+from html import escape
+
+
+def transform_response(response_details: dict, context: dict) -> dict:
+    """Transform man page response to formatted HTML.
+
+    Args:
+        response_details: Dict containing status_code, headers, content, text, json, request_path
+        context: Full server execution context
+
+    Returns:
+        Dict with output (HTML) and content_type
+    """
+    request_path = response_details.get("request_path", "")
+    status_code = response_details.get("status_code", 200)
+    text = response_details.get("text", "")
+
+    # Extract command name from path
+    command = request_path.strip("/").split("/")[0] if request_path.strip("/") else "man"
+    
+    # Get template resolver from context
+    resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured in gateway config")
+
+    if status_code >= 400 or not text:
+        template = resolve_template("man_error.html")
+        html = template.render(command=command, message=text or "Command not found")
+        return {
+            "output": html,
+            "content_type": "text/html",
+        }
+
+    text = _normalize_man_terminal_formatting(text)
+    
+    # Convert command references like "ls(1)" to links
+    converted_text = _convert_command_references(text)
+    
+    # Parse sections
+    sections = _parse_man_sections(converted_text)
+    
+    # Render with external template
+    template = resolve_template("man_page.html")
+    html = template.render(
+        command=command,
+        sections=sections if sections else None,
+        content=converted_text if not sections else None,
+    )
+
+    return {
+        "output": html,
+        "content_type": "text/html",
+    }
+
+
+def _convert_command_references(text: str) -> str:
+    """Convert command references like 'ls(1)' to gateway links."""
+    # Pattern for command references: word followed by (number)
+    # e.g., ls(1), grep(1), bash(1)
+    pattern = r"\b([a-zA-Z0-9_-]+)\(([1-9])\)"
+
+    def replace_cmd_ref(match):
+        cmd = match.group(1)
+        section = match.group(2)
+        link = f"/gateway/man/{cmd}"
+        return f'<a href="{link}" class="cmd-ref">{escape(cmd)}({section})</a>'
+
+    return re.sub(pattern, replace_cmd_ref, escape(text))
+
+
+def _normalize_man_terminal_formatting(text: str) -> str:
+    """Normalize terminal formatting artifacts found in man output.
+
+    Many man implementations emit backspace overstrikes to represent bold/underline,
+    such as:
+      - 'N\bN' (bold)
+      - '_\bX' (underline)
+      - 'X\b_' (underline)
+
+    We collapse these into the visible character and simulate backspace cursor
+    movement, producing readable plain text.
+    """
+
+    if not text:
+        return ""
+
+    out: list[str] = []
+    for ch in text:
+        if ch == "\b":
+            if out:
+                out.pop()
+            continue
+        out.append(ch)
+
+    # Strip residual carriage returns that sometimes appear in pager output.
+    normalized = "".join(out).replace("\r", "")
+    return normalized
+
+
+def _parse_man_sections(text: str) -> dict:
+    """Parse man page into sections."""
+    sections = {}
+
+    # Man page sections typically start with all-caps words at the beginning of a line
+    # Common sections: NAME, SYNOPSIS, DESCRIPTION, OPTIONS, EXAMPLES, SEE ALSO, etc.
+    section_pattern = r"^([A-Z][A-Z\s]+)$"
+
+    lines = text.split("\n")
+    current_section = None
+    current_content = []
+
+    for line in lines:
+        # Check if this line is a section header
+        stripped = line.strip()
+        if re.match(section_pattern, stripped) and len(stripped) < 30:
+            # Save previous section
+            if current_section:
+                sections[current_section] = "\n".join(current_content).strip()
+            current_section = stripped
+            current_content = []
+        else:
+            if current_section:
+                current_content.append(line)
+
+    # Save the last section
+    if current_section:
+        sections[current_section] = "\n".join(current_content).strip()
+
+    return sections
