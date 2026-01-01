@@ -52,12 +52,12 @@
     },
     {
       "name": "hrx",
-      "definition_cid": "AAAAAAlXDaZ5WKnx6iRBSWhb8W350D-d3TD7SOLFf4ug22SIeI1dhhYN0WiRQO2TZ4D2OzWuooz171lAC5iEYKfjTjQhPg",
+      "definition_cid": "AAAAAAxVSJ_x9N3kcyi7bqXMLblyo5AWLdXez2Gzd01awnVgsMBeU2FCBrXhcCDgeg185q98fWBMv6k-2Gp_GoxJz19sgw",
       "enabled": true
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAANDqE0tLPwcLsUnl8Zj0cHyZCuDSlgmovUf_xI_kh0hpZM5apeU9jAvGp6JutvIztUOznNpC3AbvMkXJUuEhxSLESA",
+      "definition_cid": "AAAAAOUriofzLYxM3acv2yMwkHbCy1DwtpJiUi8e5Lqp_sOIhJMXR7WAXPmFJQ-B7XHxHldluXofguikOBliCOEVC-tvrw",
       "enabled": true
     },
     {
@@ -799,7 +799,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACC4i4EE0l4swJ4efE67y0iPIyAaelqbAAFhZVJap_VEHJS5SsPtWH5acXI2UNLI-mGsS7gMjmnOxbC4LXmfhjhv2w",
+      "definition": "AAAAACHUyiMO8tSnFD9JdVsglpLYvyTaKEHNvywrw8hAr6Vue_zzUYzS-SZjr9ww-uIfngMSs-vNX3sGJwsrFQ_CcbjLrQ",
       "enabled": true
     },
     {
@@ -809,7 +809,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAAAqekkDB9X0nWYOEM-EMhGFRjUDVYVdntUM0dqGn962MYQrgrsKL7xZvMH7bzYMxcVxvVC5xsrewPBW0G803JXhKEA",
+      "definition": "AAAAAAqerRrZkanyAR5kXTcEIJd2HTa4QcKDY6sxEQXXT3yl-jmOac-nFbBqsBYNp6GOTb1pUwZN56Qbt1hN4e90M0RxYA",
       "enabled": true
     },
     {

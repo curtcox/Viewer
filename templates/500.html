@@ -50,10 +50,10 @@
                             </p>
                         {% endif %}
                         {% if server_args_json %}
-                            <div>
-                                <h6 class="text-uppercase text-muted small">Arguments passed to server</h6>
-                                <pre class="bg-light p-3 rounded border"><code>{{ server_args_json }}</code></pre>
-                            </div>
+                            <details>
+                                <summary class="text-uppercase text-muted small" style="cursor: pointer;">Arguments passed to server</summary>
+                                <pre class="bg-light p-3 rounded border mt-2"><code>{{ server_args_json }}</code></pre>
+                            </details>
                         {% endif %}
                     </div>
                 </div>

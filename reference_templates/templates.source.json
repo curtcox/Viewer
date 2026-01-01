@@ -176,6 +176,11 @@
       "name": "Cookie Editor Icon",
       "description": "Cookie illustration referenced by the editor",
       "content_cid": "reference_templates/uploads/contents/cookie_editor_icon.svg"
+    },
+    "hrx-guide": {
+      "name": "HRX Guide",
+      "description": "Multi-page HRX archive explaining app concepts with examples of linking between sections",
+      "content_cid": "reference_templates/uploads/contents/hrx_guide.hrx"
     }
   }
 }

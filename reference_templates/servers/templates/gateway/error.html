@@ -2,9 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Gateway Error</title>
+    <title>Gateway Error{% if exception_summary %}: {{ exception_summary }}{% endif %}</title>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 2rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #f44; }
         a { color: #4ec9b0; text-decoration: none; }
         a:hover { text-decoration: underline; }
@@ -12,6 +13,16 @@
         .nav a { margin-right: 1.5rem; }
         .error { background: #3d1f1f; border-left: 4px solid #f44; padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem; }
         .error h2 { margin-top: 0; color: #f88; }
+        .exception-summary { background: #ffe08a; border: 1px solid #ffcc66; padding: 1rem; border-radius: 4px; margin: 0 0 1rem 0; color: #1a1a2e; }
+        .exception-summary strong { display: block; margin-bottom: 0.5rem; color: #1a1a2e; letter-spacing: 0.03em; text-transform: uppercase; font-size: 0.9rem; }
+        .exception-summary .summary-text { font-size: 1.15rem; font-weight: 700; color: #1a1a2e; }
+        details { background: #252536; padding: 0.75rem 1rem; border-radius: 4px; margin-top: 1rem; }
+        summary { cursor: pointer; font-weight: 600; color: #9cdcfe; }
+        .stack-trace { margin-top: 1.25rem; }
+        .stack-trace h2 { margin: 0 0 0.75rem 0; color: #f88; }
+        .stack-trace ol { margin: 0; padding-left: 1.25rem; }
+        .gateway-args { margin-top: 1rem; background: #252536; padding: 0.75rem 1rem; border-radius: 4px; }
+        .gateway-args strong { color: #f0f0f0; }
         code { font-family: 'Courier New', monospace; background: #1e1e2e; padding: 0.2rem 0.4rem; border-radius: 3px; }
         pre { background: #1e1e2e; padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace; overflow-x: auto; white-space: pre-wrap; }
         .available-gateways { list-style: none; padding: 0; }
@@ -20,30 +31,53 @@
     </style>
 </head>
 <body>
-    <div class="nav">
-        <a href="/gateway">Gateway Home</a>
-        <a href="/variables/gateways">Gateway Configurations</a>
-    </div>
+    <div class="container">
+        <div class="nav">
+            <a href="/gateway">Gateway Home</a>
+            <a href="/variables/gateways">Gateway Configurations</a>
+        </div>
 
-    <div class="error">
-        <h2>{{ error_title or 'Error' }}</h2>
-        <p>{{ error_message }}</p>
-        {% if error_detail %}
-        <pre>{{ error_detail }}</pre>
+        <div class="error">
+            {% if exception_summary %}
+            <div class="exception-summary">
+                <strong>Root cause</strong>
+                <div class="summary-text">{{ exception_summary }}</div>
+            </div>
+            {% endif %}
+            <h2>{{ error_title or 'Error' }}</h2>
+            <p>{{ error_message }}</p>
+
+            {% if gateway_archive is not none and gateway_path is not none %}
+            <div class="gateway-args">
+                <div><strong>Archive</strong>: <code>{{ gateway_archive }}</code></div>
+                <div><strong>Path</strong>: <code>{{ gateway_path or '/' }}</code></div>
+            </div>
+            {% endif %}
+
+            {% if stack_trace_html %}
+                {{ stack_trace_html | safe }}
+            {% endif %}
+
+            {% if server_args_json %}
+            <details>
+                <summary>Arguments passed to server</summary>
+                <pre>{{ server_args_json | e }}</pre>
+            </details>
+            {% endif %}
+        </div>
+
+        {% if available_gateways %}
+        <h2>Available Gateways</h2>
+        <ul class="available-gateways">
+            {% for name, config in available_gateways.items() %}
+            <li>
+                <a href="/gateway/{{ name }}">{{ name }}</a> - {{ config.description }}
+            </li>
+            {% endfor %}
+        </ul>
         {% endif %}
+
+        <p><a href="/gateway">Back to Gateway Home</a></p>
     </div>
-
-    {% if available_gateways %}
-    <h2>Available Gateways</h2>
-    <ul class="available-gateways">
-        {% for name, config in available_gateways.items() %}
-        <li>
-            <a href="/gateway/{{ name }}">{{ name }}</a> - {{ config.description }}
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
-    <p><a href="/gateway">Back to Gateway Home</a></p>
 </body>
 </html>
