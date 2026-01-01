@@ -195,7 +195,6 @@ def main(
         return {"output": {"dry_run": True, "preview": preview}, "content_type": "application/json"}
 
     # Make the actual API call
-    api_client = client or _DEFAULT_CLIENT
     base_url = f"{effective_site_url.rstrip('/')}/wp-json/wp/v2"
     
     # WordPress uses Basic Authentication with username and Application Password
