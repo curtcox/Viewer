@@ -210,6 +210,22 @@ Each external service requires:
 - Total external server tests: 816 tests passing (730 from previous phases + 86 new).
 - Ready to proceed to Phase 11: Developer & Design servers (4 servers).
 
+## Progress Notes (2026-01-01 - Phase 11)
+
+- **Phase 11 Developer & Design Servers COMPLETED**: All 3 remaining Developer & Design servers implemented (github already in Phase 1).
+- Implemented gitlab: List/get projects, list/get/create issues, list/get merge requests with OAuth Bearer token (19 tests passing).
+- Implemented miro: List/get boards, list/get/create items, list/get/create widgets with OAuth Bearer token (19 tests passing).
+- Implemented figma: List files, list/get/create/delete comments with Personal Access Token auth (19 tests passing).
+- GitLab supports self-hosted instances via GITLAB_URL configuration (defaults to gitlab.com).
+- Miro uses Bearer token authentication for Miro API v2 with boards:read and boards:write scopes.
+- Figma uses X-Figma-Token header for Personal Access Token authentication from Figma account settings.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 19 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 11 tests: 57 new tests passing.
+- Total external server tests: 873 tests passing (816 from previous phases + 57 new).
+- Ready to proceed to Phase 12: Website Builders servers (4 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1674,11 +1690,11 @@ First servers using shared infrastructure as validation:
 - ✅ dropbox - Added 2026-01-01
 - ✅ box - Added 2026-01-01
 
-### Phase 11: Developer & Design (4 servers)
-- gitlab
-- miro
-- figma
-- (github already in Phase 1)
+### Phase 11: Developer & Design (4 servers) ✅ COMPLETE
+- ✅ gitlab - Added 2026-01-01
+- ✅ miro - Added 2026-01-01
+- ✅ figma - Added 2026-01-01
+- ✅ github (already in Phase 1)
 
 ### Phase 12: Website Builders (4 servers)
 - webflow

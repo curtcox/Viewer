@@ -111,6 +111,21 @@
       "enabled": true
     },
     {
+      "name": "gitlab",
+      "definition_cid": "reference_templates/servers/definitions/gitlab.py",
+      "enabled": true
+    },
+    {
+      "name": "miro",
+      "definition_cid": "reference_templates/servers/definitions/miro.py",
+      "enabled": true
+    },
+    {
+      "name": "figma",
+      "definition_cid": "reference_templates/servers/definitions/figma.py",
+      "enabled": true
+    },
+    {
       "name": "notion",
       "definition_cid": "reference_templates/servers/definitions/notion.py",
       "enabled": true

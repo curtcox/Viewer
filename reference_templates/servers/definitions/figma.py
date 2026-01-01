@@ -1,0 +1,200 @@
+# ruff: noqa: F821, F706
+"""Interact with Figma to manage files and comments."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import requests
+
+from server_utils.external_api import ExternalApiClient, error_output, validation_error
+
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+
+def _build_preview(
+    *,
+    operation: str,
+    file_key: Optional[str],
+    comment_id: Optional[str],
+    payload: Optional[Dict[str, Any]],
+    params: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    base_url = "https://api.figma.com/v1"
+    
+    if operation == "list_files":
+        url = f"{base_url}/me/files"
+        method = "GET"
+    elif operation == "get_file":
+        url = f"{base_url}/files/{file_key}"
+        method = "GET"
+    elif operation == "list_comments":
+        url = f"{base_url}/files/{file_key}/comments"
+        method = "GET"
+    elif operation == "get_comment":
+        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
+        method = "GET"
+    elif operation == "create_comment":
+        url = f"{base_url}/files/{file_key}/comments"
+        method = "POST"
+    elif operation == "delete_comment":
+        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
+        method = "DELETE"
+    else:
+        url = base_url
+        method = "GET"
+
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "url": url,
+        "method": method,
+        "auth": "Personal Access Token",
+    }
+    if params:
+        preview["params"] = params
+    if payload:
+        preview["payload"] = payload
+    return preview
+
+
+def main(
+    *,
+    operation: str = "list_files",
+    file_key: str = "",
+    comment_id: str = "",
+    message: str = "",
+    client_meta: Optional[Dict[str, Any]] = None,
+    FIGMA_ACCESS_TOKEN: str = "",
+    dry_run: bool = True,
+    timeout: int = 60,
+    client: Optional[ExternalApiClient] = None,
+    context=None,
+) -> Dict[str, Any]:
+    """List files and manage comments in Figma."""
+
+    normalized_operation = operation.lower()
+    valid_operations = {
+        "list_files", "get_file",
+        "list_comments", "get_comment", "create_comment", "delete_comment"
+    }
+    
+    if normalized_operation not in valid_operations:
+        return validation_error(
+            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(valid_operations))}",
+            field="operation"
+        )
+
+    # Validate required parameters based on operation
+    if normalized_operation not in {"list_files"} and not file_key:
+        return validation_error("Missing required file_key", field="file_key")
+
+    if normalized_operation in {"get_comment", "delete_comment"} and not comment_id:
+        return validation_error(f"Missing required comment_id for {normalized_operation}", field="comment_id")
+
+    if normalized_operation == "create_comment" and not message:
+        return validation_error("Missing required message for create_comment", field="message")
+
+    if not FIGMA_ACCESS_TOKEN:
+        return error_output(
+            "Missing FIGMA_ACCESS_TOKEN",
+            status_code=401,
+            details="Provide a personal access token from Figma account settings",
+        )
+
+    # Build parameters and payload
+    params: Dict[str, Any] = {}
+    payload: Optional[Dict[str, Any]] = None
+
+    if normalized_operation == "create_comment":
+        payload = {"message": message}
+        if client_meta:
+            payload["client_meta"] = client_meta
+
+    # Return preview if in dry-run mode
+    if dry_run:
+        return {
+            "output": _build_preview(
+                operation=normalized_operation,
+                file_key=file_key,
+                comment_id=comment_id,
+                payload=payload,
+                params=params if params else None,
+            )
+        }
+
+    # Build request
+    use_client = client or _DEFAULT_CLIENT
+    headers = {
+        "X-Figma-Token": FIGMA_ACCESS_TOKEN,
+        "Content-Type": "application/json",
+    }
+
+    base_url = "https://api.figma.com/v1"
+    
+    if normalized_operation == "list_files":
+        url = f"{base_url}/me/files"
+        method = "GET"
+    elif normalized_operation == "get_file":
+        url = f"{base_url}/files/{file_key}"
+        method = "GET"
+    elif normalized_operation == "list_comments":
+        url = f"{base_url}/files/{file_key}/comments"
+        method = "GET"
+    elif normalized_operation == "get_comment":
+        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
+        method = "GET"
+    elif normalized_operation == "create_comment":
+        url = f"{base_url}/files/{file_key}/comments"
+        method = "POST"
+    elif normalized_operation == "delete_comment":
+        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
+        method = "DELETE"
+    else:
+        return validation_error("Unexpected operation", field="operation")
+
+    try:
+        response = use_client.request(
+            method=method,
+            url=url,
+            headers=headers,
+            params=params if method == "GET" and params else None,
+            json=payload if method == "POST" else None,
+            timeout=timeout,
+        )
+
+        if response.status_code >= 400:
+            return error_output(
+                f"Figma API error: {response.status_code}",
+                status_code=response.status_code,
+                details=response.text[:500] if response.text else "No response body",
+            )
+
+        # DELETE returns 204 with no content
+        if response.status_code == 204:
+            return {"output": {"success": True, "message": "Comment deleted successfully"}}
+
+        try:
+            data = response.json()
+        except requests.exceptions.JSONDecodeError:
+            return error_output(
+                "Invalid JSON response from Figma API",
+                status_code=response.status_code,
+                details=response.text[:500] if response.text else "No response body",
+            )
+
+        return {"output": data}
+
+    except requests.exceptions.Timeout:
+        return error_output(
+            f"Request timed out after {timeout} seconds",
+            status_code=408,
+            details="Consider increasing the timeout parameter",
+        )
+    except requests.exceptions.RequestException as e:
+        status_code = e.response.status_code if hasattr(e, "response") and e.response else None
+        return error_output(
+            f"Request failed: {str(e)}",
+            status_code=status_code,
+            details=str(e),
+        )
