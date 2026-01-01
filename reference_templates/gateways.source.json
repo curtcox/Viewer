@@ -29,6 +29,12 @@
   "hrx": {
     "request_transform_cid": "reference_templates/gateways/transforms/hrx_request.py",
     "response_transform_cid": "reference_templates/gateways/transforms/hrx_response.py",
-    "description": "HRX archive web viewer with relative URL fixing"
+    "description": "HRX archive viewer with markdown and code highlighting",
+    "templates": {
+      "hrx_error.html": "reference_templates/gateways/templates/hrx_error.html",
+      "hrx_directory.html": "reference_templates/gateways/templates/hrx_directory.html",
+      "hrx_markdown.html": "reference_templates/gateways/templates/hrx_markdown.html",
+      "hrx_text.html": "reference_templates/gateways/templates/hrx_text.html"
+    }
   }
 }

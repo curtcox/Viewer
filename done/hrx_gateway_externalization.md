@@ -149,14 +149,15 @@ def test_hrx_gateway_end_to_end():
 ```
 
 **Manual Testing Checklist:**
-- [ ] Visit HRX archive directory listing
-- [ ] View markdown file in archive
-- [ ] View HTML file with relative URLs
-- [ ] View CSS file with relative URLs
-- [ ] View text/code file
-- [ ] Trigger 404 error
-- [ ] Verify all navigation works
-- [ ] Check URL fixing in HTML/CSS
+- [x] Unit tests verify all template functionality (15 tests passing)
+- [x] URL fixing logic verified in tests
+- [x] Markdown rendering verified in tests
+- [x] Directory listing rendering verified in tests
+- [x] Text file rendering verified in tests
+- [x] Error page rendering verified in tests
+- [ ] Manual browser verification (requires running server - deferred to integration testing)
+
+**Note:** Manual browser testing can be performed by running the server and accessing HRX archives through the gateway. The comprehensive unit tests provide high confidence that all functionality is preserved.
 
 ## Implementation Strategy
 
@@ -192,15 +193,40 @@ def test_hrx_gateway_end_to_end():
 
 ## Success Criteria
 
-- [ ] All 4 HRX templates externalized to separate files
-- [ ] All templates stored in CID storage and referenced in config
-- [ ] URL fixing logic preserved and working
-- [ ] Markdown rendering quality unchanged
-- [ ] All unit tests passing
+- [x] All 4 HRX templates externalized to separate files
+- [x] All templates stored in CID storage and referenced in config
+- [x] URL fixing logic preserved and working
+- [x] Markdown rendering quality unchanged
+- [x] All unit tests passing
 - [ ] All integration tests passing
 - [ ] Manual testing checklist complete
 - [ ] No performance regressions
 - [ ] Meta page shows HRX template information correctly
+
+## Implementation Status
+
+**Completed (January 2026):**
+- ✅ Created 4 external Jinja2 templates (hrx_error.html, hrx_directory.html, hrx_markdown.html, hrx_text.html)
+- ✅ Refactored hrx_response.py to use resolve_template for all rendering functions
+- ✅ Preserved URL fixing logic as helper functions (_fix_relative_urls, _fix_css_urls)
+- ✅ Maintained binary/CSS/raw HTML passthrough unchanged
+- ✅ Generated CIDs for all templates and updated gateways.json
+- ✅ Created comprehensive unit tests (15 tests in test_hrx_response_transform.py)
+- ✅ All unit tests passing
+
+**Template CIDs:**
+- hrx_error.html: AAAAAAMy20H6rkqwbY8yJBNetLS0Ch-vDTIH1Y69s9s_1jtPw9bDAs56UsUpiG2NBCrGhHb6vzPoNPqt05nNyo3NwYvuKQ
+- hrx_directory.html: AAAAAAWv8TEbN2yocs5gv20y69gwxBcKdoQoUezuQw5-8bP_XdsqvgtzeXNW5jZG_4unFDAFALmgGkqdYy7gNc1oeT0_7A
+- hrx_markdown.html: AAAAAARysOxr22N5s9bp9-pSfJXJ15esPbL0O_UDXZUElsNge3Pwoc0DL45bHIDPpfoqo0Eag3JmAkg-cPbWcCu0S6NW1w
+- hrx_text.html: AAAAAALEJg_dS_zJzd0xPRkjKPzjdE77ECL3opBH63k0ztMqSTOqVxfE-ZOAWxUi7UoOx8Xk6b2qztVm8008HyualvRVfQ
+
+**Updated Transform CID:**
+- hrx_response.py: AAAAACL6kshTBMtrejWFPricsMgSWsMRA1WR-LoVBcW-EfhVBy--iWOXWz9BvyrjxPrgB7x7L9TNeg1zA45DAnVjdIPyUg
+
+**Remaining:**
+- Integration testing with full gateway stack
+- Manual verification checklist
+- Performance verification
 
 ## Timeline
 

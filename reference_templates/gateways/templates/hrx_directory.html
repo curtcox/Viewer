@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>HRX: {{ current_path or "/" }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }
+        h1 { color: #4ec9b0; }
+        .breadcrumb { color: #858585; margin-bottom: 1rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .file-list { list-style: none; padding: 0; }
+        .file-list li { padding: 0.5rem; border-bottom: 1px solid #333; }
+        .file-list a { color: #9cdcfe; text-decoration: none; }
+        .file-list a:hover { text-decoration: underline; }
+        .file-icon { margin-right: 0.5rem; }
+        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    <h1>Archive Contents</h1>
+    <p>CID: <code>{{ archive_cid }}</code></p>
+    <ul class="file-list">
+        {% if parent_link %}
+        <li><span class="file-icon">📁</span><a href="{{ parent_link }}">Parent Directory</a></li>
+        {% endif %}
+        {% for file in files %}
+        <li><span class="file-icon">{{ file.icon }}</span><a href="{{ file.link }}">{{ file.name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

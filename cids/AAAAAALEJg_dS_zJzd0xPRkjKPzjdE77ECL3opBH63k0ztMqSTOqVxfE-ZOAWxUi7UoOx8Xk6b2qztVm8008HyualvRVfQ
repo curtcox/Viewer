@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ file_path }}</title>
+    <style>
+        body { font-family: 'Courier New', monospace; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }
+        .breadcrumb { font-family: system-ui, -apple-system, sans-serif; color: #858585; margin-bottom: 1rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        pre { background: #252536; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    <pre>{{ text }}</pre>
+</body>
+</html>

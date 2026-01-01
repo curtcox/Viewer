@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ file_path }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        .breadcrumb { color: #858585; margin-bottom: 1rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        h1, h2, h3 { color: #4ec9b0; }
+        a { color: #9cdcfe; }
+        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; }
+        pre { background: #252536; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+        pre code { padding: 0; background: none; }
+        blockquote { border-left: 4px solid #4ec9b0; margin: 0; padding-left: 1rem; color: #aaa; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #333; padding: 0.5rem; text-align: left; }
+        th { background: #252536; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    {{ html_content | safe }}
+</body>
+</html>
