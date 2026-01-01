@@ -1,0 +1,748 @@
+<===> index.md
+# CID Viewer Guide
+
+Welcome to the CID Viewer documentation! This HRX archive serves as both a template and a live example of what you can do with HRX files.
+
+## What is this?
+
+This file is an [HRX (Human Readable Archive)](https://github.com/google/hrx) that contains multiple pages of documentation. You can:
+
+- **Browse it** via the HRX gateway at `/gateway/hrx/{CID}/`
+- **Use it as a template** when uploading new HRX archives
+- **Learn from it** about the app's concepts and capabilities
+
+## Navigation
+
+### Core Concepts
+
+Understanding the building blocks of CID Viewer:
+
+- [Aliases](concepts/aliases.md) - URL shortcuts and routing rules
+- [Servers](concepts/servers.md) - Python code execution endpoints
+- [Variables](concepts/variables.md) - Configuration and data storage
+- [Secrets](concepts/secrets.md) - Secure credential management
+- [Gateways](concepts/gateways.md) - Request/response transformations
+
+### Reference Guides
+
+Deep dives into specific servers:
+
+- [Gateway Server](reference/gateway-server.md) - How gateway routing works
+- [HRX Server](reference/hrx-server.md) - How this archive is served
+
+### Examples
+
+- [Linking Guide](examples/links.md) - How to link between app sections
+
+---
+
+> **Tip:** Click any link above to navigate within this archive. The HRX gateway automatically rewrites relative links to work correctly.
+
+<===> concepts/aliases.md
+# Aliases
+
+Aliases are URL shortcuts that route requests to servers, CIDs, or other locations in the app.
+
+## What are Aliases?
+
+An alias is a simple name that maps to a more complex path. For example:
+
+- `/ai` → routes to the AI server
+- `/cookies` → routes to the cookie editor page
+- `/help` → routes to the help documentation
+
+## How to View Aliases
+
+You can view all aliases in the app:
+
+- [View all aliases](/aliases) - Lists all defined aliases
+- [Create a new alias](/aliases/new) - Add your own alias
+
+## Alias Definition Format
+
+Aliases are defined as simple text files with routing rules:
+
+```
+alias_name -> /target/path
+```
+
+For example, the AI alias might be:
+
+```
+ai -> /servers/ai
+```
+
+## Pattern Matching
+
+Aliases can use patterns for more complex routing:
+
+- **Literal**: `help -> /help-page` - exact match
+- **Prefix**: Routes anything starting with the alias
+- **Regex**: Complex pattern matching (advanced)
+
+## When to Use Aliases
+
+Use aliases when you want to:
+
+- Create short, memorable URLs
+- Redirect legacy paths to new locations
+- Abstract implementation details from users
+
+---
+
+[← Back to Index](index.md) | [Next: Servers →](servers.md)
+
+<===> concepts/servers.md
+# Servers
+
+Servers are Python code endpoints that execute logic and return responses.
+
+## What are Servers?
+
+A server is a Python function that:
+
+1. Receives request parameters
+2. Executes custom logic
+3. Returns output with a content type
+
+## How to View Servers
+
+Navigate to servers in the app:
+
+- [View all servers](/servers) - Lists all defined servers
+- [Create a new server](/servers/new) - Add your own server
+
+## Server Definition Structure
+
+Every server has a `main()` function:
+
+```python
+def main(param1=None, param2=None, *, context=None):
+    """Server description."""
+
+    # Your logic here
+    result = f"Hello, {param1}!"
+
+    return {
+        "output": result,
+        "content_type": "text/plain"
+    }
+```
+
+## Key Parameters
+
+- **Positional parameters**: Passed from the request query string
+- **context**: Contains runtime information:
+  - `context["variables"]` - Access stored variables
+  - `context["secrets"]` - Access stored secrets
+  - `context["resolve_template"]` - Load templates (gateways)
+
+## Content Types
+
+Servers can return various content types:
+
+| Type | Use Case |
+|------|----------|
+| `text/plain` | Simple text output |
+| `text/html` | HTML pages |
+| `application/json` | API responses |
+| `text/markdown` | Markdown (auto-rendered) |
+
+## Built-in Servers
+
+The app includes many pre-built servers:
+
+- **reflect** - Echoes request context for debugging
+- **markdown** - Renders markdown to HTML
+- **hrx** - Serves HRX archives (like this one!)
+- **gateway** - Routes and transforms requests
+
+---
+
+[← Back to Index](index.md) | [Previous: Aliases](aliases.md) | [Next: Variables →](variables.md)
+
+<===> concepts/variables.md
+# Variables
+
+Variables store configuration values, data, and references accessible to servers.
+
+## What are Variables?
+
+Variables are named values that persist in the database. They can contain:
+
+- Simple text strings
+- JSON data
+- Configuration settings
+- References to CIDs
+
+## How to View Variables
+
+Navigate to variables in the app:
+
+- [View all variables](/variables) - Lists all defined variables
+- [Create a new variable](/variables/new) - Add your own variable
+
+## Variable Definition
+
+Variables are defined as text content stored with a name:
+
+```
+example_value
+```
+
+Or as JSON for structured data:
+
+```json
+{
+  "setting": "value",
+  "enabled": true
+}
+```
+
+## Accessing Variables in Servers
+
+Servers access variables through the context:
+
+```python
+def main(*, context=None):
+    variables = context.get("variables", {})
+
+    # Get a specific variable
+    my_config = variables.get("my-config")
+
+    return {
+        "output": f"Config: {my_config}",
+        "content_type": "text/plain"
+    }
+```
+
+## Special Variables
+
+Some variables have special meaning:
+
+| Variable | Purpose |
+|----------|---------|
+| `gateways` | Contains all gateway configurations |
+
+## Use Cases
+
+Variables are ideal for:
+
+- API endpoint URLs
+- Feature flags
+- Shared configuration
+- Template data
+
+---
+
+[← Back to Index](index.md) | [Previous: Servers](servers.md) | [Next: Secrets →](secrets.md)
+
+<===> concepts/secrets.md
+# Secrets
+
+Secrets securely store sensitive credentials like API keys and tokens.
+
+## What are Secrets?
+
+Secrets are encrypted values that:
+
+- Store sensitive data (API keys, passwords, tokens)
+- Are never displayed in logs or UI
+- Are only accessible by authorized servers
+
+## How to View Secrets
+
+Navigate to secrets in the app:
+
+- [View all secrets](/secrets) - Lists secret names (values hidden)
+- [Create a new secret](/secrets/new) - Add your own secret
+
+## Accessing Secrets in Servers
+
+Servers access secrets through the context:
+
+```python
+def main(*, context=None):
+    secrets = context.get("secrets", {})
+
+    # Get an API key
+    api_key = secrets.get("MY_API_KEY")
+
+    # Use it for authentication
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    # ... make API call
+```
+
+## Common Secrets
+
+Many built-in servers require secrets:
+
+| Server | Required Secret |
+|--------|-----------------|
+| Todoist | `TODOIST_API_TOKEN` |
+| Slack | `SLACK_BOT_TOKEN` |
+| GitHub | `GITHUB_TOKEN` |
+| Stripe | `STRIPE_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Notion | `NOTION_API_KEY` |
+
+## Security Best Practices
+
+1. **Never commit secrets** to version control
+2. **Use unique secrets** per environment
+3. **Rotate secrets** periodically
+4. **Limit access** to production secrets
+
+---
+
+[← Back to Index](index.md) | [Previous: Variables](variables.md) | [Next: Gateways →](gateways.md)
+
+<===> concepts/gateways.md
+# Gateways
+
+Gateways transform requests and responses, enabling rich user interfaces over server outputs.
+
+## What are Gateways?
+
+A gateway sits between the user and a server, providing:
+
+1. **Request transforms** - Modify incoming requests
+2. **Response transforms** - Transform server output (e.g., JSON → HTML)
+3. **Templates** - HTML templates for rendering
+
+## How Gateways Work
+
+```
+User Request
+     ↓
+Gateway (request transform)
+     ↓
+Internal Server
+     ↓
+Gateway (response transform)
+     ↓
+HTML Response
+```
+
+## Gateway Configuration
+
+Gateways are configured in the `gateways` variable:
+
+```json
+{
+  "my-gateway": {
+    "description": "Description of the gateway",
+    "request_transform_cid": "CID_OF_TRANSFORM",
+    "response_transform_cid": "CID_OF_TRANSFORM",
+    "templates": {
+      "template.html": "CID_OF_TEMPLATE"
+    }
+  }
+}
+```
+
+## Built-in Gateways
+
+| Gateway | Purpose | Path |
+|---------|---------|------|
+| hrx | Browse HRX archives | `/gateway/hrx/{cid}/` |
+| man | View man pages | `/gateway/man/{command}` |
+| tldr | View tldr pages | `/gateway/tldr/{command}` |
+| jsonplaceholder | Fake REST API | `/gateway/jsonplaceholder/` |
+
+## Gateway URLs
+
+Access gateways at:
+
+```
+/gateway/{gateway_name}/{rest_of_path}
+```
+
+For example:
+- [Browse this archive](/gateway/hrx/) - HRX gateway
+- [View man pages](/gateway/man/) - Man gateway
+
+## Creating Custom Gateways
+
+To create a gateway, you need:
+
+1. A **request transform** - Python code to parse the request
+2. A **response transform** - Python code to format the output
+3. **Templates** (optional) - HTML templates for rendering
+
+See the [Gateway Server reference](../reference/gateway-server.md) for details.
+
+---
+
+[← Back to Index](index.md) | [Previous: Secrets](secrets.md)
+
+<===> reference/gateway-server.md
+# Gateway Server Reference
+
+The gateway server is the core routing engine that powers all gateway functionality.
+
+## Overview
+
+The gateway server (`gateway.py`) handles requests to `/gateway/{name}/{path}` by:
+
+1. Loading gateway configuration from the `gateways` variable
+2. Applying request transforms
+3. Executing the internal target server
+4. Applying response transforms
+5. Returning the final output
+
+## Request Flow
+
+```
+GET /gateway/hrx/ABC123/docs/readme.md
+                ↓
+┌─────────────────────────────────┐
+│  Gateway Server                 │
+│  ├─ Load "hrx" gateway config   │
+│  ├─ Request Transform           │
+│  │   → Parse CID and path       │
+│  ├─ Execute /servers/hrx        │
+│  │   → Get file from archive    │
+│  └─ Response Transform          │
+│       → Render as HTML          │
+└─────────────────────────────────┘
+                ↓
+       HTML Response
+```
+
+## Configuration Structure
+
+Gateway configurations have these fields:
+
+```json
+{
+  "request_transform_cid": "...",
+  "response_transform_cid": "...",
+  "description": "...",
+  "templates": {
+    "name.html": "CID"
+  }
+}
+```
+
+## Request Transform
+
+A request transform is Python code that parses the incoming path:
+
+```python
+def transform_request(request_details, context):
+    path = request_details.get("path", "")
+
+    # Parse path and return server parameters
+    return {
+        "target": "/servers/my-server",
+        "params": {"param1": "value"}
+    }
+```
+
+### request_details Fields
+
+| Field | Description |
+|-------|-------------|
+| `path` | Request path after gateway prefix |
+| `method` | HTTP method (GET, POST, etc.) |
+| `headers` | Request headers |
+| `query_params` | Query string parameters |
+
+## Response Transform
+
+A response transform converts server output:
+
+```python
+def transform_response(response_details, context):
+    text = response_details.get("text", "")
+
+    # Access templates
+    resolve_template = context.get("resolve_template")
+    template = resolve_template("my-template.html")
+
+    html = template.render(content=text)
+
+    return {
+        "output": html,
+        "content_type": "text/html"
+    }
+```
+
+### response_details Fields
+
+| Field | Description |
+|-------|-------------|
+| `status_code` | HTTP status from server |
+| `text` | Response body as text |
+| `headers` | Response headers |
+| `request_path` | Original request path |
+
+## Template Resolution
+
+Gateways can define templates that are accessible in transforms:
+
+```python
+resolve_template = context.get("resolve_template")
+template = resolve_template("error.html")
+html = template.render(message="Not found")
+```
+
+Templates use Jinja2 syntax.
+
+## Security
+
+The gateway server is **internal-only**:
+
+- Never makes external HTTP requests
+- Only forwards to `/servers/`, `/aliases/`, or CID paths
+- Validates all target URLs are internal
+
+---
+
+[← Back to Index](../index.md) | [Next: HRX Server →](hrx-server.md)
+
+<===> reference/hrx-server.md
+# HRX Server Reference
+
+The HRX server parses and serves files from Human Readable Archive files.
+
+## What is HRX?
+
+HRX (Human Readable Archive) is a text-based archive format that:
+
+- Is human-readable and editable
+- Stores multiple files in one document
+- Uses simple boundary markers
+- Supports hierarchical paths
+
+Format specification: [github.com/google/hrx](https://github.com/google/hrx)
+
+## HRX Format
+
+### Basic Structure
+
+```
+<===> filename.txt
+File content here
+Can span multiple lines
+
+<===> another/path/file.md
+# Markdown content
+More content here
+```
+
+### Boundary Markers
+
+- Files start with `<===>` followed by the path
+- The path ends at the newline
+- Content continues until the next boundary
+- Directories end with `/`: `<===> mydir/`
+
+### Path Names
+
+Paths can be:
+- Simple: `readme.txt`
+- Nested: `docs/api/reference.md`
+- Directories: `assets/`
+
+## HRX Server Usage
+
+### Direct Server Call
+
+```
+/servers/hrx?archive={content}&path={filepath}
+```
+
+Parameters:
+- `archive` - The HRX content (required)
+- `path` - File to retrieve (optional, lists files if omitted)
+
+### Via HRX Gateway
+
+The preferred way to browse HRX files:
+
+```
+/gateway/hrx/{CID}/
+/gateway/hrx/{CID}/path/to/file
+```
+
+The gateway provides:
+- Directory browsing with navigation
+- Markdown rendering
+- Syntax highlighting for code
+- Breadcrumb navigation
+
+## HRX Gateway Features
+
+### File Type Handling
+
+| Extension | Treatment |
+|-----------|-----------|
+| `.md` | Rendered as HTML with fixed links |
+| `.html` | Served with fixed relative URLs |
+| `.css` | Served with fixed `url()` references |
+| `.txt`, `.json`, `.py` | Displayed in code viewer |
+| Other | Passed through as-is |
+
+### URL Rewriting
+
+The gateway automatically rewrites relative URLs:
+
+```html
+<!-- Original -->
+<a href="other.md">Link</a>
+
+<!-- Rewritten -->
+<a href="/gateway/hrx/{CID}/other.md">Link</a>
+```
+
+This allows HRX archives to use normal relative links.
+
+### Navigation
+
+The gateway adds:
+- Breadcrumb navigation showing current path
+- Parent directory links
+- File/folder icons
+- Styled HTML wrapper
+
+## Creating HRX Files
+
+### Tips
+
+1. **Use consistent boundaries** - Stick to `<===>`
+2. **Organize with directories** - Use paths like `docs/api.md`
+3. **Include an index** - Name it `index.md` or `README.md`
+4. **Use relative links** - They're automatically fixed
+
+### Example Archive
+
+```
+<===> index.md
+# My Project
+
+- [Getting Started](docs/getting-started.md)
+- [API Reference](docs/api.md)
+
+<===> docs/getting-started.md
+# Getting Started
+
+Quick start guide...
+
+<===> docs/api.md
+# API Reference
+
+Endpoint documentation...
+```
+
+---
+
+[← Back to Index](../index.md) | [Previous: Gateway Server](gateway-server.md)
+
+<===> examples/links.md
+# Linking Guide
+
+This page demonstrates how to link to different parts of the CID Viewer app.
+
+## Link Types
+
+### 1. Internal HRX Links
+
+Link within this archive using relative paths:
+
+```markdown
+[Index](../index.md)
+[Servers concept](../concepts/servers.md)
+```
+
+Examples:
+- [Go to Index](../index.md)
+- [Learn about Servers](../concepts/servers.md)
+
+### 2. App Section Links
+
+Link to main app sections using absolute paths:
+
+| Section | Path | Link |
+|---------|------|------|
+| Servers | `/servers` | [All Servers](/servers) |
+| Aliases | `/aliases` | [All Aliases](/aliases) |
+| Variables | `/variables` | [All Variables](/variables) |
+| Secrets | `/secrets` | [All Secrets](/secrets) |
+| Uploads | `/uploads` | [All Uploads](/uploads) |
+
+### 3. Gateway Links
+
+Link to content through gateways:
+
+```markdown
+[HRX Gateway](/gateway/hrx/)
+[Man Pages](/gateway/man/)
+[TLDR Pages](/gateway/tldr/)
+```
+
+Examples:
+- [HRX Gateway](/gateway/hrx/)
+- [Man Pages Gateway](/gateway/man/)
+
+### 4. CID Links
+
+Link to content by CID:
+
+```markdown
+[View CID](/AAAbbbCcc)
+[View as text](/AAAbbbCcc.txt)
+[View as markdown](/AAAbbbCcc.md)
+```
+
+CID suffixes control rendering:
+- `.txt` - Plain text
+- `.md` - Rendered markdown
+- `.html` - HTML page
+- `.json` - JSON viewer
+- `.qr` - QR code
+
+### 5. Server Execution Links
+
+Execute a server directly:
+
+```markdown
+[Run reflect server](/servers/reflect)
+[Run markdown server](/servers/markdown?text=Hello)
+```
+
+Examples:
+- [Reflect Request](/servers/reflect)
+
+### 6. Creating New Items
+
+Direct links to creation pages:
+
+| Action | Path |
+|--------|------|
+| New Server | `/servers/new` |
+| New Alias | `/aliases/new` |
+| New Variable | `/variables/new` |
+| New Secret | `/secrets/new` |
+| New Upload | `/uploads/new` |
+
+## Link Behavior in HRX
+
+When viewing this file through the HRX gateway:
+
+1. **Relative links** (`../index.md`) are rewritten to gateway paths
+2. **Absolute links** (`/servers`) work as-is
+3. **External links** (`https://...`) pass through unchanged
+
+## Navigation Best Practices
+
+1. **Use relative links** for archive-internal navigation
+2. **Use absolute paths** for app sections
+3. **Include a table of contents** in your index
+4. **Add breadcrumbs** at the bottom of pages
+
+---
+
+[← Back to Index](../index.md)

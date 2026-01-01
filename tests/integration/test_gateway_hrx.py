@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Dict
 
 import pytest
 
@@ -33,33 +34,21 @@ class TestGatewayHRXOneShot:
 
     CLI_ROOT = Path(__file__).parent.parent.parent
 
-    def _create_hrx_archive(self, files: dict) -> bytes:
+    def _create_hrx_archive(self, files: dict) -> str:
         """Create an HRX archive from a dict of {filename: content}.
 
         Args:
             files: Dict mapping filenames to their contents
-
-        Returns:
-            HRX archive as bytes
         """
-        parts = []
+        lines = []
         for filename, content in files.items():
-            parts.append(f"<===> {filename}\n{content}\n")
-        return "\n".join(parts).encode("utf-8")
+            lines.append(f"<===> {filename}\n{content}\n")
+        return "\n".join(lines)
 
-    def _store_cid(self, content: bytes) -> str:
-        """Store content as CID in the cids directory.
+    def _store_cid(self, content: str) -> str:
+        from cid_storage import store_cid_from_bytes
 
-        Args:
-            content: Content bytes to store
-
-        Returns:
-            CID of the stored content
-        """
-        cid = generate_cid(content)
-        cid_file = self.CLI_ROOT / "cids" / cid
-        cid_file.write_bytes(content)
-        return cid
+        return store_cid_from_bytes(content.encode("utf-8"))
 
     def _run_oneshot(self, path: str, boot_cid: str) -> tuple[int, str]:
         """Run one-shot CLI request.
@@ -129,7 +118,7 @@ class TestGatewayHRXOneShot:
 
             # Request a file from the archive
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/readme.txt",
+                f"/gateway/hrx?archive={archive_cid}&path=readme.txt",
                 boot_cid,
             )
 
@@ -160,7 +149,7 @@ class TestGatewayHRXOneShot:
             boot_cid = self._get_default_boot_cid()
 
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/config.json",
+                f"/gateway/hrx?archive={archive_cid}&path=config.json",
                 boot_cid,
             )
 
@@ -190,7 +179,7 @@ class TestGatewayHRXOneShot:
 
             # Request the archive root
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}",
+                f"/gateway/hrx?archive={archive_cid}",
                 boot_cid,
             )
 
@@ -219,7 +208,7 @@ class TestGatewayHRXOneShot:
 
             # Request a file that doesn't exist
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/nonexistent.txt",
+                f"/gateway/hrx?archive={archive_cid}&path=nonexistent.txt",
                 boot_cid,
             )
 
@@ -250,7 +239,7 @@ class TestGatewayHRXOneShot:
             boot_cid = self._get_default_boot_cid()
 
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/README.md",
+                f"/gateway/hrx?archive={archive_cid}&path=README.md",
                 boot_cid,
             )
 
@@ -280,7 +269,7 @@ class TestGatewayHRXOneShot:
 
             # Request nested file
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/docs/api/reference.txt",
+                f"/gateway/hrx?archive={archive_cid}&path=docs/api/reference.txt",
                 boot_cid,
             )
 
@@ -310,13 +299,84 @@ class TestGatewayHRXOneShot:
             boot_cid = self._get_default_boot_cid()
 
             status, response = self._run_oneshot(
-                f"/gateway/hrx/{archive_cid}/index.html",
+                f"/gateway/hrx?archive={archive_cid}&path=index.html",
                 boot_cid,
             )
 
             assert status == 200, f"Expected 200, got {status}"
             assert "Test Content" in response
 
+        finally:
+            cid_file = self.CLI_ROOT / "cids" / archive_cid
+            if cid_file.exists():
+                cid_file.unlink()
+
+
+class TestHRXServerCidOrText:
+    """Regression tests for HRX server accepting CID-or-text via 'archive'."""
+
+    CLI_ROOT = Path(__file__).parent.parent.parent
+
+    def _get_default_boot_cid(self) -> str:
+        boot_cid_file = self.CLI_ROOT / "reference_templates" / "default.boot.cid"
+        if not boot_cid_file.exists():
+            pytest.skip("No default.boot.cid file found")
+        return boot_cid_file.read_text(encoding="utf-8").strip()
+
+    def _store_cid(self, content: str) -> str:
+        from cid_storage import store_cid_from_bytes
+
+        return store_cid_from_bytes(content.encode("utf-8"))
+
+    def _run_oneshot(self, path: str, boot_cid: str) -> tuple[int, str]:
+        env = os.environ.copy()
+        env.pop("TESTING", None)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "main.py",
+                "--in-memory-db",
+                path,
+                boot_cid,
+            ],
+            cwd=self.CLI_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=env,
+        )
+
+        status_code = None
+        lines = result.stdout.splitlines()
+        output_lines = []
+
+        for line in lines:
+            if line.startswith("Status:"):
+                try:
+                    status_code = int(line.split(":")[1].strip())
+                except (ValueError, IndexError):
+                    pass
+            else:
+                output_lines.append(line)
+
+        return status_code, "\n".join(output_lines)
+
+    def test_hrx_server_accepts_archive_as_cid(self):
+        hrx_content = "<=> readme.txt\nHello\n"
+        archive_cid = self._store_cid(hrx_content)
+
+        try:
+            boot_cid = self._get_default_boot_cid()
+
+            status, response = self._run_oneshot(
+                f"/hrx?archive={archive_cid}",
+                boot_cid,
+            )
+
+            assert status == 200, f"Expected 200, got {status}. Response: {response}"
+            assert "readme.txt" in response
         finally:
             cid_file = self.CLI_ROOT / "cids" / archive_cid
             if cid_file.exists():
@@ -361,12 +421,12 @@ class TestGatewayHRXWithHTTPClient:
 
         return app
 
-    def _create_hrx_archive(self, files: dict) -> bytes:
-        """Create an HRX archive from a dict of {filename: content}."""
-        parts = []
+    def _create_hrx_archive(self, files: Dict[str, str]) -> str:
+        """Create an HRX archive string with the given files."""
+        lines = []
         for filename, content in files.items():
-            parts.append(f"<===> {filename}\n{content}\n")
-        return "\n".join(parts).encode("utf-8")
+            lines.append(f"<===> {filename}\n{content}\n")
+        return "\n".join(lines)
 
     def test_gateway_hrx_http_returns_file(self, app_with_gateway):
         """Test HRX gateway via HTTP client."""
@@ -377,11 +437,11 @@ class TestGatewayHRXWithHTTPClient:
 
         with app_with_gateway.app_context():
             # Store the archive as a CID
-            archive_cid = generate_cid(hrx_content)
-            create_cid_record(archive_cid, hrx_content)
+            archive_cid = generate_cid(hrx_content.encode("utf-8"))
+            create_cid_record(archive_cid, hrx_content.encode("utf-8"))
 
         with app_with_gateway.test_client() as client:
-            response = client.get(f"/gateway/hrx/{archive_cid}/hello.txt")
+            response = client.get(f"/gateway/hrx?archive={archive_cid}&path=hello.txt")
 
             assert response.status_code == 200, (
                 f"Expected 200, got {response.status_code}: {response.data}"
@@ -396,11 +456,11 @@ class TestGatewayHRXWithHTTPClient:
         })
 
         with app_with_gateway.app_context():
-            archive_cid = generate_cid(hrx_content)
-            create_cid_record(archive_cid, hrx_content)
+            archive_cid = generate_cid(hrx_content.encode("utf-8"))
+            create_cid_record(archive_cid, hrx_content.encode("utf-8"))
 
         with app_with_gateway.test_client() as client:
-            response = client.get(f"/gateway/hrx/{archive_cid}")
+            response = client.get(f"/gateway/hrx?archive={archive_cid}")
 
             assert response.status_code == 200
             data = response.data.decode("utf-8")
@@ -422,17 +482,17 @@ class TestGatewayHRXWithHTTPClient:
         })
 
         with app_with_gateway.app_context():
-            archive_cid = generate_cid(hrx_content)
-            create_cid_record(archive_cid, hrx_content)
+            archive_cid = generate_cid(hrx_content.encode("utf-8"))
+            create_cid_record(archive_cid, hrx_content.encode("utf-8"))
 
         with app_with_gateway.test_client() as client:
-            response = client.get(f"/gateway/hrx/{archive_cid}/index.html")
+            response = client.get(f"/gateway/hrx?archive={archive_cid}&path=index.html")
 
             assert response.status_code == 200
             data = response.data.decode("utf-8")
 
             # Relative links should be rewritten to use gateway path
-            assert f"/gateway/hrx/{archive_cid}" in data
+            assert f"/gateway/hrx?archive={archive_cid}" in data
 
     def test_gateway_hrx_http_css_file(self, app_with_gateway):
         """Test that HRX gateway serves CSS files correctly."""
@@ -446,11 +506,11 @@ class TestGatewayHRXWithHTTPClient:
         })
 
         with app_with_gateway.app_context():
-            archive_cid = generate_cid(hrx_content)
-            create_cid_record(archive_cid, hrx_content)
+            archive_cid = generate_cid(hrx_content.encode("utf-8"))
+            create_cid_record(archive_cid, hrx_content.encode("utf-8"))
 
         with app_with_gateway.test_client() as client:
-            response = client.get(f"/gateway/hrx/{archive_cid}/styles.css")
+            response = client.get(f"/gateway/hrx?archive={archive_cid}&path=styles.css")
 
             assert response.status_code == 200
             # CSS should be served
@@ -653,6 +713,30 @@ class TestGatewayGeneralIntegration:
             assert "Gateway Not Found" in data, (
                 f"Should show 'Gateway Not Found' for unknown gateway: {data[:500]}"
             )
+
+
+    def test_gateway_hrx_missing_archive_shows_root_cause_prominently(self, app_with_gateway):
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/hrx", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "Root cause" in data
+            assert "HRX archive is required" in data
+            head = data[:1200]
+            assert "ValueError: HRX archive is required" in head
+
+
+    def test_gateway_hrx_error_page_shows_archive_and_path(self, app_with_gateway):
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/hrx/foo/bar", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "Archive" in data
+            assert "foo" in data
+            assert "Path" in data
+            assert "bar" in data
 
 
 if __name__ == "__main__":

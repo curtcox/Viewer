@@ -1,0 +1,7 @@
+{
+  "id": "hrx-guide",
+  "name": "HRX Guide",
+  "description": "Multi-page HRX archive explaining app concepts (aliases, servers, variables, secrets, gateways) with examples of linking between sections.",
+  "content_file": "contents/hrx_guide.hrx",
+  "suggested_filename": "app-guide.hrx"
+}

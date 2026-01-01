@@ -1,0 +1,114 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable
+"""HRX server for parsing and serving Human Readable Archive files.
+
+HRX format specification: https://github.com/google/hrx
+"""
+
+
+import json
+
+
+def main(archive=None, path=None, *, context=None):
+    """Parse and serve HRX archive files.
+
+    Args:
+        archive: HRX archive string (required)
+        path: File path within the archive (optional)
+        context: Server execution context (optional)
+
+    Returns:
+        Dictionary with 'output' and 'content_type' keys
+
+    Raises:
+        ValueError: If archive is not provided or path is not found
+    """
+    # Import the HRX parser
+    from hrx_parser import HRXArchive, HRXParseError
+
+    from cid_storage import resolve_cid_text
+
+    # Resolve CID-or-text input.
+    resolved_text = resolve_cid_text(archive)
+    if resolved_text is not None:
+        archive = resolved_text
+
+    # Validate that archive is provided
+    if archive is None or (isinstance(archive, str) and not archive.strip()):
+        raise ValueError(
+            "HRX archive is required. Usage: hrx(archive, path) where archive is the HRX string."
+        )
+
+    # Parse the archive
+    try:
+        hrx = HRXArchive(archive)
+    except HRXParseError as e:
+        raise ValueError(f"Invalid HRX archive: {e}") from e
+
+    def _list_directory(prefix: str) -> list[str]:
+        normalized = (prefix or "").lstrip("/")
+        if normalized and not normalized.endswith("/"):
+            normalized += "/"
+
+        entries: set[str] = set()
+        for file_name in hrx.list_files():
+            if normalized and not file_name.startswith(normalized):
+                continue
+
+            remainder = file_name[len(normalized) :] if normalized else file_name
+            if not remainder:
+                continue
+
+            first = remainder.split("/", 1)[0]
+            if "/" in remainder:
+                entries.add(first + "/")
+            else:
+                entries.add(first)
+
+        return sorted(entries)
+
+    # If no path specified, return list of files
+    if path is None or (isinstance(path, str) and not path.strip()):
+        entries = _list_directory("")
+        if not entries:
+            return {
+                "output": "",
+                "content_type": "text/hrx-directory",
+            }
+
+        return {
+            "output": "\n".join(entries),
+            "content_type": "text/hrx-directory",
+        }
+
+    requested = str(path)
+    normalized_requested = requested.lstrip("/")
+
+    if hrx.has_file(normalized_requested):
+        content = hrx.get_file(normalized_requested)
+
+        # Return the file content as plain text
+        return {
+            "output": content,
+            "content_type": "text/plain",
+        }
+
+    directory_entries = _list_directory(normalized_requested)
+    if directory_entries:
+        return {
+            "output": "\n".join(directory_entries),
+            "content_type": "text/hrx-directory",
+        }
+
+    root_entries = _list_directory("")
+    payload = {
+        "error": "Path not found",
+        "requested_path": requested,
+        "root_entries": root_entries,
+    }
+
+    return {
+        "output": json.dumps(payload, indent=2, sort_keys=True),
+        "content_type": "application/json",
+        "status_code": 404,
+    }

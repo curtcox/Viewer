@@ -128,6 +128,32 @@ def test_transform_response_uses_templates_for_error():
     mock_template.render.assert_called_once()
 
 
+def test_transform_response_renders_root_links_for_structured_404_json():
+    mock_template = MagicMock()
+    mock_template.render.return_value = "<html>Error Page</html>"
+    mock_resolve = MagicMock(return_value=mock_template)
+
+    response_details = {
+        "request_path": "/ABC123/missing/path",
+        "status_code": 404,
+        "text": '{"error": "Path not found", "requested_path": "missing/path", "root_entries": ["docs/", "index.md"]}',
+        "headers": {"Content-Type": "application/json"},
+    }
+    context = {"resolve_template": mock_resolve}
+
+    result = transform_response(response_details, context)
+
+    assert result["status_code"] == 404
+    assert result["content_type"] == "text/html"
+    kwargs = mock_template.render.call_args.kwargs
+    assert kwargs["file_path"] == "missing/path"
+    assert len(kwargs["root_links"]) == 2
+    assert kwargs["root_links"][0]["name"] == "docs/"
+    assert kwargs["root_links"][0]["link"] == "/gateway/hrx/ABC123/docs/"
+    assert kwargs["root_links"][1]["name"] == "index.md"
+    assert kwargs["root_links"][1]["link"] == "/gateway/hrx/ABC123/index.md"
+
+
 def test_transform_response_uses_templates_for_directory():
     """Test that directory listings use external templates."""
     mock_template = MagicMock()
@@ -148,6 +174,29 @@ def test_transform_response_uses_templates_for_directory():
     assert "Directory" in result["output"]
     mock_resolve.assert_called_with("hrx_directory.html")
     mock_template.render.assert_called_once()
+
+
+def test_transform_response_directory_listing_joins_nested_paths():
+    mock_template = MagicMock()
+    mock_template.render.return_value = "<html>Directory</html>"
+    mock_resolve = MagicMock(return_value=mock_template)
+
+    response_details = {
+        "request_path": "/ABC123/docs",
+        "status_code": 200,
+        "text": "api.md\ngetting-started.md\nsubdir/",
+        "headers": {"Content-Type": "text/hrx-directory"},
+    }
+    context = {"resolve_template": mock_resolve}
+
+    result = transform_response(response_details, context)
+
+    assert result["content_type"] == "text/html"
+    kwargs = mock_template.render.call_args.kwargs
+    assert kwargs["current_path"] == "docs/"
+    files = kwargs["files"]
+    assert files[0]["link"] == "/gateway/hrx/ABC123/docs/api.md"
+    assert files[2]["link"] == "/gateway/hrx/ABC123/docs/subdir/"
 
 
 def test_transform_response_uses_templates_for_markdown():
