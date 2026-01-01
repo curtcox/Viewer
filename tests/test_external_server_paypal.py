@@ -126,7 +126,7 @@ def test_create_order_success():
         response=DummyResponse(200, {"access_token": "token123"})
     )
 
-    result = paypal.main(
+    paypal.main(
         operation="create_order",
         amount="50.00",
         PAYPAL_CLIENT_ID="client_id",
@@ -147,7 +147,7 @@ def test_get_order_with_token_success():
     )
 
     # First response is for token
-    result = paypal.main(
+    paypal.main(
         operation="get_order",
         order_id="ORDER123",
         PAYPAL_CLIENT_ID="client_id",
