@@ -1014,6 +1014,26 @@
       "name": "linkedin_ads",
       "definition_cid": "reference_templates/servers/definitions/linkedin_ads.py",
       "enabled": true
+    },
+    {
+      "name": "quickbooks",
+      "definition_cid": "reference_templates/servers/definitions/quickbooks.py",
+      "enabled": true
+    },
+    {
+      "name": "xero",
+      "definition_cid": "reference_templates/servers/definitions/xero.py",
+      "enabled": true
+    },
+    {
+      "name": "freshbooks",
+      "definition_cid": "reference_templates/servers/definitions/freshbooks.py",
+      "enabled": true
+    },
+    {
+      "name": "coda",
+      "definition_cid": "reference_templates/servers/definitions/coda.py",
+      "enabled": true
     }
   ],
   "variables": [

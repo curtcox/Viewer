@@ -1,0 +1,18 @@
+{
+  "id": "quickbooks",
+  "name": "QuickBooks Online API",
+  "description": "Access QuickBooks Online accounting data for managing customers, invoices, payments, and more.",
+  "definition_file": "definitions/quickbooks.py",
+  "documentation_url": "https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/account",
+  "operations": {
+    "read": [
+      "query - Execute SQL-like queries on QuickBooks data",
+      "get - Get specific entity by type and ID"
+    ],
+    "write": [
+      "create - Create new entity (customer, invoice, payment, etc.)",
+      "update - Update existing entity",
+      "delete - Delete entity by ID"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "freshbooks",
+  "name": "FreshBooks API",
+  "description": "Access FreshBooks accounting, invoicing, time tracking, and expense management data.",
+  "definition_file": "definitions/freshbooks.py",
+  "documentation_url": "https://www.freshbooks.com/api/start",
+  "operations": {
+    "read": [
+      "list - List entities with optional filtering",
+      "get - Get specific entity by ID"
+    ],
+    "write": [
+      "create - Create new entity (client, invoice, expense, etc.)",
+      "update - Update existing entity by ID",
+      "delete - Delete entity by ID"
+    ]
+  }
+}
