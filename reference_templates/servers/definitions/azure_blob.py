@@ -154,11 +154,6 @@ def main(
             
             account_name = parts["AccountName"]
             account_key = parts["AccountKey"]
-        except ValueError as e:
-            return error_output(
-                f"Malformed connection string: {str(e)}",
-                status_code=400
-            )
         except Exception as e:
             return error_output(
                 f"Invalid AZURE_STORAGE_CONNECTION_STRING format: {str(e)}",

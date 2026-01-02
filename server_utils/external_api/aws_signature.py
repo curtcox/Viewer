@@ -6,7 +6,7 @@ Reference: https://docs.aws.amazon.com/general/latest/gr/signature-version-4.htm
 import hashlib
 import hmac
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse, parse_qs
 
 
@@ -98,7 +98,7 @@ def sign_request(
     return request_headers
 
 
-def _create_canonical_headers(headers: Dict[str, str]) -> tuple[str, str]:
+def _create_canonical_headers(headers: Dict[str, str]) -> Tuple[str, str]:
     """Create canonical headers string and signed headers list.
     
     Args:

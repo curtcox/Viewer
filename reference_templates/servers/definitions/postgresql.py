@@ -116,7 +116,7 @@ def main(
         cursor = connection.cursor(cursor_factory=RealDictCursor)
         
         # Set statement timeout - validate timeout is a positive integer
-        if not isinstance(query_timeout, int) or query_timeout < 0:
+        if not isinstance(query_timeout, int) or query_timeout <= 0:
             cursor.close()
             connection.close()
             return error_output("Invalid query_timeout: must be a positive integer", status_code=400)
