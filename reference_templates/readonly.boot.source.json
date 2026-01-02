@@ -861,6 +861,21 @@
       "enabled": true
     },
     {
+      "name": "aws_s3",
+      "definition_cid": "reference_templates/servers/definitions/aws_s3.py",
+      "enabled": true
+    },
+    {
+      "name": "gcs",
+      "definition_cid": "reference_templates/servers/definitions/gcs.py",
+      "enabled": true
+    },
+    {
+      "name": "azure_blob",
+      "definition_cid": "reference_templates/servers/definitions/azure_blob.py",
+      "enabled": true
+    },
+    {
       "name": "webflow",
       "definition_cid": "reference_templates/servers/definitions/webflow.py",
       "enabled": true
