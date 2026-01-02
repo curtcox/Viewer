@@ -919,6 +919,51 @@
       "name": "coda",
       "definition_cid": "reference_templates/servers/definitions/coda.py",
       "enabled": true
+    },
+    {
+      "name": "cloudconvert",
+      "definition_cid": "reference_templates/servers/definitions/cloudconvert.py",
+      "enabled": true
+    },
+    {
+      "name": "pdfco",
+      "definition_cid": "reference_templates/servers/definitions/pdfco.py",
+      "enabled": true
+    },
+    {
+      "name": "docparser",
+      "definition_cid": "reference_templates/servers/definitions/docparser.py",
+      "enabled": true
+    },
+    {
+      "name": "parseur",
+      "definition_cid": "reference_templates/servers/definitions/parseur.py",
+      "enabled": true
+    },
+    {
+      "name": "apify",
+      "definition_cid": "reference_templates/servers/definitions/apify.py",
+      "enabled": true
+    },
+    {
+      "name": "clearbit",
+      "definition_cid": "reference_templates/servers/definitions/clearbit.py",
+      "enabled": true
+    },
+    {
+      "name": "hunter",
+      "definition_cid": "reference_templates/servers/definitions/hunter.py",
+      "enabled": true
+    },
+    {
+      "name": "bitly",
+      "definition_cid": "reference_templates/servers/definitions/bitly.py",
+      "enabled": true
+    },
+    {
+      "name": "uptimerobot",
+      "definition_cid": "reference_templates/servers/definitions/uptimerobot.py",
+      "enabled": true
     }
   ],
   "variables": [

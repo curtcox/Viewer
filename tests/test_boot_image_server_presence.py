@@ -117,6 +117,15 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "xero": "xero.py",
     "freshbooks": "freshbooks.py",
     "coda": "coda.py",
+    "cloudconvert": "cloudconvert.py",
+    "pdfco": "pdfco.py",
+    "docparser": "docparser.py",
+    "parseur": "parseur.py",
+    "apify": "apify.py",
+    "clearbit": "clearbit.py",
+    "hunter": "hunter.py",
+    "bitly": "bitly.py",
+    "uptimerobot": "uptimerobot.py",
 }
 
 

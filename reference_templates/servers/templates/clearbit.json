@@ -1,0 +1,16 @@
+{
+  "id": "clearbit",
+  "name": "Clearbit API",
+  "description": "Enrich company and person data with Clearbit API.",
+  "definition_file": "definitions/clearbit.py",
+  "documentation_url": "https://clearbit.com/docs",
+  "operations": {
+    "read": [
+      "enrich_company - Enrich company data by domain",
+      "find_company - Find company by domain",
+      "enrich_person - Enrich person data by email",
+      "autocomplete - Autocomplete company names"
+    ],
+    "write": []
+  }
+}
