@@ -1004,6 +1004,16 @@
       "name": "jotform",
       "definition_cid": "reference_templates/servers/definitions/jotform.py",
       "enabled": true
+    },
+    {
+      "name": "meta_ads",
+      "definition_cid": "reference_templates/servers/definitions/meta_ads.py",
+      "enabled": true
+    },
+    {
+      "name": "linkedin_ads",
+      "definition_cid": "reference_templates/servers/definitions/linkedin_ads.py",
+      "enabled": true
     }
   ],
   "variables": [

@@ -258,6 +258,20 @@ Each external service requires:
 - Total external server tests: 981 tests passing (950 from previous phases + 31 new).
 - Ready to proceed to Phase 14: Advertising servers (2 servers).
 
+## Progress Notes (2026-01-02 - Phase 14)
+
+- **Phase 14 Advertising Servers COMPLETED**: All 2 Advertising servers implemented (note: YouTube already exists from Phase 2).
+- Implemented meta_ads: List/get accounts, campaigns, ad sets, ads, create campaign, get insights with Bearer token (16 tests passing).
+- Implemented linkedin_ads: List/get accounts, campaigns, campaign groups, create campaign, get analytics with Bearer token (16 tests passing).
+- Meta Ads uses Bearer token authentication for Facebook Marketing API v18.0.
+- LinkedIn Ads uses Bearer token authentication with X-Restli-Protocol-Version header for LinkedIn Marketing API v2.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 16 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 14 tests: 32 new tests passing.
+- Total external server tests: 1013 tests passing (981 from previous phases + 32 new).
+- Ready to proceed to Phase 15: Finance servers (4 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1738,9 +1752,9 @@ First servers using shared infrastructure as validation:
 - ✅ typeform - Added 2026-01-02
 - ✅ jotform - Added 2026-01-02
 
-### Phase 14: Advertising (2 servers)
-- meta_ads
-- linkedin_ads
+### Phase 14: Advertising (2 servers) ✅ COMPLETE
+- ✅ meta_ads - Added 2026-01-02
+- ✅ linkedin_ads - Added 2026-01-02
 
 ### Phase 15: Finance (4 servers)
 - quickbooks

@@ -1,0 +1,22 @@
+{
+  "id": "meta_ads",
+  "name": "Meta (Facebook) Marketing API",
+  "description": "Access Meta Marketing API for managing Facebook and Instagram ads, campaigns, and insights.",
+  "definition_file": "definitions/meta_ads.py",
+  "documentation_url": "https://developers.facebook.com/docs/marketing-apis",
+  "operations": {
+    "read": [
+      "list_accounts - List ad accounts",
+      "list_campaigns - List campaigns for an account",
+      "get_campaign - Get campaign details",
+      "list_adsets - List ad sets for an account",
+      "get_adset - Get ad set details",
+      "list_ads - List ads for an account",
+      "get_ad - Get ad details",
+      "get_insights - Get performance insights"
+    ],
+    "write": [
+      "create_campaign - Create a new campaign"
+    ]
+  }
+}
