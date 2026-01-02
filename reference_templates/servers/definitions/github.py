@@ -7,47 +7,25 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    CredentialValidator,
+    ExternalApiClient,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
+)
 from server_utils.external_api.limit_validator import GITHUB_MAX_PER_PAGE, get_limit_info, validate_limit
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
-
-
-def _build_preview(
-    *,
-    owner: str,
-    repo: str,
-    operation: str,
-    payload: Optional[Dict[str, Any]],
-    params: Optional[Dict[str, Any]],
-    per_page: Optional[int] = None,
-) -> Dict[str, Any]:
-    base_url = f"https://api.github.com/repos/{owner}/{repo}/issues"
-    if operation == "get_issue" and params and "issue_number" in params:
-        url = f"{base_url}/{params['issue_number']}"
-        params = None
-    else:
-        url = base_url
-
-    method = "POST" if operation == "create_issue" else "GET"
-
-    preview: Dict[str, Any] = {
-        "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "token",
-    }
-    if params:
-        preview["params"] = params
-    if payload:
-        preview["payload"] = payload
-
-    # Include limit constraint information for list operations
-    if per_page is not None and operation == "list_issues":
-        preview["limit_constraint"] = get_limit_info(per_page, GITHUB_MAX_PER_PAGE, "per_page")
-
-    return preview
+_OPERATIONS = {"list_issues", "create_issue", "get_issue"}
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+_PARAMETER_REQUIREMENTS = {
+    "create_issue": ["title"],
+    "get_issue": ["issue_number"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -69,25 +47,32 @@ def main(
 ) -> Dict[str, Any]:
     """List or create issues in a GitHub repository."""
 
+    # Validate required parameters
     if not owner:
+        from server_utils.external_api import validation_error
         return validation_error("Missing required owner", field="owner")
     if not repo:
+        from server_utils.external_api import validation_error
         return validation_error("Missing required repo", field="repo")
 
-    normalized_operation = operation.lower()
-    if normalized_operation not in {"list_issues", "create_issue", "get_issue"}:
-        return validation_error("Unsupported operation", field="operation")
+    # Validate operation
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
 
-    if not GITHUB_TOKEN:
-        return error_output(
-            "Missing GITHUB_TOKEN",
-            status_code=401,
-            details="Provide a personal access token with repo scope",
-        )
+    # Validate credentials
+    if error := CredentialValidator.require_secret(GITHUB_TOKEN, "GITHUB_TOKEN"):
+        return error
 
-    # Validate pagination parameter (per_page)
-    # GitHub API enforces a maximum of 100 items per page
+    # Validate pagination parameter
     if error := validate_limit(per_page, GITHUB_MAX_PER_PAGE, "per_page"):
+        return error
+
+    # Validate operation-specific parameters
+    if error := _PARAMETER_VALIDATOR.validate_required(
+        normalized_operation,
+        {"title": title, "issue_number": issue_number},
+    ):
         return error
 
     api_client = client or _DEFAULT_CLIENT
@@ -106,31 +91,30 @@ def main(
         if labels:
             params["labels"] = labels
     elif normalized_operation == "create_issue":
-        if not title:
-            return validation_error("Missing required title", field="title")
         payload = {"title": title}
         if body:
             payload["body"] = body
     elif normalized_operation == "get_issue":
-        if issue_number is None:
-            return validation_error("Missing required issue_number", field="issue_number")
         params = {"issue_number": issue_number}
 
-    if dry_run:
-        preview = _build_preview(
-            owner=owner,
-            repo=repo,
-            operation=normalized_operation,
-            payload=payload,
-            params=params,
-            per_page=per_page if normalized_operation == "list_issues" else None,
-        )
-        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
-
     url = base_url
-    if normalized_operation == "get_issue" and params:
-        url = f"{base_url}/{params['issue_number']}"
+    if normalized_operation == "get_issue":
+        url = f"{base_url}/{issue_number}"
         params = None
+
+    if dry_run:
+        preview = PreviewBuilder.build(
+            operation=normalized_operation,
+            url=url,
+            method="POST" if normalized_operation == "create_issue" else "GET",
+            auth_type="Bearer Token",
+            params=params,
+            payload=payload,
+        )
+        # Include limit constraint information for list operations
+        if normalized_operation == "list_issues":
+            preview["limit_constraint"] = get_limit_info(per_page, GITHUB_MAX_PER_PAGE, "per_page")
+        return PreviewBuilder.dry_run_response(preview)
 
     try:
         if normalized_operation == "create_issue":
@@ -138,23 +122,10 @@ def main(
         else:
             response = api_client.get(url, headers=headers, params=params, timeout=timeout)
     except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("GitHub request failed", status_code=status, details=str(exc))
+        return ResponseHandler.handle_request_exception(exc)
 
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
+    # Extract error message from GitHub API response
+    def extract_github_error(data: Dict[str, Any]) -> str:
+        return data.get("message", "GitHub API error")
 
-    if not getattr(response, "ok", False):
-        return error_output(
-            data.get("message", "GitHub API error"),
-            status_code=response.status_code,
-            response=data,
-        )
-
-    return {"output": data}
+    return ResponseHandler.handle_json_response(response, extract_github_error)
