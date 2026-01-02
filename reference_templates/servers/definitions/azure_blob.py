@@ -136,11 +136,34 @@ def main(
     
     if AZURE_STORAGE_CONNECTION_STRING:
         try:
-            parts = dict(part.split("=", 1) for part in AZURE_STORAGE_CONNECTION_STRING.split(";") if "=" in part)
-            account_name = parts.get("AccountName", "")
-            account_key = parts.get("AccountKey", "")
-        except Exception:
-            return error_output("Invalid AZURE_STORAGE_CONNECTION_STRING format", status_code=400)
+            # Parse connection string with validation
+            parts = {}
+            for part in AZURE_STORAGE_CONNECTION_STRING.split(";"):
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    parts[key.strip()] = value.strip()
+            
+            # Validate required keys are present
+            required_keys = ["AccountName", "AccountKey"]
+            missing_keys = [key for key in required_keys if key not in parts or not parts[key]]
+            if missing_keys:
+                return error_output(
+                    f"Invalid connection string: missing {', '.join(missing_keys)}",
+                    status_code=400
+                )
+            
+            account_name = parts["AccountName"]
+            account_key = parts["AccountKey"]
+        except ValueError as e:
+            return error_output(
+                f"Malformed connection string: {str(e)}",
+                status_code=400
+            )
+        except Exception as e:
+            return error_output(
+                f"Invalid AZURE_STORAGE_CONNECTION_STRING format: {str(e)}",
+                status_code=400
+            )
     
     # Validate credentials
     if not account_name:

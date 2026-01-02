@@ -115,8 +115,14 @@ def main(
         
         cursor = connection.cursor(cursor_factory=RealDictCursor)
         
-        # Set statement timeout
-        cursor.execute(f"SET statement_timeout = {query_timeout * 1000}")
+        # Set statement timeout - validate timeout is a positive integer
+        if not isinstance(query_timeout, int) or query_timeout < 0:
+            cursor.close()
+            connection.close()
+            return error_output("Invalid query_timeout: must be a positive integer", status_code=400)
+        
+        # Use parameterized query for timeout setting
+        cursor.execute("SET statement_timeout = %s", (query_timeout * 1000,))
         
         if parsed_params:
             cursor.execute(query, parsed_params)
