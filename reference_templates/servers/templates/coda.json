@@ -1,0 +1,23 @@
+{
+  "id": "coda",
+  "name": "Coda API",
+  "description": "Access Coda documents, tables, and rows for collaborative data management and automation.",
+  "definition_file": "definitions/coda.py",
+  "documentation_url": "https://coda.io/developers/apis/v1",
+  "operations": {
+    "read": [
+      "list_docs - List all accessible documents",
+      "get_doc - Get specific document by ID",
+      "list_tables - List tables in a document",
+      "get_table - Get specific table by ID",
+      "list_rows - List rows in a table with optional filtering",
+      "get_row - Get specific row by ID",
+      "list_columns - List columns in a table"
+    ],
+    "write": [
+      "create_row - Create new row in a table",
+      "update_row - Update existing row by ID",
+      "delete_row - Delete row by ID"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "xero",
+  "name": "Xero API",
+  "description": "Access Xero accounting data for managing invoices, contacts, accounts, and more.",
+  "definition_file": "definitions/xero.py",
+  "documentation_url": "https://developer.xero.com/documentation/api/accounting/overview",
+  "operations": {
+    "read": [
+      "list - List entities with optional filtering",
+      "get - Get specific entity by ID"
+    ],
+    "write": [
+      "create - Create new entity (contact, invoice, payment, etc.)",
+      "update - Update existing entity by ID",
+      "delete - Delete entity by ID"
+    ]
+  }
+}

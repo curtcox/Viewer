@@ -272,6 +272,24 @@ Each external service requires:
 - Total external server tests: 1013 tests passing (981 from previous phases + 32 new).
 - Ready to proceed to Phase 15: Finance servers (4 servers).
 
+## Progress Notes (2026-01-02 - Phase 15)
+
+- **Phase 15 Finance Servers COMPLETED**: All 4 Finance servers implemented.
+- Implemented quickbooks: Query, get, create, update, delete entities with OAuth Bearer token (15 tests passing).
+- Implemented xero: List, get, create, update, delete entities with OAuth Bearer token and tenant ID header (17 tests passing).
+- Implemented freshbooks: List, get, create, update, delete entities with OAuth Bearer token for accounting API (16 tests passing).
+- Implemented coda: Document and table operations including list docs/tables/rows, get, create, update, delete rows (19 tests passing).
+- QuickBooks uses OAuth Bearer token authentication with realm_id for QuickBooks Online API v3.
+- Xero uses OAuth Bearer token with custom Xero-tenant-id header for Xero Accounting API v2.
+- FreshBooks uses OAuth Bearer token authentication for FreshBooks API.
+- Coda uses Bearer token (API token) authentication for Coda API v1.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 15 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 15 tests: 67 new tests passing.
+- Total external server tests: 1080 tests passing (1013 from previous phases + 67 new).
+- Ready to proceed to Phase 16: Data Processing servers (9 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1756,11 +1774,11 @@ First servers using shared infrastructure as validation:
 - ✅ meta_ads - Added 2026-01-02
 - ✅ linkedin_ads - Added 2026-01-02
 
-### Phase 15: Finance (4 servers)
-- quickbooks
-- xero
-- freshbooks
-- coda
+### Phase 15: Finance (4 servers) ✅ COMPLETE
+- ✅ quickbooks - Added 2026-01-02
+- ✅ xero - Added 2026-01-02
+- ✅ freshbooks - Added 2026-01-02
+- ✅ coda - Added 2026-01-02
 
 ### Phase 16: Data Processing (9 servers)
 - cloudconvert
