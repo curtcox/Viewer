@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-from datetime import datetime, timezone
 from urllib.parse import quote
 
 from server_utils.external_api import ExternalApiClient, error_output, validation_error
 from server_utils.external_api.limit_validator import AWS_S3_MAX_KEYS, get_limit_info, validate_limit
+from server_utils.external_api.aws_signature import sign_request
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
@@ -16,32 +16,26 @@ _DEFAULT_CLIENT = ExternalApiClient()
 
 def _sign_request(
     method: str,
+    url: str,
     bucket: str,
     key: str,
     region: str,
     access_key: str,
     secret_key: str,
     headers: Dict[str, str],
+    payload: bytes = b"",
 ) -> Dict[str, str]:
-    """Generate AWS Signature Version 4 for S3 request."""
-    service = "s3"
-    host = f"{bucket}.s3.{region}.amazonaws.com" if bucket else f"s3.{region}.amazonaws.com"
-    
-    # Add required headers
-    now = datetime.now(timezone.utc)
-    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
-    date_stamp = now.strftime("%Y%m%d")
-    
-    # For simplicity in dry-run, we'll return the headers structure
-    # Real implementation would compute the full signature
-    signed_headers = {
-        "Host": host,
-        "X-Amz-Date": amz_date,
-        "Authorization": f"AWS4-HMAC-SHA256 Credential={access_key}/{date_stamp}/{region}/{service}/aws4_request",
-    }
-    signed_headers.update(headers)
-    
-    return signed_headers
+    """Generate AWS Signature Version 4 for S3 request using the proper implementation."""
+    return sign_request(
+        method=method,
+        url=url,
+        headers=headers,
+        access_key=access_key,
+        secret_key=secret_key,
+        region=region,
+        service="s3",
+        payload=payload,
+    )
 
 
 def _build_preview(
@@ -209,14 +203,17 @@ def main(
             url = preview["url"]
         
         # Sign request
+        payload = content.encode("utf-8") if normalized_operation == "put_object" and content else b""
         signed_headers = _sign_request(
             method=method,
+            url=url,
             bucket=bucket,
             key=to_key if normalized_operation == "copy_object" else key,
             region=AWS_REGION,
             access_key=AWS_ACCESS_KEY_ID,
             secret_key=AWS_SECRET_ACCESS_KEY,
             headers=headers,
+            payload=payload,
         )
         
         # Make request
