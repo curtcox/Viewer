@@ -1,0 +1,18 @@
+{
+  "id": "bitly",
+  "name": "Bitly API",
+  "description": "Shorten and track URLs with Bitly API.",
+  "definition_file": "definitions/bitly.py",
+  "documentation_url": "https://dev.bitly.com/",
+  "operations": {
+    "read": [
+      "get_link - Get bitlink details",
+      "expand_link - Expand shortened link",
+      "get_clicks - Get click statistics"
+    ],
+    "write": [
+      "shorten_url - Shorten a URL",
+      "create_bitlink - Create a new bitlink"
+    ]
+  }
+}

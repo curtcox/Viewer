@@ -1,0 +1,20 @@
+{
+  "id": "apify",
+  "name": "Apify API",
+  "description": "Scrape web data and automate tasks with Apify actors.",
+  "definition_file": "definitions/apify.py",
+  "documentation_url": "https://docs.apify.com/api/v2",
+  "operations": {
+    "read": [
+      "list_actors - List all actors",
+      "get_run - Get actor run details",
+      "list_runs - List all actor runs",
+      "get_dataset - Get dataset details",
+      "download_dataset - Download dataset items"
+    ],
+    "write": [
+      "run_actor - Run an actor with input data",
+      "delete_dataset - Delete a dataset"
+    ]
+  }
+}

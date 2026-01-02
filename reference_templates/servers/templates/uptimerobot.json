@@ -1,0 +1,18 @@
+{
+  "id": "uptimerobot",
+  "name": "UptimeRobot API",
+  "description": "Monitor website uptime with UptimeRobot API.",
+  "definition_file": "definitions/uptimerobot.py",
+  "documentation_url": "https://uptimerobot.com/api/",
+  "operations": {
+    "read": [
+      "get_monitors - Get all monitors",
+      "get_alert_contacts - Get alert contacts"
+    ],
+    "write": [
+      "new_monitor - Create new monitor",
+      "edit_monitor - Edit existing monitor",
+      "delete_monitor - Delete a monitor"
+    ]
+  }
+}

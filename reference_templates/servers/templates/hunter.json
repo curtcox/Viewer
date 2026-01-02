@@ -1,0 +1,16 @@
+{
+  "id": "hunter",
+  "name": "Hunter.io API",
+  "description": "Find and verify email addresses with Hunter.io API.",
+  "definition_file": "definitions/hunter.py",
+  "documentation_url": "https://hunter.io/api-documentation",
+  "operations": {
+    "read": [
+      "domain_search - Search emails for a domain",
+      "email_finder - Find email for a person",
+      "email_verifier - Verify an email address",
+      "email_count - Get email count for a domain"
+    ],
+    "write": []
+  }
+}
