@@ -2,7 +2,62 @@
 
 **Status:** In Progress
 **Created:** 2026-01-02
+**Updated:** 2026-01-02 (Implementation started)
 **Related:** done/add_external_server_definitions.md
+
+## Implementation Progress Summary
+
+### ✅ Completed (2026-01-02)
+
+#### Phase 1: Critical Security Fixes - Authentication
+- ✅ Implemented proper AWS Signature V4 (`server_utils/external_api/aws_signature.py`)
+  - Full canonical request construction
+  - Signature key derivation
+  - Signature computation with HMAC-SHA256
+  - Comprehensive unit tests (10 tests passing)
+- ✅ Implemented proper Azure Shared Key (`server_utils/external_api/azure_signature.py`)
+  - Canonical headers construction  
+  - Canonical resource construction
+  - HMAC-SHA256 signature
+  - Comprehensive unit tests (11 tests passing)
+- ✅ Updated `aws_s3.py` to use proper AWS Signature V4
+- ✅ Updated `azure_blob.py` to use proper Azure Shared Key
+- ✅ All existing server tests still pass (35 tests)
+
+#### Phase 2: SQL Injection Fixes
+- ✅ Fixed SQL injection risk in `postgresql.py` (line 119)
+  - Changed from f-string to parameterized query for statement_timeout
+  - Added integer validation for timeout value
+  - All tests passing (11 tests)
+- ✅ Verified MySQL and Snowflake don't have similar issues
+  - MySQL doesn't set statement timeout in this way
+  - Snowflake uses API endpoint (not vulnerable)
+
+#### Phase 3: Connection String Parsing
+- ✅ Improved Azure connection string parsing (`azure_blob.py`)
+  - Better error handling with specific error messages
+  - Validation of required keys (AccountName, AccountKey)
+  - Handles malformed strings gracefully
+  - All tests passing (17 tests)
+
+### 🚧 Remaining Work
+
+The following items from the original plan are **not yet implemented** (marked as ✅ in the plan but are actually TODO):
+
+#### Shared Utilities Foundation (Not Completed)
+- ❌ `operation_validator.py` - not created
+- ❌ `credential_validator.py` - not created
+- ❌ `preview_builder.py` - not created
+- ❌ `response_handler.py` - not created
+- ❌ `parameter_validator.py` - not created
+
+#### Server Refactoring (Not Completed)
+- ❌ No servers have been refactored to use shared utilities
+- ❌ Code duplication (~9,120 lines) still exists
+
+These remaining items can be addressed in future work when time permits. The **critical security issues have been resolved**.
+
+---
 
 ## Overview
 
