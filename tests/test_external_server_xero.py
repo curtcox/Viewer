@@ -1,5 +1,9 @@
 """Tests for the Xero server definition."""
 
+from unittest.mock import Mock
+
+import requests
+
 from reference_templates.servers.definitions import xero
 
 
@@ -203,3 +207,56 @@ def test_invalid_json_in_params_returns_error():
     )
     assert "error" in result["output"]
     assert "json" in result["output"]["error"]["message"].lower()
+
+
+def test_request_exception_returns_error():
+    mock_client = Mock()
+    mock_client.request.side_effect = requests.RequestException("Network error")
+
+    result = xero.main(
+        operation="list",
+        endpoint="Invoices",
+        XERO_ACCESS_TOKEN="test_token",
+        XERO_TENANT_ID="abc-123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "error" in result["output"]
+
+
+def test_json_parsing_error_returns_error():
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("Invalid JSON")
+    mock_response.text = "Not JSON"
+    mock_client.request.return_value = mock_response
+
+    result = xero.main(
+        operation="list",
+        endpoint="Invoices",
+        XERO_ACCESS_TOKEN="test_token",
+        XERO_TENANT_ID="abc-123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "error" in result["output"]
+
+
+def test_successful_request_returns_data():
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.json.return_value = {
+        "Invoices": [{"InvoiceID": "1", "InvoiceNumber": "INV-001"}]
+    }
+    mock_client.request.return_value = mock_response
+
+    result = xero.main(
+        operation="list",
+        endpoint="Invoices",
+        XERO_ACCESS_TOKEN="test_token",
+        XERO_TENANT_ID="abc-123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "Invoices" in result["output"]

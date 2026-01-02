@@ -1,5 +1,9 @@
 """Tests for the QuickBooks Online server definition."""
 
+from unittest.mock import Mock
+
+import requests
+
 from reference_templates.servers.definitions import quickbooks
 
 
@@ -172,3 +176,56 @@ def test_invalid_json_in_data_returns_error():
     )
     assert "error" in result["output"]
     assert "json" in result["output"]["error"]["message"].lower()
+
+
+def test_request_exception_returns_error():
+    mock_client = Mock()
+    mock_client.request.side_effect = requests.RequestException("Network error")
+
+    result = quickbooks.main(
+        operation="query",
+        query="SELECT * FROM Customer",
+        QUICKBOOKS_ACCESS_TOKEN="test_token",
+        QUICKBOOKS_REALM_ID="123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "error" in result["output"]
+
+
+def test_json_parsing_error_returns_error():
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("Invalid JSON")
+    mock_response.text = "Not JSON"
+    mock_client.request.return_value = mock_response
+
+    result = quickbooks.main(
+        operation="query",
+        query="SELECT * FROM Customer",
+        QUICKBOOKS_ACCESS_TOKEN="test_token",
+        QUICKBOOKS_REALM_ID="123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "error" in result["output"]
+
+
+def test_successful_request_returns_data():
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.json.return_value = {
+        "QueryResponse": {"Customer": [{"Id": "1", "DisplayName": "Test"}]}
+    }
+    mock_client.request.return_value = mock_response
+
+    result = quickbooks.main(
+        operation="query",
+        query="SELECT * FROM Customer",
+        QUICKBOOKS_ACCESS_TOKEN="test_token",
+        QUICKBOOKS_REALM_ID="123",
+        dry_run=False,
+        client=mock_client,
+    )
+    assert "QueryResponse" in result["output"]
