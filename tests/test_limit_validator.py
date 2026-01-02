@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from server_utils.external_api.limit_validator import (
     AWS_S3_MAX_KEYS,
     GITHUB_MAX_PER_PAGE,
