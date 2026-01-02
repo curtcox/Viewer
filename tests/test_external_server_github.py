@@ -65,7 +65,7 @@ def test_create_issue_requires_title():
         GITHUB_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required title"
+    assert result["output"]["error"]["message"] == "Missing required title for create_issue"
 
 
 def test_get_issue_requires_issue_number():
@@ -76,7 +76,7 @@ def test_get_issue_requires_issue_number():
         GITHUB_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required issue_number"
+    assert result["output"]["error"]["message"] == "Missing required issue_number for get_issue"
 
 
 def test_dry_run_returns_preview_for_list():
@@ -114,7 +114,7 @@ def test_request_exception_returns_error():
         client=client,
     )
 
-    assert result["output"]["error"] == "GitHub request failed"
+    assert result["output"]["error"] == "Request failed"
 
 
 def test_invalid_json_response_returns_error():
