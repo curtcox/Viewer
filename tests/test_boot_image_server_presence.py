@@ -113,6 +113,10 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "pandadoc": "pandadoc.py",
     "dropbox": "dropbox.py",
     "box": "box.py",
+    "quickbooks": "quickbooks.py",
+    "xero": "xero.py",
+    "freshbooks": "freshbooks.py",
+    "coda": "coda.py",
 }
 
 
