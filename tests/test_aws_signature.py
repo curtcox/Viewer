@@ -1,10 +1,7 @@
 """Tests for AWS Signature Version 4 implementation."""
 
-import hashlib
 from datetime import datetime, timezone
 from unittest.mock import patch
-
-import pytest
 
 from server_utils.external_api import aws_signature
 
