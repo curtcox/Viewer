@@ -974,6 +974,26 @@
       "name": "box",
       "definition_cid": "reference_templates/servers/definitions/box.py",
       "enabled": true
+    },
+    {
+      "name": "webflow",
+      "definition_cid": "reference_templates/servers/definitions/webflow.py",
+      "enabled": true
+    },
+    {
+      "name": "wordpress",
+      "definition_cid": "reference_templates/servers/definitions/wordpress.py",
+      "enabled": true
+    },
+    {
+      "name": "wix",
+      "definition_cid": "reference_templates/servers/definitions/wix.py",
+      "enabled": true
+    },
+    {
+      "name": "squarespace",
+      "definition_cid": "reference_templates/servers/definitions/squarespace.py",
+      "enabled": true
     }
   ],
   "variables": [
