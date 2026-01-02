@@ -1,0 +1,143 @@
+# ruff: noqa: F821, F706
+"""Execute MySQL database queries with connection management."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+import json
+
+from server_utils.external_api import error_output, validation_error
+
+
+def _build_preview(
+    *,
+    operation: str,
+    query: Optional[str],
+    host: str,
+    database: str,
+    params: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Build a preview of the MySQL operation."""
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "host": host,
+        "database": database,
+        "auth": "MySQL username/password",
+    }
+    if query:
+        preview["query"] = query
+    if params:
+        preview["params"] = params
+    return preview
+
+
+def main(
+    *,
+    operation: str = "query",
+    query: str = "",
+    params: Optional[str] = None,
+    MYSQL_HOST: str = "",
+    MYSQL_PORT: int = 3306,
+    MYSQL_USER: str = "",
+    MYSQL_PASSWORD: str = "",
+    MYSQL_DATABASE: str = "",
+    connection_timeout: int = 10,
+    query_timeout: int = 60,
+    dry_run: bool = True,
+    context=None,
+) -> Dict[str, Any]:
+    """Execute MySQL database queries.
+    
+    Operations:
+    - query: Execute a SELECT query
+    - execute: Execute an INSERT/UPDATE/DELETE statement
+    - fetchone: Fetch a single row
+    - fetchall: Fetch all rows
+    """
+    
+    normalized_operation = operation.lower()
+    valid_operations = {"query", "execute", "fetchone", "fetchall"}
+    
+    if normalized_operation not in valid_operations:
+        return validation_error("Unsupported operation", field="operation")
+    
+    # Validate credentials
+    if not MYSQL_HOST:
+        return error_output("Missing MYSQL_HOST", status_code=401)
+    
+    if not MYSQL_USER:
+        return error_output("Missing MYSQL_USER", status_code=401)
+    
+    if not MYSQL_PASSWORD:
+        return error_output("Missing MYSQL_PASSWORD", status_code=401)
+    
+    if not MYSQL_DATABASE:
+        return error_output("Missing MYSQL_DATABASE", status_code=401)
+    
+    # Validate query
+    if not query:
+        return validation_error("Missing required query", field="query")
+    
+    # Parse params if provided
+    parsed_params = None
+    if params:
+        try:
+            parsed_params = json.loads(params) if isinstance(params, str) else params
+        except json.JSONDecodeError:
+            return validation_error("Invalid JSON for params", field="params")
+    
+    # Return preview if in dry-run mode
+    if dry_run:
+        return {
+            "output": _build_preview(
+                operation=normalized_operation,
+                query=query,
+                host=MYSQL_HOST,
+                database=MYSQL_DATABASE,
+                params=parsed_params,
+            )
+        }
+    
+    # Execute actual database operation
+    try:
+        import mysql.connector
+        from mysql.connector import Error
+        
+        connection = mysql.connector.connect(
+            host=MYSQL_HOST,
+            port=MYSQL_PORT,
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            database=MYSQL_DATABASE,
+            connection_timeout=connection_timeout,
+        )
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        if parsed_params:
+            cursor.execute(query, parsed_params)
+        else:
+            cursor.execute(query)
+        
+        if normalized_operation in ("query", "fetchall"):
+            result = cursor.fetchall()
+        elif normalized_operation == "fetchone":
+            result = cursor.fetchone()
+        else:  # execute
+            connection.commit()
+            result = {"rows_affected": cursor.rowcount}
+        
+        cursor.close()
+        connection.close()
+        
+        return {"output": result}
+    
+    except ImportError:
+        return error_output(
+            "mysql-connector-python not installed. Install with: pip install mysql-connector-python",
+            status_code=500,
+        )
+    except Error as e:
+        return error_output(f"MySQL error: {str(e)}", status_code=500)
+    except Exception as e:
+        return error_output(str(e), status_code=500)

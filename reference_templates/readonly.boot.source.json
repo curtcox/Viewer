@@ -861,6 +861,71 @@
       "enabled": true
     },
     {
+      "name": "aws_s3",
+      "definition_cid": "reference_templates/servers/definitions/aws_s3.py",
+      "enabled": true
+    },
+    {
+      "name": "gcs",
+      "definition_cid": "reference_templates/servers/definitions/gcs.py",
+      "enabled": true
+    },
+    {
+      "name": "azure_blob",
+      "definition_cid": "reference_templates/servers/definitions/azure_blob.py",
+      "enabled": true
+    },
+    {
+      "name": "mysql",
+      "definition_cid": "reference_templates/servers/definitions/mysql.py",
+      "enabled": true
+    },
+    {
+      "name": "postgresql",
+      "definition_cid": "reference_templates/servers/definitions/postgresql.py",
+      "enabled": true
+    },
+    {
+      "name": "mongodb",
+      "definition_cid": "reference_templates/servers/definitions/mongodb.py",
+      "enabled": true
+    },
+    {
+      "name": "sqlalchemy_pool",
+      "definition_cid": "reference_templates/servers/definitions/sqlalchemy_pool.py",
+      "enabled": true
+    },
+    {
+      "name": "pymongo_pool",
+      "definition_cid": "reference_templates/servers/definitions/pymongo_pool.py",
+      "enabled": true
+    },
+    {
+      "name": "segment",
+      "definition_cid": "reference_templates/servers/definitions/segment.py",
+      "enabled": true
+    },
+    {
+      "name": "mixpanel",
+      "definition_cid": "reference_templates/servers/definitions/mixpanel.py",
+      "enabled": true
+    },
+    {
+      "name": "amplitude",
+      "definition_cid": "reference_templates/servers/definitions/amplitude.py",
+      "enabled": true
+    },
+    {
+      "name": "bigquery",
+      "definition_cid": "reference_templates/servers/definitions/bigquery.py",
+      "enabled": true
+    },
+    {
+      "name": "snowflake",
+      "definition_cid": "reference_templates/servers/definitions/snowflake.py",
+      "enabled": true
+    },
+    {
       "name": "webflow",
       "definition_cid": "reference_templates/servers/definitions/webflow.py",
       "enabled": true

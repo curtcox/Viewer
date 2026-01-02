@@ -126,6 +126,19 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "hunter": "hunter.py",
     "bitly": "bitly.py",
     "uptimerobot": "uptimerobot.py",
+    "aws_s3": "aws_s3.py",
+    "gcs": "gcs.py",
+    "azure_blob": "azure_blob.py",
+    "mysql": "mysql.py",
+    "postgresql": "postgresql.py",
+    "mongodb": "mongodb.py",
+    "sqlalchemy_pool": "sqlalchemy_pool.py",
+    "pymongo_pool": "pymongo_pool.py",
+    "segment": "segment.py",
+    "mixpanel": "mixpanel.py",
+    "amplitude": "amplitude.py",
+    "bigquery": "bigquery.py",
+    "snowflake": "snowflake.py",
 }
 
 

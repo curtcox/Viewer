@@ -1,0 +1,135 @@
+# ruff: noqa: F821, F706
+"""Execute database queries using SQLAlchemy connection pooling."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+import json
+
+from server_utils.external_api import error_output, validation_error
+
+
+def _build_preview(
+    *,
+    operation: str,
+    query: Optional[str],
+    database_url: str,
+    params: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Build a preview of the SQLAlchemy operation."""
+    # Hide credentials in preview
+    safe_url = database_url
+    if "@" in database_url:
+        parts = database_url.split("@")
+        protocol_and_creds = parts[0].split("://")
+        if len(protocol_and_creds) == 2:
+            safe_url = f"{protocol_and_creds[0]}://***@{parts[1]}"
+    
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "database_url": safe_url,
+        "auth": "Database credentials in URL",
+    }
+    if query:
+        preview["query"] = query
+    if params:
+        preview["params"] = params
+    return preview
+
+
+def main(
+    *,
+    operation: str = "query",
+    query: str = "",
+    params: Optional[str] = None,
+    DATABASE_URL: str = "",
+    pool_size: int = 5,
+    max_overflow: int = 10,
+    pool_timeout: int = 30,
+    query_timeout: int = 60,
+    dry_run: bool = True,
+    context=None,
+) -> Dict[str, Any]:
+    """Execute database queries using SQLAlchemy connection pooling.
+    
+    Supports MySQL, PostgreSQL, and SQLite via connection URL.
+    
+    Operations:
+    - query: Execute a SELECT query
+    - execute: Execute an INSERT/UPDATE/DELETE statement
+    """
+    
+    normalized_operation = operation.lower()
+    valid_operations = {"query", "execute"}
+    
+    if normalized_operation not in valid_operations:
+        return validation_error("Unsupported operation", field="operation")
+    
+    # Validate credentials
+    if not DATABASE_URL:
+        return error_output("Missing DATABASE_URL", status_code=401)
+    
+    # Validate query
+    if not query:
+        return validation_error("Missing required query", field="query")
+    
+    # Parse params if provided
+    parsed_params = None
+    if params:
+        try:
+            parsed_params = json.loads(params) if isinstance(params, str) else params
+        except json.JSONDecodeError:
+            return validation_error("Invalid JSON for params", field="params")
+    
+    # Return preview if in dry-run mode
+    if dry_run:
+        return {
+            "output": _build_preview(
+                operation=normalized_operation,
+                query=query,
+                database_url=DATABASE_URL,
+                params=parsed_params,
+            )
+        }
+    
+    # Execute actual database operation
+    try:
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.exc import SQLAlchemyError
+        
+        engine = create_engine(
+            DATABASE_URL,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+        )
+        
+        with engine.connect() as connection:
+            if parsed_params:
+                result_proxy = connection.execute(text(query), parsed_params)
+            else:
+                result_proxy = connection.execute(text(query))
+            
+            if normalized_operation == "query":
+                # Fetch results for SELECT queries
+                rows = result_proxy.fetchall()
+                # Convert rows to dictionaries
+                result = [dict(row._mapping) for row in rows]
+            else:
+                # For INSERT/UPDATE/DELETE
+                connection.commit()
+                result = {"rows_affected": result_proxy.rowcount}
+        
+        engine.dispose()
+        
+        return {"output": result}
+    
+    except ImportError:
+        return error_output(
+            "sqlalchemy not installed. Install with: pip install sqlalchemy",
+            status_code=500,
+        )
+    except SQLAlchemyError as e:
+        return error_output(f"SQLAlchemy error: {str(e)}", status_code=500)
+    except Exception as e:
+        return error_output(str(e), status_code=500)

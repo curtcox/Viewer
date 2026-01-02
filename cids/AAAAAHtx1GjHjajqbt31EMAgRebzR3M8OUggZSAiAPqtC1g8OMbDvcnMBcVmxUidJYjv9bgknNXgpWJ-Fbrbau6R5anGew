@@ -46,11 +46,6 @@
       "enabled": true
     },
     {
-      "name": "shell",
-      "definition_cid": "AAAAAAgjImFOVDQRrmpxzfsEMkvHHznh_7EgGhK74l9SZgn-Aj159nn1rNfjvVJPiLsPxeTm9ma5XCSAdCiOwShIE_iOjQ",
-      "enabled": true
-    },
-    {
       "name": "glom",
       "definition_cid": "AAAAABTWb1akxzL_bpFix54IqmDtWDOa3BBb0xY15kpSijDUDAc_KxvcQs-Bvxys5RJS2Uf9IBA4h6bSwkamY4rg2BF-2g",
       "enabled": true
@@ -281,11 +276,6 @@
       "enabled": true
     },
     {
-      "name": "bzip2",
-      "definition_cid": "AAAAAAAUQGJhc2hfY29tbWFuZCBiemlwMgo",
-      "enabled": true
-    },
-    {
       "name": "cat",
       "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCBjYXQK",
       "enabled": true
@@ -303,11 +293,6 @@
     {
       "name": "csvtool",
       "definition_cid": "AAAAAAAWQGJhc2hfY29tbWFuZCBjc3Z0b29sCg",
-      "enabled": true
-    },
-    {
-      "name": "curl",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBjdXJsCg",
       "enabled": true
     },
     {
@@ -346,11 +331,6 @@
       "enabled": true
     },
     {
-      "name": "docker",
-      "definition_cid": "AAAAAAAVQGJhc2hfY29tbWFuZCBkb2NrZXIK",
-      "enabled": true
-    },
-    {
       "name": "du",
       "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCBkdQo",
       "enabled": true
@@ -358,11 +338,6 @@
     {
       "name": "echo",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBlY2hvCg",
-      "enabled": true
-    },
-    {
-      "name": "env",
-      "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCBlbnYK",
       "enabled": true
     },
     {
@@ -381,11 +356,6 @@
       "enabled": true
     },
     {
-      "name": "find",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBmaW5kCg",
-      "enabled": true
-    },
-    {
       "name": "fold",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBmb2xkCg",
       "enabled": true
@@ -396,23 +366,8 @@
       "enabled": true
     },
     {
-      "name": "git",
-      "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCBnaXQK",
-      "enabled": true
-    },
-    {
       "name": "grep",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBncmVwCg",
-      "enabled": true
-    },
-    {
-      "name": "gunzip",
-      "definition_cid": "AAAAAAAVQGJhc2hfY29tbWFuZCBndW56aXAK",
-      "enabled": true
-    },
-    {
-      "name": "gzip",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBnemlwCg",
       "enabled": true
     },
     {
@@ -441,16 +396,6 @@
       "enabled": true
     },
     {
-      "name": "ifconfig",
-      "definition_cid": "AAAAAAAXQGJhc2hfY29tbWFuZCBpZmNvbmZpZwo",
-      "enabled": true
-    },
-    {
-      "name": "ip",
-      "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCBpcAo",
-      "enabled": true
-    },
-    {
       "name": "jobs",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBqb2JzCg",
       "enabled": true
@@ -466,18 +411,13 @@
       "enabled": true
     },
     {
-      "name": "jq",
-      "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCBqcQo",
-      "enabled": true
-    },
-    {
-      "name": "kubectl",
-      "definition_cid": "AAAAAAAWQGJhc2hfY29tbWFuZCBrdWJlY3RsCg",
-      "enabled": true
-    },
-    {
       "name": "ls",
       "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCBscwo",
+      "enabled": true
+    },
+    {
+      "name": "jq",
+      "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCBqcQo",
       "enabled": true
     },
     {
@@ -488,11 +428,6 @@
     {
       "name": "md5sum",
       "definition_cid": "AAAAAAAVQGJhc2hfY29tbWFuZCBtZDVzdW0K",
-      "enabled": true
-    },
-    {
-      "name": "mktemp",
-      "definition_cid": "AAAAAAAVQGJhc2hfY29tbWFuZCBta3RlbXAK",
       "enabled": true
     },
     {
@@ -621,33 +556,8 @@
       "enabled": true
     },
     {
-      "name": "systemctl",
-      "definition_cid": "AAAAAAAYQGJhc2hfY29tbWFuZCBzeXN0ZW1jdGwK",
-      "enabled": true
-    },
-    {
       "name": "tail",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCB0YWlsCg",
-      "enabled": true
-    },
-    {
-      "name": "tar",
-      "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCB0YXIK",
-      "enabled": true
-    },
-    {
-      "name": "tee",
-      "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCB0ZWUK",
-      "enabled": true
-    },
-    {
-      "name": "time",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCB0aW1lCg",
-      "enabled": true
-    },
-    {
-      "name": "timeout",
-      "definition_cid": "AAAAAAAWQGJhc2hfY29tbWFuZCB0aW1lb3V0Cg",
       "enabled": true
     },
     {
@@ -686,11 +596,6 @@
       "enabled": true
     },
     {
-      "name": "unzip",
-      "definition_cid": "AAAAAAAUQGJhc2hfY29tbWFuZCB1bnppcAo",
-      "enabled": true
-    },
-    {
       "name": "uptime",
       "definition_cid": "AAAAAAAVQGJhc2hfY29tbWFuZCB1cHRpbWUK",
       "enabled": true
@@ -698,11 +603,6 @@
     {
       "name": "wc",
       "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCB3Ywo",
-      "enabled": true
-    },
-    {
-      "name": "wget",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCB3Z2V0Cg",
       "enabled": true
     },
     {
@@ -716,11 +616,6 @@
       "enabled": true
     },
     {
-      "name": "xargs",
-      "definition_cid": "AAAAAAAUQGJhc2hfY29tbWFuZCB4YXJncwo",
-      "enabled": true
-    },
-    {
       "name": "xmllint",
       "definition_cid": "AAAAAAAWQGJhc2hfY29tbWFuZCB4bWxsaW50Cg",
       "enabled": true
@@ -731,11 +626,6 @@
       "enabled": true
     },
     {
-      "name": "xz",
-      "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCB4ego",
-      "enabled": true
-    },
-    {
       "name": "yq",
       "definition_cid": "AAAAAAARQGJhc2hfY29tbWFuZCB5cQo",
       "enabled": true
@@ -743,11 +633,6 @@
     {
       "name": "zcat",
       "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCB6Y2F0Cg",
-      "enabled": true
-    },
-    {
-      "name": "zip",
-      "definition_cid": "AAAAAAASQGJhc2hfY29tbWFuZCB6aXAK",
       "enabled": true
     },
     {
@@ -988,56 +873,6 @@
     {
       "name": "azure_blob",
       "definition_cid": "AAAAACGk2ezDqyd0d57JuZxHPzOcHODPV5kjB71E6anAdsNalwyZfc1k3UkDZ5p4g-iST7HJPneC2_d7n0I0fAoEVX-pcQ",
-      "enabled": true
-    },
-    {
-      "name": "mysql",
-      "definition_cid": "AAAAABApK84CdHzZheGsX7zaRtqHokGXRU7-9YK_LvLelfs8Wx27cvOdN_f9A9VyqxeazirLUx9ufthHZLwyhXMxVbfOGw",
-      "enabled": true
-    },
-    {
-      "name": "postgresql",
-      "definition_cid": "AAAAABFxg6wJl-yR9w0bpeCqitYtAFq834FSz_a45AzhsiqkzZSlQnLUNWkUswuK54_Z_duOLd6J_6R47DzMy987rhQnvA",
-      "enabled": true
-    },
-    {
-      "name": "mongodb",
-      "definition_cid": "AAAAABh2FAUrk0oGMCClCWVG5VxeoOmGptag_3QxEPyKZCGeiDYUxet3eIg-isC1biC-tQ-ocNCEDBLhFyQHRb8anlrSiw",
-      "enabled": true
-    },
-    {
-      "name": "sqlalchemy_pool",
-      "definition_cid": "AAAAABAMLtFkbHnzP-cKzvGsWNa6vQO9RP-NecS6lkq9NXd4WViGROMr7SHJmYPz1Eurrspid5K0_AoUBkbNScMYY75y5g",
-      "enabled": true
-    },
-    {
-      "name": "pymongo_pool",
-      "definition_cid": "AAAAABGTp4RHYso_4-oFpbZ7WKn9Gx82OaxjTuzK39Kczwso8Dte2T6OaYmapUiA97eZw2Hs2xKOzdts72YpS768hX6ikQ",
-      "enabled": true
-    },
-    {
-      "name": "segment",
-      "definition_cid": "AAAAABRr8fIu6myOhIBNbI2UkFY6Y89JxOe-m80wmKT2gtpGrd4UALQ4_G12t9LE2KBHqCBYrXJc9Pk_lbMt2X1JfT_0qw",
-      "enabled": true
-    },
-    {
-      "name": "mixpanel",
-      "definition_cid": "AAAAABSiGKSA3B4SMP99VoqqbUOd_lFIMISYWDE9qKECQ8_B9PooidW1A6KKfW4Av9-uaRKjJSI-JpXflqiZE-O-sKnojQ",
-      "enabled": true
-    },
-    {
-      "name": "amplitude",
-      "definition_cid": "AAAAABEItD_Zvwsq2I-ye6yPkfjZ47B5yZTSd2M6GVrPjDJysCkHyZwivp8iRptWf_b1PDTa4S3oTfU07yez_i_SCbeEzA",
-      "enabled": true
-    },
-    {
-      "name": "bigquery",
-      "definition_cid": "AAAAABQAvBB-Wd81rnj9Quy_k9ymRt2yAI2mx_h1Rr6wmyw3zqKwQ_zgdkseiFCvasxiOavfIvI1c3BbN092VpTvpxYIGA",
-      "enabled": true
-    },
-    {
-      "name": "snowflake",
-      "definition_cid": "AAAAABGMMP6Fda7Ka5knTWgyNd0sEzZCgOtt-MpUD7h4-mG5Ftp_s1jFOzrFzjgy3auXVb-07zMUa0nzxfIb3GkbKSHJlw",
       "enabled": true
     },
     {

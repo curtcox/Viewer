@@ -1,0 +1,140 @@
+# ruff: noqa: F821, F706
+"""Execute MongoDB operations using PyMongo connection pooling."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+import json
+
+from server_utils.external_api import error_output, validation_error
+
+
+def _build_preview(
+    *,
+    operation: str,
+    collection: Optional[str],
+    query: Optional[Dict[str, Any]],
+    uri: str,
+) -> Dict[str, Any]:
+    """Build a preview of the PyMongo operation."""
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "uri": uri.split("@")[-1] if "@" in uri else uri,  # Hide credentials
+        "auth": "MongoDB URI with connection pooling",
+    }
+    if collection:
+        preview["collection"] = collection
+    if query:
+        preview["query"] = query
+    return preview
+
+
+def main(
+    *,
+    operation: str = "find",
+    collection: str = "",
+    query: str = "{}",
+    document: str = "{}",
+    limit: int = 100,
+    MONGODB_URI: str = "",
+    max_pool_size: int = 100,
+    min_pool_size: int = 0,
+    connection_timeout: int = 10,
+    query_timeout: int = 60,
+    dry_run: bool = True,
+    context=None,
+) -> Dict[str, Any]:
+    """Execute MongoDB operations using PyMongo connection pooling.
+    
+    Operations:
+    - find: Find documents matching query
+    - find_one: Find a single document
+    - insert_one: Insert a single document
+    - count: Count documents matching query
+    """
+    
+    normalized_operation = operation.lower()
+    valid_operations = {"find", "find_one", "insert_one", "count"}
+    
+    if normalized_operation not in valid_operations:
+        return validation_error("Unsupported operation", field="operation")
+    
+    # Validate credentials
+    if not MONGODB_URI:
+        return error_output("Missing MONGODB_URI", status_code=401)
+    
+    # Validate collection
+    if not collection:
+        return validation_error("Missing required collection", field="collection")
+    
+    # Parse query and document
+    try:
+        parsed_query = json.loads(query) if isinstance(query, str) else query
+        parsed_document = json.loads(document) if isinstance(document, str) else document
+    except json.JSONDecodeError as e:
+        return validation_error(f"Invalid JSON: {str(e)}", field="query/document")
+    
+    # Return preview if in dry-run mode
+    if dry_run:
+        return {
+            "output": _build_preview(
+                operation=normalized_operation,
+                collection=collection,
+                query=parsed_query if parsed_query != {} else None,
+                uri=MONGODB_URI,
+            )
+        }
+    
+    # Execute actual database operation
+    try:
+        from pymongo import MongoClient
+        from pymongo.errors import PyMongoError
+        
+        client = MongoClient(
+            MONGODB_URI,
+            maxPoolSize=max_pool_size,
+            minPoolSize=min_pool_size,
+            serverSelectionTimeoutMS=connection_timeout * 1000,
+            socketTimeoutMS=query_timeout * 1000,
+        )
+        
+        # Extract database name from URI or use default
+        db_name = MONGODB_URI.split("/")[-1].split("?")[0] if "/" in MONGODB_URI else "test"
+        db = client[db_name]
+        coll = db[collection]
+        
+        result = None
+        
+        if normalized_operation == "find":
+            cursor = coll.find(parsed_query).limit(limit)
+            result = list(cursor)
+            # Convert ObjectId to string
+            for doc in result:
+                if "_id" in doc:
+                    doc["_id"] = str(doc["_id"])
+        
+        elif normalized_operation == "find_one":
+            result = coll.find_one(parsed_query)
+            if result and "_id" in result:
+                result["_id"] = str(result["_id"])
+        
+        elif normalized_operation == "insert_one":
+            insert_result = coll.insert_one(parsed_document)
+            result = {"inserted_id": str(insert_result.inserted_id)}
+        
+        elif normalized_operation == "count":
+            result = {"count": coll.count_documents(parsed_query)}
+        
+        # Don't close client to maintain pool
+        
+        return {"output": result}
+    
+    except ImportError:
+        return error_output(
+            "pymongo not installed. Install with: pip install pymongo",
+            status_code=500,
+        )
+    except PyMongoError as e:
+        return error_output(f"MongoDB error: {str(e)}", status_code=500)
+    except Exception as e:
+        return error_output(str(e), status_code=500)
