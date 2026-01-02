@@ -1,0 +1,20 @@
+{
+  "id": "cloudconvert",
+  "name": "CloudConvert API",
+  "description": "Convert files between 200+ formats including documents, images, videos, audio, and more.",
+  "definition_file": "definitions/cloudconvert.py",
+  "documentation_url": "https://cloudconvert.com/api/v2",
+  "operations": {
+    "read": [
+      "get_job - Get job status and details by ID",
+      "list_jobs - List all conversion jobs",
+      "get_task - Get task status and details by ID"
+    ],
+    "write": [
+      "create_job - Create new file conversion job",
+      "cancel_task - Cancel a running task",
+      "delete_task - Delete a task",
+      "export_file - Export converted file"
+    ]
+  }
+}

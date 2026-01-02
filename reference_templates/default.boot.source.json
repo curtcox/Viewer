@@ -1034,6 +1034,11 @@
       "name": "coda",
       "definition_cid": "reference_templates/servers/definitions/coda.py",
       "enabled": true
+    },
+    {
+      "name": "cloudconvert",
+      "definition_cid": "reference_templates/servers/definitions/cloudconvert.py",
+      "enabled": true
     }
   ],
   "variables": [

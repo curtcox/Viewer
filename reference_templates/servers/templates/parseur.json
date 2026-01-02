@@ -1,0 +1,19 @@
+{
+  "id": "parseur",
+  "name": "Parseur API",
+  "description": "Parse emails and documents automatically: extract data from emails, PDFs, and other documents using custom templates.",
+  "definition_file": "definitions/parseur.py",
+  "documentation_url": "https://help.parseur.com/en/articles/5154126-parseur-api",
+  "operations": {
+    "read": [
+      "list_inboxes - List all parsing inboxes",
+      "get_inbox - Get inbox details by ID",
+      "list_documents - List all documents in an inbox",
+      "get_document - Get document details by ID",
+      "get_parsed_data - Get parsed data from a document"
+    ],
+    "write": [
+      "delete_document - Delete a document"
+    ]
+  }
+}

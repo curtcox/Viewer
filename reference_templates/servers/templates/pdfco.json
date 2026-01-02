@@ -1,0 +1,21 @@
+{
+  "id": "pdfco",
+  "name": "PDF.co API",
+  "description": "Process PDFs with PDF.co API: extract text, split, merge, fill forms, read barcodes, and more.",
+  "definition_file": "definitions/pdfco.py",
+  "documentation_url": "https://developer.pdf.co/",
+  "operations": {
+    "read": [
+      "pdf_to_text - Extract text from PDF",
+      "pdf_to_json - Convert PDF to structured JSON",
+      "pdf_to_html - Convert PDF to HTML",
+      "pdf_info - Get PDF metadata and information",
+      "barcode_read - Read barcodes from PDF"
+    ],
+    "write": [
+      "pdf_split - Split PDF into multiple files",
+      "pdf_merge - Merge multiple PDFs",
+      "pdf_forms_fill - Fill PDF form fields"
+    ]
+  }
+}

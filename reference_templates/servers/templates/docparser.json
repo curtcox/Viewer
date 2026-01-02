@@ -1,0 +1,19 @@
+{
+  "id": "docparser",
+  "name": "Docparser API",
+  "description": "Parse documents automatically: extract data from invoices, receipts, and other structured documents.",
+  "definition_file": "definitions/docparser.py",
+  "documentation_url": "https://dev.docparser.com/",
+  "operations": {
+    "read": [
+      "list_parsers - List all document parsers",
+      "get_document - Get document details by ID",
+      "list_documents - List all documents for a parser",
+      "get_parsed_data - Get parsed data from a document"
+    ],
+    "write": [
+      "upload_document - Upload document for parsing",
+      "delete_document - Delete a document"
+    ]
+  }
+}
