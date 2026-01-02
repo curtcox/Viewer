@@ -1,0 +1,17 @@
+{
+  "id": "segment",
+  "name": "Segment",
+  "description": "Send events to Segment analytics platform.",
+  "definition_cid": "reference_templates/servers/definitions/segment.py",
+  "operations": [
+    "track",
+    "identify",
+    "page",
+    "screen",
+    "group"
+  ],
+  "secrets": [
+    "SEGMENT_WRITE_KEY"
+  ],
+  "notes": "Uses HTTP API with Basic Auth. Supports tracking events, identifying users, and page views. Dry-run enabled by default."
+}
