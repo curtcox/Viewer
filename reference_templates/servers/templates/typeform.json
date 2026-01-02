@@ -1,0 +1,20 @@
+{
+  "id": "typeform",
+  "name": "Typeform API",
+  "description": "Access Typeform forms and responses for creating surveys and collecting data.",
+  "definition_file": "definitions/typeform.py",
+  "documentation_url": "https://developer.typeform.com/get-started/",
+  "operations": {
+    "read": [
+      "list_forms - List all forms",
+      "get_form - Get specific form by ID",
+      "list_responses - List responses for a form",
+      "get_response - Get specific response",
+      "list_workspaces - List all workspaces"
+    ],
+    "write": [
+      "create_form - Create a new form",
+      "delete_form - Delete a form"
+    ]
+  }
+}

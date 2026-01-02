@@ -1,0 +1,21 @@
+{
+  "id": "linkedin_ads",
+  "name": "LinkedIn Marketing API",
+  "description": "Access LinkedIn Marketing API for managing LinkedIn ads, campaigns, and analytics.",
+  "definition_file": "definitions/linkedin_ads.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/linkedin/marketing/",
+  "operations": {
+    "read": [
+      "list_accounts - List ad accounts",
+      "get_account - Get account details",
+      "list_campaigns - List campaigns for an account",
+      "get_campaign - Get campaign details",
+      "list_campaign_groups - List campaign groups",
+      "get_campaign_group - Get campaign group details",
+      "get_analytics - Get campaign analytics"
+    ],
+    "write": [
+      "create_campaign - Create a new campaign"
+    ]
+  }
+}

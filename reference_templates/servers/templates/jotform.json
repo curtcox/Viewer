@@ -1,0 +1,20 @@
+{
+  "id": "jotform",
+  "name": "Jotform API",
+  "description": "Access Jotform forms and submissions for creating surveys and collecting form data.",
+  "definition_file": "definitions/jotform.py",
+  "documentation_url": "https://api.jotform.com/docs/",
+  "operations": {
+    "read": [
+      "list_forms - List all forms",
+      "get_form - Get specific form by ID",
+      "list_submissions - List submissions for a form",
+      "get_submission - Get specific submission",
+      "list_questions - List questions in a form"
+    ],
+    "write": [
+      "create_form - Create a new form",
+      "delete_form - Delete a form"
+    ]
+  }
+}
