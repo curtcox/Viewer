@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api.limit_validator import AWS_S3_MAX_KEYS, get_limit_info, validate_limit
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
@@ -50,10 +51,11 @@ def _build_preview(
     key: str,
     region: str,
     params: Optional[Dict[str, Any]],
+    max_keys: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Build a preview of the S3 API call."""
     host = f"{bucket}.s3.{region}.amazonaws.com" if bucket else f"s3.{region}.amazonaws.com"
-    
+
     method_map = {
         "list_buckets": "GET",
         "list_objects": "GET",
@@ -65,9 +67,9 @@ def _build_preview(
         "copy_object": "PUT",
         "head_object": "HEAD",
     }
-    
+
     method = method_map.get(operation, "GET")
-    
+
     if operation == "list_buckets":
         url = f"https://s3.{region}.amazonaws.com/"
     elif bucket and key:
@@ -76,7 +78,7 @@ def _build_preview(
         url = f"https://{host}/"
     else:
         url = f"https://s3.{region}.amazonaws.com/"
-    
+
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -85,6 +87,11 @@ def _build_preview(
     }
     if params:
         preview["params"] = params
+
+    # Include limit constraint information for operations that use it
+    if max_keys is not None and operation == "list_objects":
+        preview["limit_constraint"] = get_limit_info(max_keys, AWS_S3_MAX_KEYS, "max_keys")
+
     return preview
 
 
@@ -142,7 +149,12 @@ def main(
     
     if not AWS_SECRET_ACCESS_KEY:
         return error_output("Missing AWS_SECRET_ACCESS_KEY", status_code=401)
-    
+
+    # Validate limit parameter (max_keys)
+    # AWS S3 API enforces a maximum of 1000 keys per list operation
+    if error := validate_limit(max_keys, AWS_S3_MAX_KEYS, "max_keys"):
+        return error
+
     # Validate operation-specific parameters
     if normalized_operation in ("list_objects", "create_bucket", "delete_bucket") and not bucket:
         return validation_error("Missing required bucket", field="bucket")
@@ -172,6 +184,7 @@ def main(
                 key=key,
                 region=AWS_REGION,
                 params=params if params else None,
+                max_keys=max_keys if normalized_operation == "list_objects" else None,
             )
         }
     

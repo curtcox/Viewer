@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api.limit_validator import GITHUB_MAX_PER_PAGE, get_limit_info, validate_limit
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
@@ -20,6 +21,7 @@ def _build_preview(
     operation: str,
     payload: Optional[Dict[str, Any]],
     params: Optional[Dict[str, Any]],
+    per_page: Optional[int] = None,
 ) -> Dict[str, Any]:
     base_url = f"https://api.github.com/repos/{owner}/{repo}/issues"
     if operation == "get_issue" and params and "issue_number" in params:
@@ -40,6 +42,11 @@ def _build_preview(
         preview["params"] = params
     if payload:
         preview["payload"] = payload
+
+    # Include limit constraint information for list operations
+    if per_page is not None and operation == "list_issues":
+        preview["limit_constraint"] = get_limit_info(per_page, GITHUB_MAX_PER_PAGE, "per_page")
+
     return preview
 
 
@@ -78,6 +85,11 @@ def main(
             details="Provide a personal access token with repo scope",
         )
 
+    # Validate pagination parameter (per_page)
+    # GitHub API enforces a maximum of 100 items per page
+    if error := validate_limit(per_page, GITHUB_MAX_PER_PAGE, "per_page"):
+        return error
+
     api_client = client or _DEFAULT_CLIENT
 
     base_url = f"https://api.github.com/repos/{owner}/{repo}/issues"
@@ -111,6 +123,7 @@ def main(
             operation=normalized_operation,
             payload=payload,
             params=params,
+            per_page=per_page if normalized_operation == "list_issues" else None,
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 

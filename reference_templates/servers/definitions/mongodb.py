@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 import json
 
 from server_utils.external_api import error_output, validation_error
+from server_utils.external_api.limit_validator import MONGODB_MAX_LIMIT, get_limit_info, validate_limit
 
 
 def _build_preview(
@@ -16,6 +17,7 @@ def _build_preview(
     query: Optional[Dict[str, Any]],
     document: Optional[Dict[str, Any]],
     uri: str,
+    limit: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Build a preview of the MongoDB operation."""
     preview: Dict[str, Any] = {
@@ -29,6 +31,11 @@ def _build_preview(
         preview["query"] = query
     if document:
         preview["document"] = document
+
+    # Include limit constraint information for find operations
+    if limit is not None and operation in ("find", "find_one"):
+        preview["limit_constraint"] = get_limit_info(limit, MONGODB_MAX_LIMIT, "limit")
+
     return preview
 
 
@@ -76,7 +83,12 @@ def main(
     # Validate collection
     if not collection:
         return validation_error("Missing required collection", field="collection")
-    
+
+    # Validate limit parameter
+    # MongoDB practical limit set to 10000 for performance
+    if error := validate_limit(limit, MONGODB_MAX_LIMIT, "limit"):
+        return error
+
     # Parse query, document, and update
     try:
         parsed_query = json.loads(query) if isinstance(query, str) else query
@@ -94,6 +106,7 @@ def main(
                 query=parsed_query if parsed_query != {} else None,
                 document=parsed_document if parsed_document != {} else None,
                 uri=MONGODB_URI,
+                limit=limit if normalized_operation in ("find", "find_one") else None,
             )
         }
     

@@ -71,12 +71,21 @@ def api_error(
     )
 
 
-def validation_error(message: str, field: Optional[str] = None) -> Dict[str, Any]:
+def validation_error(
+    message: str,
+    field: Optional[str] = None,
+    details: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Error response for validation failure."""
 
-    details = {"field": field} if field else None
+    error_details: Dict[str, Any] = {}
+    if field:
+        error_details["field"] = field
+    if details:
+        error_details.update(details)
+
     return error_response(
         message=message,
         error_type="validation_error",
-        details=details,
+        details=error_details if error_details else None,
     )
