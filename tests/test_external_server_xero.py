@@ -1,9 +1,5 @@
 """Tests for the Xero server definition."""
 
-from unittest.mock import Mock
-
-import requests
-
 from reference_templates.servers.definitions import xero
 
 

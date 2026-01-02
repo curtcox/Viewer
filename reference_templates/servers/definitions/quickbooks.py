@@ -13,7 +13,10 @@ from server_utils.external_api import (
 
 
 API_BASE_URL = "https://quickbooks.api.intuit.com/v3/company"
-DOCUMENTATION_URL = "https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/account"
+DOCUMENTATION_URL = (
+    "https://developer.intuit.com/app/developer/qbo/docs/api/"
+    "accounting/all-entities/account"
+)
 
 
 def main(
@@ -46,7 +49,8 @@ def main(
         timeout: Request timeout in seconds (default: 60)
         dry_run: If True, return preview without making actual API call (default: True)
         QUICKBOOKS_ACCESS_TOKEN: OAuth access token for authentication (from secrets)
-        QUICKBOOKS_REALM_ID: Company realm ID (from secrets, can be overridden by realm_id parameter)
+        QUICKBOOKS_REALM_ID: Company realm ID (from secrets, can be overridden
+                             by realm_id parameter)
         context: Request context (optional)
         client: ExternalApiClient instance (optional, for testing)
 
@@ -138,7 +142,10 @@ def main(
                 },
                 {
                     "title": "Create customer",
-                    "code": 'operation: "create"\nentity_type: "Customer"\ndata: \'{"DisplayName": "John Doe"}\'',
+                    "code": (
+                        'operation: "create"\nentity_type: "Customer"\n'
+                        'data: \'{"DisplayName": "John Doe"}\''
+                    ),
                 },
             ],
             documentation_url=DOCUMENTATION_URL,

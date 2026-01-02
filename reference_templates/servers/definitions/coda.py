@@ -63,7 +63,10 @@ def main(
         return generate_form(
             server_name="coda",
             title="Coda API",
-            description="Access Coda documents, tables, and rows for collaborative data management.",
+            description=(
+                "Access Coda documents, tables, and rows for collaborative "
+                "data management."
+            ),
             fields=[
                 FormField(
                     name="operation",
@@ -151,7 +154,11 @@ def main(
                 },
                 {
                     "title": "Create row",
-                    "code": 'operation: "create_row"\ndoc_id: "abc123xyz"\ntable_id: "grid-abc123"\ndata: \'{"cells": [{"column": "c-abc", "value": "Hello"}]}\'',
+                    "code": (
+                        'operation: "create_row"\ndoc_id: "abc123xyz"\n'
+                        'table_id: "grid-abc123"\n'
+                        'data: \'{"cells": [{"column": "c-abc", "value": "Hello"}]}\''
+                    ),
                 },
             ],
             documentation_url=DOCUMENTATION_URL,

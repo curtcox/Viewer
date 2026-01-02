@@ -117,11 +117,17 @@ def main(
                 },
                 {
                     "title": "Get client",
-                    "code": 'operation: "get"\nendpoint: "clients"\nbusiness_id: "12345"\nentity_id: "67890"',
+                    "code": (
+                        'operation: "get"\nendpoint: "clients"\n'
+                        'business_id: "12345"\nentity_id: "67890"'
+                    ),
                 },
                 {
                     "title": "Create client",
-                    "code": 'operation: "create"\nendpoint: "clients"\nbusiness_id: "12345"\ndata: \'{"organization": "Acme Corp"}\'',
+                    "code": (
+                        'operation: "create"\nendpoint: "clients"\n'
+                        'business_id: "12345"\ndata: \'{"organization": "Acme Corp"}\''
+                    ),
                 },
             ],
             documentation_url=DOCUMENTATION_URL,

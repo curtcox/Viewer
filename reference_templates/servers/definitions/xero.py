@@ -131,11 +131,17 @@ def main(
                 },
                 {
                     "title": "Create contact",
-                    "code": 'operation: "create"\nendpoint: "Contacts"\ndata: \'{"Name": "John Doe", "EmailAddress": "john@example.com"}\'',
+                    "code": (
+                        'operation: "create"\nendpoint: "Contacts"\n'
+                        'data: \'{"Name": "John Doe", "EmailAddress": "john@example.com"}\''
+                    ),
                 },
                 {
                     "title": "Filter invoices",
-                    "code": 'operation: "list"\nendpoint: "Invoices"\nparams: \'{"where": "Status==\\\\"AUTHORISED\\\\""}\'',
+                    "code": (
+                        'operation: "list"\nendpoint: "Invoices"\n'
+                        'params: \'{"where": "Status==\\\\"AUTHORISED\\\\""}\''
+                    ),
                 },
             ],
             documentation_url=DOCUMENTATION_URL,
