@@ -244,6 +244,20 @@ Each external service requires:
 - Total external server tests: 950 tests passing (873 from previous phases + 77 new).
 - Ready to proceed to Phase 13: Forms & Surveys servers (2 servers).
 
+## Progress Notes (2026-01-02 - Phase 13)
+
+- **Phase 13 Forms & Surveys Servers COMPLETED**: All 2 Forms & Surveys servers implemented.
+- Implemented typeform: List/get/create/delete forms, list/get responses, list workspaces with Bearer token (15 tests passing).
+- Implemented jotform: List/get/create/delete forms, list/get submissions, list questions with API key in query params (16 tests passing).
+- Typeform uses Bearer token authentication for Typeform API.
+- Jotform uses API key authentication via query parameters for Jotform API.
+- All servers follow shared abstraction patterns with ExternalApiClient and error handling.
+- Each server includes comprehensive unit tests (minimum 15 tests) and dry-run preview functionality.
+- Servers registered in both default and readonly boot images.
+- Total Phase 13 tests: 31 new tests passing.
+- Total external server tests: 981 tests passing (950 from previous phases + 31 new).
+- Ready to proceed to Phase 14: Advertising servers (2 servers).
+
 ---
 
 ## Roadmap / Planned Work
@@ -1720,9 +1734,9 @@ First servers using shared infrastructure as validation:
 - ✅ wix - Added 2026-01-01
 - ✅ squarespace - Added 2026-01-01
 
-### Phase 13: Forms & Surveys (2 servers)
-- typeform
-- jotform
+### Phase 13: Forms & Surveys (2 servers) ✅ COMPLETE
+- ✅ typeform - Added 2026-01-02
+- ✅ jotform - Added 2026-01-02
 
 ### Phase 14: Advertising (2 servers)
 - meta_ads

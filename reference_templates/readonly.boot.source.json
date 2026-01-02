@@ -879,6 +879,16 @@
       "name": "squarespace",
       "definition_cid": "reference_templates/servers/definitions/squarespace.py",
       "enabled": true
+    },
+    {
+      "name": "typeform",
+      "definition_cid": "reference_templates/servers/definitions/typeform.py",
+      "enabled": true
+    },
+    {
+      "name": "jotform",
+      "definition_cid": "reference_templates/servers/definitions/jotform.py",
+      "enabled": true
     }
   ],
   "variables": [
