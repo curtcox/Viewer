@@ -65,6 +65,10 @@ class BootImageGenerator:
         if relative_path in self.file_to_cid:
             return self.file_to_cid[relative_path]
 
+        # Special handling for .cids archive files
+        if file_path.suffix == '.cids':
+            return self.process_cids_archive_file(file_path, relative_path)
+
         # Read content and generate CID
         content = self.read_file_content(file_path)
         cid = generate_cid(content)
@@ -85,6 +89,89 @@ class BootImageGenerator:
         self.file_to_cid[relative_path] = cid
         self.processed_files.add(relative_path)
 
+        return cid
+
+    def process_cids_archive_file(self, file_path: Path, relative_path: str) -> str:
+        """Process a CIDS archive file by replacing file paths with actual CIDs.
+        
+        A CIDS archive has lines in format: <request_path> <response_content>
+        where <response_content> can be a file path or a CID.
+        This method replaces file paths with their corresponding CIDs.
+        
+        Args:
+            file_path: Absolute path to the .cids file
+            relative_path: Relative path (used for tracking)
+            
+        Returns:
+            The CID of the processed CIDS archive
+        """
+        print(f"  Processing CIDS archive: {relative_path}")
+        
+        # Read the CIDS archive
+        content = self.read_file_content(file_path).decode('utf-8')
+        lines = content.strip().split('\n')
+        
+        processed_lines = []
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line:
+                continue
+                
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                print(f"    WARNING: Line {line_num} invalid format: {line}")
+                processed_lines.append(line)
+                continue
+                
+            request_path, response_ref = parts
+            
+            # Check if response_ref is a file path
+            if response_ref.startswith('reference_templates/'):
+                # It's a file path, need to generate CID for it
+                ref_file_path = self.base_dir / response_ref
+                if ref_file_path.exists():
+                    # Determine extension from request_path
+                    request_ext = Path(request_path).suffix
+                    
+                    # Generate CID for the referenced file
+                    response_cid = self.generate_and_store_cid(ref_file_path, response_ref)
+                    
+                    # Add extension to CID if present in request path
+                    if request_ext:
+                        response_cid_with_ext = f"{response_cid}{request_ext}"
+                    else:
+                        response_cid_with_ext = response_cid
+                    
+                    processed_lines.append(f"{request_path} {response_cid_with_ext}")
+                    print(f"    {request_path} -> {response_cid_with_ext}")
+                else:
+                    print(f"    WARNING: Referenced file not found: {response_ref}")
+                    processed_lines.append(line)
+            else:
+                # It's already a CID or something else, keep it as is
+                processed_lines.append(line)
+        
+        # Create the processed CIDS archive content
+        processed_content = '\n'.join(processed_lines) + '\n'
+        processed_bytes = processed_content.encode('utf-8')
+        
+        # Generate CID for the processed CIDS archive
+        cid = generate_cid(processed_bytes)
+        
+        # Store the processed CIDS archive
+        if not is_literal_cid(cid):
+            cid_file_path = self.cids_dir / cid
+            if not cid_file_path.exists():
+                with open(cid_file_path, "wb") as f:
+                    f.write(processed_bytes)
+                print(f"  Stored processed CIDS archive: {relative_path} -> {cid}")
+            else:
+                print(f"  Already exists: {relative_path} -> {cid}")
+        
+        # Track the mapping
+        self.file_to_cid[relative_path] = cid
+        self.processed_files.add(relative_path)
+        
         return cid
 
     def process_referenced_files(self, data: Any, parent_path: str = "") -> None:
