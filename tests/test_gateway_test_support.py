@@ -1,7 +1,6 @@
 """Unit tests for gateway test server support."""
 
 import os
-import pytest
 
 
 # CID for the test archive
@@ -23,7 +22,7 @@ def test_parse_test_server_path_simple():
     
     # Find 'as' index
     as_index = parts.index("as")
-    assert as_index == 2  # test/cids/SOMECID/as...
+    assert as_index == 3  # test/cids/SOMECID/as...
     
     # Extract components
     test_server_path = "/".join(parts[1:as_index])

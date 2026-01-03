@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -151,8 +152,48 @@ def load_server_definition_from_cid(
     """Load server definition from CID map or database."""
     cid_bytes = load_cid_bytes(definition_cid, cid_map)
     if cid_bytes is None:
+        details: list[str] = []
+        normalised = normalise_cid(definition_cid)
+        details.append("Import step: importing a server entry from the 'servers' section.")
+        details.append(
+            "Expected input: server entry must contain either a text 'definition' field or a 'definition_cid' that can be resolved to UTF-8 text."
+        )
+        details.append("CID resolution: this importer does NOT read raw CID files from disk directly.")
+        details.append("Lookup order: 1) import payload top-level cid_values map (if present), 2) database.")
+        details.append(f"cid_values entries provided: {len(cid_map)}")
+        if normalised:
+            details.append(f"database path checked: /{normalised}")
+        if _has_flask_app_context() and normalised:
+            try:
+                from flask import current_app  # pylint: disable=import-outside-toplevel
+
+                cid_directory = current_app.config.get("CID_DIRECTORY")
+                if isinstance(cid_directory, str) and cid_directory.strip():
+                    cid_file_path = os.path.join(cid_directory, normalised)
+                    if os.path.exists(cid_file_path):
+                        details.append(
+                            f"CID file exists on disk but was not found in the database: {cid_file_path}"
+                        )
+                        details.append(
+                            "Likely cause: CID loading from CID_DIRECTORY did not run (or ran with a different database), so the file never got imported into the database."
+                        )
+                    else:
+                        details.append(
+                            f"CID file was not found on disk at: {cid_file_path}"
+                        )
+            except Exception:
+                pass
+
+        detail_text = "\n".join(f"  - {line}" for line in details)
         errors.append(
-            f'Server "{name}" definition with CID "{definition_cid}" was not included in the import.'
+            (
+                f"While importing server {name!r}, the definition CID {definition_cid!r} could not be resolved.\n"
+                "This means the import payload referenced a CID but did not include its content, and the CID was not available in the database.\n"
+                f"Details:\n{detail_text}\n"
+                "Fix options:\n"
+                "  - Make the import payload self-contained: include the CID content under the top-level cid_values map (key=the CID, value=the UTF-8 source text).\n"
+                "  - Or ensure the CID is present in the database before import: verify CID_DIRECTORY points to the correct cids folder and that startup loads those CIDs into the same database used for boot import."
+            )
         )
         return None
     try:

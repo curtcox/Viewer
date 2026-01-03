@@ -266,6 +266,14 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
     # Check for import errors
     if context.errors:
         error_msg = "\n".join(context.errors)
+        cid_load_error = (app.config.get("CID_LOAD_ERROR") or "").strip()
+        if cid_load_error:
+            prefix = (
+                "Boot CID import failed because the application could not load CID files into the database at startup.\n"
+                "When CID loading fails, import-time CID resolution (e.g. server definition_cid) can only succeed if the import payload includes the CID content under cid_values.\n"
+                f"CID loading error (from CID_DIRECTORY): {cid_load_error}\n\n"
+            )
+            return False, f"{prefix}Import errors:\n{error_msg}"
         return False, f"Boot CID import failed:\n{error_msg}"
 
     # Generate snapshot export after import completes
