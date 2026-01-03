@@ -30,6 +30,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "glom": "glom.py",
     "gmail": "gmail.py",
     "hrx": "hrx.py",
+    "cids": "cids.py",
     "gateway": "gateway.py",
     "mcp": "mcp.py",
     "io": "io.py",
