@@ -25,11 +25,11 @@ The test server feature allows you to:
 ### Example
 
 ```
-/gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/posts/1
+/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1
 ```
 
 This request:
-1. Uses the HRX archive at `AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s`
+1. Uses the HRX archive at `AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A`
 2. Applies the `jsonplaceholder` gateway transforms
 3. Processes the path `/posts/1`
 
@@ -103,7 +103,7 @@ shutil.copy('test_data.hrx', f'cids/{cid}')
 You can create aliases to make test servers easier to use. For example, the `local_jsonplaceholder` alias:
 
 ```
-/gateway/jsonplaceholder/** -> /gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/**
+/gateway/jsonplaceholder/** -> /gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/**
 ```
 
 When enabled, this alias redirects all jsonplaceholder gateway requests to use the local HRX archive.
@@ -118,7 +118,7 @@ When enabled, this alias redirects all jsonplaceholder gateway requests to use t
 
 The repository includes a pre-configured test archive for the jsonplaceholder gateway:
 
-**CID:** `AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s`
+**CID:** `AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A`
 
 **Contents:**
 - `/posts` - List of posts
@@ -128,7 +128,7 @@ The repository includes a pre-configured test archive for the jsonplaceholder ga
 **Usage:**
 ```
 # Direct test request
-/gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/posts/1
+/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1
 
 # Or enable the local_jsonplaceholder alias and use:
 /gateway/jsonplaceholder/posts/1

@@ -90,7 +90,7 @@ def local_jsonplaceholder_alias(integration_app):
     with integration_app.app_context():
         alias = Alias(
             name="local_jsonplaceholder",
-            definition="/gateway/jsonplaceholder/** -> /gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/**",
+            definition="/gateway/jsonplaceholder/** -> /gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/**",
             enabled=False,  # Disabled by default as per requirements
         )
         db.session.add(alias)
@@ -110,7 +110,7 @@ def test_gateway_test_pattern_routing(
     # Test accessing via test pattern
     # /gateway/test/hrx/CID/as/jsonplaceholder/posts/1
     response = client.get(
-        "/gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/posts/1"
+        "/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1"
     )
     
     # Should return success (may be 200 or redirect)
@@ -132,7 +132,7 @@ def test_gateway_test_meta_page(
     """Test that gateway test meta page shows test information."""
     # Access meta page with test pattern
     response = client.get(
-        "/gateway/meta/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder"
+        "/gateway/meta/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder"
     )
     
     assert response.status_code == 200
@@ -221,7 +221,7 @@ def test_gateway_test_pattern_preserves_transforms(
     # The test pattern should use jsonplaceholder transforms even though
     # it's fetching from HRX server
     response = client.get(
-        "/gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/posts/1"
+        "/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1"
     )
     
     # Response should exist

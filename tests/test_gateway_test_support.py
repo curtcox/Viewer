@@ -4,7 +4,7 @@ import os
 
 
 # CID for the test archive
-TEST_ARCHIVE_CID = "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s"
+TEST_ARCHIVE_CID = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A"
 
 
 # Test parsing of test server paths from URL
