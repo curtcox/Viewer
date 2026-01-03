@@ -1460,6 +1460,28 @@ def _follow_internal_redirects(response, max_hops: int = 3):
     return current
 
 
+def _extract_internal_target_path_from_server_args_json(server_args_json: str | None) -> str | None:
+    if not isinstance(server_args_json, str) or not server_args_json.strip():
+        return None
+
+    try:
+        payload = json.loads(server_args_json)
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    target = payload.get("target")
+    if isinstance(target, dict):
+        url = target.get("url")
+        if isinstance(url, str) and url:
+            return url
+    if isinstance(target, str) and target:
+        return target
+    return None
+
+
 def _try_resolve_location_to_content(location: str) -> tuple[bytes | None, str]:
     """Try to resolve a redirect Location to CID content bytes and content type."""
     if not isinstance(location, str):
@@ -2012,10 +2034,18 @@ def _render_error(
     stack_trace_html=None,
     gateway_archive=None,
     gateway_path=None,
+    test_mode_context=None,
 ):
     """Render an error page with optional diagnostic details."""
-    if not exception_summary:
-        exception_summary = _derive_exception_summary_from_traceback(error_detail)
+    if exception_summary:
+        exception_summary = escape(str(exception_summary))
+
+    internal_target_path = _extract_internal_target_path_from_server_args_json(server_args_json)
+    if internal_target_path:
+        separator = "<br><br>" if isinstance(message, str) and message else ""
+        message = (
+            f"{message}{separator}<strong>Internal target:</strong> {escape(internal_target_path)}"
+        )
 
     if (
         exception_summary
@@ -2037,6 +2067,7 @@ def _render_error(
         gateway_archive=gateway_archive,
         gateway_path=gateway_path,
         available_gateways=gateways,
+        test_mode_context=test_mode_context,
     )
     return {"output": html, "content_type": "text/html"}
 

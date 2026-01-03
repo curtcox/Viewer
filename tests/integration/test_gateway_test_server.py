@@ -14,15 +14,10 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def hrx_server(integration_app):
     """Create the HRX server."""
-    from reference_templates.servers import get_server_templates
-
-    templates = get_server_templates()
-    hrx_template = next((t for t in templates if t.get("id") == "hrx"), None)
-    
-    if not hrx_template:
-        pytest.skip("HRX server template not found")
-    
-    hrx_definition = hrx_template["definition"]
+    with open(
+        "reference_templates/servers/definitions/hrx.py", "r", encoding="utf-8"
+    ) as f:
+        hrx_definition = f.read()
 
     with integration_app.app_context():
         server = Server(
@@ -39,11 +34,10 @@ def hrx_server(integration_app):
 @pytest.fixture
 def gateway_server(integration_app):
     """Create the gateway server."""
-    from reference_templates.servers import get_server_templates
-
-    templates = get_server_templates()
-    gateway_template = next(t for t in templates if t.get("id") == "gateway")
-    gateway_definition = gateway_template["definition"]
+    with open(
+        "reference_templates/servers/definitions/gateway.py", "r", encoding="utf-8"
+    ) as f:
+        gateway_definition = f.read()
 
     with integration_app.app_context():
         server = Server(
@@ -228,3 +222,21 @@ def test_gateway_test_pattern_preserves_transforms(
     assert response is not None
     # We're mainly testing that the request doesn't crash
     # The actual transform behavior would need the HRX and transforms to work together
+
+
+def test_gateway_test_pattern_hrx_users_does_not_raise_syntax_error(
+    client,
+    integration_app,
+    hrx_server,
+    gateway_server,
+    gateways_variable_with_jsonplaceholder,
+):
+    """Regression: HRX test server should not execute the archive CID as python."""
+    response = client.get(
+        "/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/users/1"
+    )
+
+    assert response.status_code in [200, 302, 404, 500]
+    page = response.get_data(as_text=True)
+    assert "SyntaxError" not in page
+    assert "invalid syntax" not in page

@@ -43,7 +43,24 @@ def main(archive=None, path=None, *, context=None):
     try:
         hrx = HRXArchive(archive)
     except HRXParseError as e:
-        raise ValueError(f"Invalid HRX archive: {e}") from e
+        first_line = None
+        if isinstance(archive, str):
+            for candidate in archive.splitlines():
+                stripped = candidate.strip()
+                if stripped:
+                    first_line = stripped
+                    break
+
+        hint = (
+            "This HRX server expects the file-archive HRX format (e.g. '<===> readme.txt')."
+        )
+        if isinstance(first_line, str) and first_line.startswith("<==>"):
+            hint = (
+                "This looks like an HTTP-recording HRX entry (e.g. '<==> /users/1 GET'). "
+                "Use the gateway test HRX feature with the built-in archive CID, or use an HTTP-HRX parser/server."
+            )
+
+        raise ValueError(f"Invalid HRX archive: {e}. {hint}") from e
 
     def _list_directory(prefix: str) -> list[str]:
         normalized = (prefix or "").lstrip("/")
