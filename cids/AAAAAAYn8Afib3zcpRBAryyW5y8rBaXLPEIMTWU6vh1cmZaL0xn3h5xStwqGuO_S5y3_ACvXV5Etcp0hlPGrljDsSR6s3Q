@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ current_path or 'CIDS Archive' }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }
+        .breadcrumb { color: #888; margin-bottom: 1rem; font-size: 0.9rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+        .file-list { list-style: none; padding: 0; }
+        .file-list li { padding: 0.5rem; border-bottom: 1px solid #333; }
+        .file-list li:hover { background: #252536; }
+        .file-list a { color: #4ec9b0; text-decoration: none; display: block; }
+        .file-list a:hover { text-decoration: underline; }
+        .parent-link { margin: 1rem 0; }
+        .parent-link a { color: #ce9178; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    <h1>Directory: {{ current_path or '/' }}</h1>
+    
+    {% if parent_link %}
+    <div class="parent-link">
+        <a href="{{ parent_link }}">⬆️ Parent Directory</a>
+    </div>
+    {% endif %}
+    
+    {% if files %}
+    <ul class="file-list">
+        {% for file in files %}
+        <li>
+            <a href="{{ file.link }}">
+                <span>{{ file.icon }}</span> {{ file.name }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>Empty directory</p>
+    {% endif %}
+</body>
+</html>

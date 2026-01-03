@@ -181,6 +181,11 @@
       "name": "HRX Guide",
       "description": "Multi-page HRX archive explaining app concepts with examples of linking between sections",
       "content_cid": "reference_templates/uploads/contents/hrx_guide.hrx"
+    },
+    "cids-guide": {
+      "name": "CIDS Guide",
+      "description": "CIDS archive demonstrating the CID archive format and explaining how to use it",
+      "content_cid": "reference_templates/uploads/contents/cids_guide.cids"
     }
   }
 }

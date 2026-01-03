@@ -56,6 +56,11 @@
       "enabled": true
     },
     {
+      "name": "cids",
+      "definition_cid": "reference_templates/servers/definitions/cids.py",
+      "enabled": true
+    },
+    {
       "name": "gateway",
       "definition_cid": "reference_templates/servers/definitions/gateway.py",
       "enabled": true
