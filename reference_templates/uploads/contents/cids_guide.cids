@@ -1,3 +1,9 @@
-index.md EXAMPLE_CID_FOR_INDEX.md
-about-cids.md EXAMPLE_CID_FOR_ABOUT.md
-format-spec.md EXAMPLE_CID_FOR_FORMAT.md
+index.md reference_templates/uploads/contents/cids_guide/index.md
+concepts/what-are-cids.md reference_templates/uploads/contents/cids_guide/concepts/what-are-cids.md
+concepts/cids-format.md reference_templates/uploads/contents/cids_guide/concepts/cids-format.md
+concepts/deduplication.md reference_templates/uploads/contents/cids_guide/concepts/deduplication.md
+reference/cids-server.md reference_templates/uploads/contents/cids_guide/reference/cids-server.md
+reference/gateway-server.md reference_templates/uploads/contents/cids_guide/reference/gateway-server.md
+reference/256t-project.md reference_templates/uploads/contents/cids_guide/reference/256t-project.md
+examples/creating-archives.md reference_templates/uploads/contents/cids_guide/examples/creating-archives.md
+examples/links.md reference_templates/uploads/contents/cids_guide/examples/links.md
