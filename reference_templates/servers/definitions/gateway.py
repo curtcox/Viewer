@@ -941,9 +941,8 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
     if server_name == "hrx" or server_name == "cids":
         # For archive-based gateways, try to parse archive info from test_server_path
         parts = test_server_path.strip("/").split("/", 1)
-        if parts:
-            gateway_archive = parts[0] if parts else ""
-            gateway_path = parts[1] if len(parts) > 1 else ""
+        gateway_archive = parts[0]
+        gateway_path = parts[1] if len(parts) > 1 else ""
 
     debug_context["request_details_before_transform"] = {
         "path": request_details.get("path"),
