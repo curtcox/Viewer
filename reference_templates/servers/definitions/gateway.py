@@ -938,6 +938,8 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
 
     gateway_archive = None
     gateway_path = None
+    # Extract archive information for archive-based gateways (hrx, cids)
+    # This follows the same pattern as the normal gateway request handling
     if server_name in ("hrx", "cids"):
         # For archive-based gateways, parse archive info from test_server_path
         parts = test_server_path.strip("/").split("/", 1)
@@ -1169,10 +1171,15 @@ def _resolve_test_target(test_server_path: str, request_details: dict) -> dict:
     
     Args:
         test_server_path: The test server path (e.g., "cids/SOME_CID")
-        request_details: Request details dict
+        request_details: Request details dict (reserved for future use in path resolution)
         
     Returns:
         Target dict with mode and url
+        
+    Note:
+        The request_details parameter is currently unused but maintained for API 
+        consistency and potential future enhancement where request information 
+        might influence test target resolution.
     """
     # Ensure test server path starts with /
     if not test_server_path.startswith("/"):
