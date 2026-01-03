@@ -152,6 +152,12 @@ def load_server_definition_from_cid(
     """Load server definition from CID map or database."""
     cid_bytes = load_cid_bytes(definition_cid, cid_map)
     if cid_bytes is None:
+        errors.append(
+            (
+                f'Server "{name}" definition with CID "{definition_cid}" '
+                "was not included in the import."
+            )
+        )
         details: list[str] = []
         normalised = normalise_cid(definition_cid)
         details.append("Import step: importing a server entry from the 'servers' section.")

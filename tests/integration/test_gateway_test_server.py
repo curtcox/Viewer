@@ -126,7 +126,8 @@ def test_gateway_test_meta_page(
     """Test that gateway test meta page shows test information."""
     # Access meta page with test pattern
     response = client.get(
-        "/gateway/meta/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder"
+        "/gateway/meta/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder",
+        follow_redirects=True,
     )
     
     assert response.status_code == 200
