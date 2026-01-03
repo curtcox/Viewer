@@ -1,6 +1,12 @@
 """Unit tests for gateway test server support."""
 
+import os
 import pytest
+
+
+# CID for the test archive
+TEST_ARCHIVE_CID = "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s"
+
 
 # Test parsing of test server paths from URL
 def test_parse_test_server_path_simple():
@@ -118,7 +124,6 @@ class TestAliasDefinition:
     
     def test_alias_file_exists(self):
         """Test that the alias file was created."""
-        import os
         path = "reference_templates/aliases/local_jsonplaceholder.txt"
         assert os.path.exists(path), f"Alias file should exist at {path}"
     
@@ -139,7 +144,7 @@ class TestAliasDefinition:
             content = f.read().strip()
         
         # Should contain the CID we created
-        assert "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s" in content
+        assert TEST_ARCHIVE_CID in content
 
 
 class TestCIDArchive:
@@ -147,15 +152,12 @@ class TestCIDArchive:
     
     def test_cid_file_exists(self):
         """Test that the CID archive file was created."""
-        import os
-        cid = "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s"
-        path = f"cids/{cid}"
+        path = f"cids/{TEST_ARCHIVE_CID}"
         assert os.path.exists(path), f"CID archive should exist at {path}"
     
     def test_cid_file_is_hrx(self):
         """Test that the CID file contains HRX format data."""
-        cid = "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s"
-        path = f"cids/{cid}"
+        path = f"cids/{TEST_ARCHIVE_CID}"
         
         with open(path, "r") as f:
             content = f.read()
@@ -167,8 +169,7 @@ class TestCIDArchive:
     
     def test_cid_contains_jsonplaceholder_data(self):
         """Test that the CID contains jsonplaceholder test data."""
-        cid = "AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s"
-        path = f"cids/{cid}"
+        path = f"cids/{TEST_ARCHIVE_CID}"
         
         with open(path, "r") as f:
             content = f.read()

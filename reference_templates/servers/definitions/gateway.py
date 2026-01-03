@@ -938,8 +938,8 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
 
     gateway_archive = None
     gateway_path = None
-    if server_name == "hrx" or server_name == "cids":
-        # For archive-based gateways, try to parse archive info from test_server_path
+    if server_name in ("hrx", "cids"):
+        # For archive-based gateways, parse archive info from test_server_path
         parts = test_server_path.strip("/").split("/", 1)
         gateway_archive = parts[0]
         gateway_path = parts[1] if len(parts) > 1 else ""
@@ -1253,7 +1253,6 @@ def _handle_meta_page_with_test(server_name, test_server_path, gateways, context
             response_transform_status = "valid"
             response_transform_status_text = "Valid"
 
-    # Check if normal server exists
     server_exists = _check_server_exists(server_name, context)
 
     server_definition_info = _get_server_definition_info(server_name)
