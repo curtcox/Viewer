@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Status: PLANNING**
+**Status: READY FOR IMPLEMENTATION**
 
 This plan describes the implementation of a generalized JSON API gateway that transforms JSON responses from arbitrary servers into navigable HTML pages. The gateway renders JSON with syntax highlighting and automatically detects references to related resources, converting them into clickable links for seamless API exploration.
 
@@ -12,6 +12,8 @@ This plan describes the implementation of a generalized JSON API gateway that tr
 2. **Detect linkable references** in JSON responses and convert them to navigation links
 3. **Support multiple link detection strategies** including full URLs, partial URLs, ID-based references, and composite references
 4. **Generalize the approach** beyond JSONPlaceholder to work with arbitrary REST APIs
+5. **Proxy all content through gateway** including binary content (images, etc.) wrapped in HTML with debug info
+6. **Enable recursive exploration** with debug URLs showing server request and referrer link on every page
 
 ---
 
@@ -616,16 +618,26 @@ Three servers have been selected to validate the implementation. Each server exe
     },
     "id_reference": {
       "enabled": true,
-      "patterns": {
+      "key_patterns": {
         "customer": "/customers/{id}",
         "subscription": "/subscriptions/{id}",
         "payment_intent": "/payment_intents/{id}",
         "invoice": "/invoices/{id}"
+      },
+      "value_patterns": {
+        "^cus_[a-zA-Z0-9]+$": "/customers/{id}",
+        "^ch_[a-zA-Z0-9]+$": "/charges/{id}",
+        "^pi_[a-zA-Z0-9]+$": "/payment_intents/{id}",
+        "^sub_[a-zA-Z0-9]+$": "/subscriptions/{id}",
+        "^in_[a-zA-Z0-9]+$": "/invoices/{id}",
+        "^pm_[a-zA-Z0-9]+$": "/payment_methods/{id}"
       }
     }
   }
 }
 ```
+
+**Note:** Value patterns use regex to match ID formats regardless of which JSON key contains them. This allows detecting Stripe IDs like `cus_12345` anywhere in the response.
 
 ---
 
@@ -742,7 +754,7 @@ Three servers have been selected to validate the implementation. Each server exe
 .json-link { color: #4ec9b0; text-decoration: underline; }  /* Teal - clickable links */
 ```
 
-### Template Structure
+### Template Structure (JSON Response)
 
 ```html
 <!DOCTYPE html>
@@ -762,157 +774,197 @@ Three servers have been selected to validate the implementation. Each server exe
             padding: 1.5rem;
             border-radius: 8px;
         }
+        .debug-header, .debug-footer {
+            background: #2d2d30;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: #858585;
+        }
+        .debug-header { border-bottom: 1px solid #3e3e42; }
+        .debug-footer { border-top: 1px solid #3e3e42; margin-top: 2rem; }
+        .debug-url { color: #4ec9b0; }
         /* JSON syntax highlighting classes */
         /* Link hover states */
     </style>
 </head>
 <body>
+    <div class="debug-header">
+        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+    </div>
     <div class="breadcrumb">{{ breadcrumb | safe }}</div>
     <div class="nav">{{ navigation | safe }}</div>
     <h1>{{ title }}</h1>
     <pre>{{ formatted_json | safe }}</pre>
+    <div class="debug-footer">
+        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+    </div>
+</body>
+</html>
+```
+
+### Template Structure (Binary Content Wrapper)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ gateway_name }} - {{ request_path }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            text-align: center;
+        }
+        .debug-header, .debug-footer {
+            background: #2d2d30;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: #858585;
+            text-align: left;
+        }
+        .content-info {
+            margin: 2rem 0;
+            color: #858585;
+        }
+        .binary-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            border: 1px solid #3e3e42;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-header">
+        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+    </div>
+    <div class="content-info">
+        <strong>Content-Type:</strong> {{ content_type }}<br>
+        <strong>Size:</strong> {{ content_size }} bytes
+    </div>
+    <div class="binary-content">
+        {% if content_type.startswith('image/') %}
+        <img src="data:{{ content_type }};base64,{{ content_base64 }}" alt="Binary content">
+        {% else %}
+        <pre>{{ content_preview }}</pre>
+        {% endif %}
+    </div>
+    <div class="debug-footer">
+        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+    </div>
+</body>
+</html>
+```
+
+### Template Structure (Error/Non-JSON Response)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ gateway_name }} - Error</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .debug-header, .debug-footer {
+            background: #2d2d30;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: #858585;
+        }
+        .error-info {
+            background: #3e2020;
+            border: 1px solid #5a3030;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        pre {
+            background: #252526;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-header">
+        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+    </div>
+    <div class="error-info">
+        <strong>Status Code:</strong> {{ status_code }}<br>
+        <strong>Content-Type:</strong> {{ content_type }}
+    </div>
+    <h2>Response Body</h2>
+    <pre>{{ response_body }}</pre>
+    <div class="debug-footer">
+        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+    </div>
 </body>
 </html>
 ```
 
 ---
 
-## Open Questions
+## Design Decisions
 
-### Q1: How should conflicting link patterns be resolved?
+All design questions have been resolved. The following decisions guide implementation:
 
-**Context:** A field might match multiple detection strategies. For example, a URL field containing `https://api.github.com/users/1` could be detected as:
-- Strategy 1: Full URL
-- Strategy 2: Partial URL (if the key matches `*_url`)
-
-**Options:**
-1. First match wins (order strategies by priority)
-2. Most specific match wins (full URL over partial)
-3. Configuration explicitly sets priority per field
-4. Error if multiple matches (strict mode)
-
-**Recommendation:** Option 2 - most specific wins. Full URL > ID Reference > Partial URL > Composite.
-
----
-
-### Q2: Should the gateway cache link detection configurations?
-
-**Context:** Parsing configuration on every request adds latency.
-
-**Options:**
-1. No caching (simplest, matches current template behavior)
-2. Request-scoped caching (parse once per request)
-3. TTL-based caching (parse every N seconds)
-
-**Recommendation:** Option 2 - parse configuration once at start of request processing.
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | **Conflicting link patterns** | Does not matter as long as links work correctly and produce navigable pages |
+| 2 | **Configuration caching** | Simplest approach - no caching |
+| 3 | **Invalid/unreachable links** | Always create links - let users discover 404s |
+| 4 | **Nested object path matching** | Only match nested objects, not flattened keys |
+| 5 | **Non-JSON responses** | Wrap in error template with status code, content-type, and full body |
+| 6 | **URL fields in arrays** | Link all detected URLs regardless of context |
+| 7 | **Self-referential links** | Create all links consistently |
+| 8 | **Expandable previews** | Start fully expanded - future enhancement |
+| 9 | **Pagination links** | Treat as regular URL fields |
+| 10 | **URL length limit** | No limit |
+| 11 | **External vs gateway links** | ALL URLs go through the gateway |
+| 12 | **Binary content handling** | Wrap in HTML page with image inline + debug header/footer |
+| 13 | **ID detection scope** | Both key name patterns AND value format patterns (e.g., `cus_*`) |
+| 14 | **Value pattern format** | Both prefix-based (`cus_`) and regex patterns - tests are the important part |
+| 15 | **Text parsing in strings** | Only detect URLs in string values, not emails or issue references |
+| 16 | **Debug info placement** | Server URL in header, link that led there in footer |
+| 17 | **Debug on improperly linked pages** | Every page shows both URLs so mislinked pages reveal the fix |
 
 ---
 
-### Q3: How should invalid/unreachable links be handled?
+## Recursive Crawler Testing
 
-**Context:** A detected link might point to a resource that doesn't exist.
+The test suite includes an automated crawler that validates link integrity:
 
-**Options:**
-1. Always create the link (let user discover 404)
-2. Validate links before rendering (expensive)
-3. Mark links as "unverified" visually
-4. Configuration option per gateway
+### Crawler Specifications
 
-**Recommendation:** Option 1 - always create links. Users can navigate and handle 404s.
+| Parameter | Value |
+|-----------|-------|
+| **Maximum depth** | 5 levels from root |
+| **Maximum pages** | 100 pages per test run |
+| **Cycle detection** | Track visited URLs, don't re-visit |
+| **Scope limitation** | Only follow links within the same gateway |
 
----
+### Crawler Test Flow
 
-### Q4: Should nested object paths be flattened for ID detection?
+1. Start at a root endpoint (e.g., `/gateway/jsonplaceholder/posts`)
+2. Render the page and extract all detected links
+3. For each unvisited link within scope:
+   - Fetch the page
+   - Verify it renders valid HTML (JSON-as-HTML, error template, or binary wrapper)
+   - Extract links and add to queue
+4. Continue until depth/page limits reached or queue exhausted
+5. Report any broken links or rendering failures
 
-**Context:** For `owner.login` pattern matching, should we:
-- Only match exact nested structure `{ "owner": { "login": "..." } }`
-- Also match flattened keys like `"owner.login": "..."`
+### Test Categories
 
-**Options:**
-1. Only nested objects
-2. Both nested and flattened
-3. Configuration option
-
-**Recommendation:** Option 1 - only match nested objects. Flattened keys are rare and ambiguous.
-
----
-
-### Q5: How should the gateway handle non-JSON responses?
-
-**Context:** Target server might return HTML, XML, or error pages.
-
-**Options:**
-1. Pass through non-JSON unchanged
-2. Wrap in error template
-3. Attempt to format as text/code
-
-**Recommendation:** Option 2 - wrap in error template with raw content display.
-
----
-
-### Q6: Should URL fields in arrays be treated differently?
-
-**Context:** An array like `["https://a.com", "https://b.com"]` vs object with URL field.
-
-**Options:**
-1. Treat identically (link all URLs)
-2. Only link URLs in objects (skip array primitives)
-3. Configuration option per detection strategy
-
-**Recommendation:** Option 1 - link all detected URLs regardless of context.
-
----
-
-### Q7: How should self-referential links be handled?
-
-**Context:** A response for `/gateway/api/users/1` might contain `"id": 1` which would link to the same page.
-
-**Options:**
-1. Create the link anyway (user can still click)
-2. Detect self-references and skip linking
-3. Style self-references differently (e.g., dimmed)
-
-**Recommendation:** Option 1 - create all links consistently.
-
----
-
-### Q8: Should the gateway support expandable object previews?
-
-**Context:** Large nested objects could be collapsed by default.
-
-**Options:**
-1. No collapsing (render everything expanded)
-2. Collapse objects beyond N levels
-3. Collapse arrays beyond N items
-4. Interactive expand/collapse with JavaScript
-
-**Recommendation:** Defer to future enhancement. Start with Option 1 - fully expanded.
-
----
-
-### Q9: How should pagination links be detected?
-
-**Context:** APIs often have `next`, `previous`, `first`, `last` links for pagination.
-
-**Options:**
-1. Treat as regular URL fields
-2. Special handling for pagination (render as navigation bar)
-3. Detect `Link` header for pagination
-
-**Recommendation:** Option 1 for initial implementation. Pagination UI is a future enhancement.
-
----
-
-### Q10: What is the maximum URL length to detect?
-
-**Context:** Extremely long URLs might be data URIs or malformed.
-
-**Options:**
-1. No limit
-2. Maximum 2048 characters (browser limit)
-3. Maximum 8192 characters (common server limit)
-
-**Recommendation:** Option 2 - 2048 character limit matches browser URL bar.
+- **Unit tests**: Mock responses, test link detection logic
+- **Integration tests**: Live API calls to validation servers
+- **Snapshot tests**: Record and replay for regression testing
 
 ---
 
@@ -934,14 +986,17 @@ Three servers have been selected to validate the implementation. Each server exe
 |------|---------|
 | `reference_templates/gateways/transforms/json_api_request.py` | Pass-through request transform |
 | `reference_templates/gateways/transforms/json_api_response.py` | JSON→HTML response transform with link detection |
-| `reference_templates/gateways/templates/json_api_data.html` | HTML template for JSON display |
+| `reference_templates/gateways/templates/json_api_data.html` | HTML template for JSON display with debug header/footer |
+| `reference_templates/gateways/templates/json_api_binary.html` | HTML template for binary content wrapper |
+| `reference_templates/gateways/templates/json_api_error.html` | HTML template for non-JSON/error responses |
 | `reference_templates/gateways/link_detectors/__init__.py` | Link detector module |
 | `reference_templates/gateways/link_detectors/full_url.py` | Full URL detection |
 | `reference_templates/gateways/link_detectors/partial_url.py` | Partial URL detection |
-| `reference_templates/gateways/link_detectors/id_reference.py` | ID reference detection |
+| `reference_templates/gateways/link_detectors/id_reference.py` | ID reference detection (key + value patterns) |
 | `reference_templates/gateways/link_detectors/composite.py` | Composite reference detection |
 | `tests/test_json_api_gateway.py` | Unit tests |
 | `tests/integration/test_json_api_gateway.py` | Integration tests |
+| `tests/test_json_api_crawler.py` | Recursive crawler tests |
 
 ## Files to Modify
 
