@@ -36,5 +36,16 @@
       "hrx_markdown.html": "reference_templates/gateways/templates/hrx_markdown.html",
       "hrx_text.html": "reference_templates/gateways/templates/hrx_text.html"
     }
+  },
+  "cids": {
+    "request_transform_cid": "reference_templates/gateways/transforms/cids_request.py",
+    "response_transform_cid": "reference_templates/gateways/transforms/cids_response.py",
+    "description": "CIDS archive viewer with markdown and code highlighting",
+    "templates": {
+      "cids_error.html": "reference_templates/gateways/templates/cids_error.html",
+      "cids_directory.html": "reference_templates/gateways/templates/cids_directory.html",
+      "cids_markdown.html": "reference_templates/gateways/templates/cids_markdown.html",
+      "cids_text.html": "reference_templates/gateways/templates/cids_text.html"
+    }
   }
 }
