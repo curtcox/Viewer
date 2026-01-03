@@ -204,7 +204,7 @@ The link URL must be constructed by combining information from the original requ
 
 ## Validation Servers
 
-Three servers have been selected to validate the implementation. Each server exercises different link detection strategies.
+Five servers have been selected to validate the implementation. Each server exercises different link detection strategies.
 
 ### Server 1: JSONPlaceholder
 
@@ -260,6 +260,46 @@ Three servers have been selected to validate the implementation. Each server exe
 **Link Detection Strategies Used:**
 - Strategy 3: ID Reference (`customer` field containing `cus_xxx` ID)
 - Object references (Stripe uses expandable object patterns)
+
+---
+
+### Server 4: Microsoft Teams (Graph API)
+
+**Base URL:** `https://graph.microsoft.com/v1.0` (proxied via `/gateway/teams`)
+
+**API Structure:**
+- `/me/joinedTeams` - List teams the user has joined
+- `/teams/{team_id}` - Team details
+- `/teams/{team_id}/channels` - List channels in a team
+- `/teams/{team_id}/channels/{channel_id}` - Channel details
+- `/teams/{team_id}/channels/{channel_id}/messages` - List messages in a channel
+
+**Link Detection Strategies Used:**
+- Strategy 1: Full URL (`webUrl` fields linking to Teams web client)
+- Strategy 3: ID Reference (`id` fields for teams, channels, users)
+- Strategy 4: Composite Reference (channel `id` + team context, message `id` + channel context)
+
+**Nested Resource Pattern:**
+Teams → Channels → Messages forms a three-level hierarchy requiring composite context tracking.
+
+---
+
+### Server 5: ServiceNow
+
+**Base URL:** `https://{instance}.service-now.com/api/now/table` (proxied via `/gateway/servicenow`)
+
+**API Structure:**
+- `/table/{table_name}` - List records in a table
+- `/table/{table_name}/{sys_id}` - Single record by sys_id
+- Common tables: `incident`, `problem`, `change_request`, `sys_user`, `cmdb_ci`
+
+**Link Detection Strategies Used:**
+- Strategy 3: ID Reference (`sys_id` fields, `assigned_to`, `opened_by`, `caller_id`)
+- Strategy 4: Composite Reference (record `sys_id` + table context)
+- Value patterns: ServiceNow sys_ids are 32-character hex strings
+
+**Cross-Table References:**
+ServiceNow records frequently reference records in other tables (e.g., incident.assigned_to → sys_user.sys_id), requiring table-aware link generation.
 
 ---
 
@@ -403,6 +443,86 @@ Three servers have been selected to validate the implementation. Each server exe
 **Expected JSON field:** `"has_more": true`, `"url": "/v1/customers"`
 **Expected Link:** The `url` field as a partial URL links to `/gateway/stripe/customers`
 **Strategy:** Partial URL
+
+---
+
+### Microsoft Teams Tests
+
+#### Test MT-1: Team contains id linked to team details
+**Request:** `/gateway/teams/me/joinedTeams`
+**Expected JSON field (in value array):** `"id": "team-uuid-123"`
+**Expected Link:** The team ID links to `/gateway/teams/teams/team-uuid-123`
+**Strategy:** ID Reference
+
+#### Test MT-2: Team contains webUrl (full URL)
+**Request:** `/gateway/teams/teams/team-uuid-123`
+**Expected JSON field:** `"webUrl": "https://teams.microsoft.com/..."`
+**Expected Link:** The URL is rendered as a gateway link
+**Strategy:** Full Literal URL
+
+#### Test MT-3: Channel list contains channel ids (composite with team context)
+**Request:** `/gateway/teams/teams/team-uuid-123/channels`
+**Expected JSON field (in value array):** `"id": "channel-uuid-456"`
+**Expected Link:** Links to `/gateway/teams/teams/team-uuid-123/channels/channel-uuid-456`
+**Strategy:** Composite Reference (requires team_id from request path)
+
+#### Test MT-4: Message contains from.user.id (nested reference)
+**Request:** `/gateway/teams/teams/team-uuid/channels/channel-uuid/messages`
+**Expected JSON field:** `"from": { "user": { "id": "user-uuid-789" } }`
+**Expected Link:** The user ID links to `/gateway/teams/users/user-uuid-789`
+**Strategy:** ID Reference (nested object)
+
+#### Test MT-5: Channel contains teamId reference
+**Request:** `/gateway/teams/teams/team-uuid-123/channels/channel-uuid-456`
+**Expected JSON field:** `"teamId": "team-uuid-123"`
+**Expected Link:** Links back to `/gateway/teams/teams/team-uuid-123`
+**Strategy:** ID Reference
+
+#### Test MT-6: Three-level composite (message in channel in team)
+**Request:** `/gateway/teams/teams/t-123/channels/c-456/messages`
+**Expected JSON field:** `"id": "msg-789"`
+**Expected Link:** Links to `/gateway/teams/teams/t-123/channels/c-456/messages/msg-789`
+**Strategy:** Composite Reference (requires both team_id and channel_id from request path)
+
+---
+
+### ServiceNow Tests
+
+#### Test SN-1: Incident list contains sys_id links
+**Request:** `/gateway/servicenow/table/incident`
+**Expected JSON field (in result array):** `"sys_id": "a1b2c3d4e5f6..."`
+**Expected Link:** Links to `/gateway/servicenow/table/incident/a1b2c3d4e5f6...`
+**Strategy:** ID Reference + Composite (table name from request path)
+
+#### Test SN-2: Incident contains assigned_to reference (cross-table)
+**Request:** `/gateway/servicenow/table/incident/inc-sys-id`
+**Expected JSON field:** `"assigned_to": { "value": "user-sys-id", "link": "https://..." }`
+**Expected Link:** The `value` links to `/gateway/servicenow/table/sys_user/user-sys-id`
+**Strategy:** ID Reference (cross-table, requires knowing assigned_to references sys_user)
+
+#### Test SN-3: Record contains full ServiceNow link field
+**Request:** `/gateway/servicenow/table/incident/inc-sys-id`
+**Expected JSON field:** `"assigned_to": { "link": "https://instance.service-now.com/api/now/table/sys_user/user-id" }`
+**Expected Link:** The full URL is converted to gateway link `/gateway/servicenow/table/sys_user/user-id`
+**Strategy:** Full Literal URL (with base URL stripping)
+
+#### Test SN-4: Problem record links to related incidents
+**Request:** `/gateway/servicenow/table/problem/prob-sys-id`
+**Expected JSON field:** `"related_incidents": [{ "value": "inc-1" }, { "value": "inc-2" }]`
+**Expected Link:** Each incident value links to `/gateway/servicenow/table/incident/{value}`
+**Strategy:** ID Reference (array of references)
+
+#### Test SN-5: sys_id value pattern detection
+**Request:** `/gateway/servicenow/table/change_request`
+**Expected JSON field:** `"requested_by": "32charHexStringHere12345678901a"`
+**Expected Link:** 32-character hex strings are detected as sys_ids and linked appropriately
+**Strategy:** Value Pattern (regex: `^[a-f0-9]{32}$`)
+
+#### Test SN-6: Composite table context preserved
+**Request:** `/gateway/servicenow/table/cmdb_ci`
+**Expected JSON field (in result array):** `"sys_id": "ci-sys-id-123"`
+**Expected Link:** Links to `/gateway/servicenow/table/cmdb_ci/ci-sys-id-123` (preserves cmdb_ci table)
+**Strategy:** Composite Reference (table name from URL)
 
 ---
 
@@ -639,6 +759,103 @@ Three servers have been selected to validate the implementation. Each server exe
 
 **Note:** Value patterns use regex to match ID formats regardless of which JSON key contains them. This allows detecting Stripe IDs like `cus_12345` anywhere in the response.
 
+#### Microsoft Teams Config
+```json
+{
+  "link_detection": {
+    "full_url": {
+      "enabled": true,
+      "base_url_strip": "https://graph.microsoft.com/v1.0",
+      "gateway_prefix": "/gateway/teams"
+    },
+    "id_reference": {
+      "enabled": true,
+      "key_patterns": {
+        "teamId": "/teams/{id}",
+        "from.user.id": "/users/{id}"
+      }
+    },
+    "composite_reference": {
+      "enabled": true,
+      "patterns": {
+        "id": [
+          {
+            "context_regex": "teams/([^/]+)/channels$",
+            "context_vars": ["team_id"],
+            "url_template": "/teams/{team_id}/channels/{id}"
+          },
+          {
+            "context_regex": "teams/([^/]+)/channels/([^/]+)/messages$",
+            "context_vars": ["team_id", "channel_id"],
+            "url_template": "/teams/{team_id}/channels/{channel_id}/messages/{id}"
+          }
+        ]
+      }
+    }
+  },
+  "valid_path_patterns": [
+    "^/gateway/teams$",
+    "^/gateway/teams/me/joinedTeams$",
+    "^/gateway/teams/teams/[^/]+$",
+    "^/gateway/teams/teams/[^/]+/channels$",
+    "^/gateway/teams/teams/[^/]+/channels/[^/]+$",
+    "^/gateway/teams/teams/[^/]+/channels/[^/]+/messages$",
+    "^/gateway/teams/users/[^/]+$"
+  ]
+}
+```
+
+**Note:** The `valid_path_patterns` array is used to determine which URL segments should be styled as valid (teal) vs invalid (dimmed). This allows the segmented URL display to provide visual hints about navigability.
+
+#### ServiceNow Config
+```json
+{
+  "link_detection": {
+    "full_url": {
+      "enabled": true,
+      "base_url_strip_pattern": "https://[^/]+\\.service-now\\.com/api/now",
+      "gateway_prefix": "/gateway/servicenow"
+    },
+    "id_reference": {
+      "enabled": true,
+      "key_patterns": {
+        "assigned_to.value": "/table/sys_user/{id}",
+        "opened_by.value": "/table/sys_user/{id}",
+        "caller_id.value": "/table/sys_user/{id}",
+        "sys_id": "{context_table}/{id}"
+      },
+      "value_patterns": {
+        "^[a-f0-9]{32}$": "/table/{inferred_table}/{id}"
+      }
+    },
+    "composite_reference": {
+      "enabled": true,
+      "patterns": {
+        "sys_id": {
+          "context_regex": "table/([^/]+)",
+          "context_vars": ["table_name"],
+          "url_template": "/table/{table_name}/{sys_id}"
+        }
+      }
+    }
+  },
+  "cross_table_mappings": {
+    "assigned_to": "sys_user",
+    "opened_by": "sys_user",
+    "caller_id": "sys_user",
+    "assignment_group": "sys_user_group",
+    "cmdb_ci": "cmdb_ci"
+  },
+  "valid_path_patterns": [
+    "^/gateway/servicenow$",
+    "^/gateway/servicenow/table/[^/]+$",
+    "^/gateway/servicenow/table/[^/]+/[a-f0-9]{32}$"
+  ]
+}
+```
+
+**Note:** ServiceNow's cross-table references require knowing which table a field references. The `cross_table_mappings` provides this lookup. The `inferred_table` placeholder in value patterns indicates the table must be determined from context or field name.
+
 ---
 
 ## Implementation Phases
@@ -726,7 +943,7 @@ Three servers have been selected to validate the implementation. Each server exe
 **Tasks:**
 1. Define configuration schema for link detection
 2. Load configuration from gateway config
-3. Create default configurations for JSONPlaceholder, GitHub, Stripe
+3. Create default configurations for JSONPlaceholder, GitHub, Stripe, Microsoft Teams, ServiceNow
 4. Validate configuration at gateway startup
 
 ---
@@ -734,7 +951,7 @@ Three servers have been selected to validate the implementation. Each server exe
 ### Phase 8: Integration and Testing
 
 **Tasks:**
-1. Integration tests with all three validation servers
+1. Integration tests with all five validation servers
 2. End-to-end testing of link navigation
 3. Performance testing with large responses
 4. Error handling and edge cases
@@ -752,7 +969,40 @@ Three servers have been selected to validate the implementation. Each server exe
 .json-boolean { color: #569cd6; }  /* Purple - true/false */
 .json-null { color: #569cd6; }     /* Purple - null */
 .json-link { color: #4ec9b0; text-decoration: underline; }  /* Teal - clickable links */
+
+/* Segmented URL styling */
+.url-segment { color: #4ec9b0; text-decoration: none; }
+.url-segment:hover { text-decoration: underline; }
+.url-segment-invalid { color: #6e6e6e; }  /* Dimmed for potentially invalid paths */
+.url-segment-invalid:hover { color: #858585; text-decoration: underline; }
+.url-separator { color: #858585; }  /* Slash separators */
 ```
+
+### Segmented URL Display
+
+Both the server URL (header) and referrer URL (footer) are rendered as segmented, clickable paths. Each segment links to its cumulative path, with potentially invalid intermediate segments styled in a dimmed color.
+
+**Example - Server URL:** `https://api.github.com/repos/microsoft/vscode/issues/123`
+
+Rendered as:
+```html
+<a href="/gateway/github" class="url-segment">github</a>
+<span class="url-separator">/</span>
+<a href="/gateway/github/repos" class="url-segment url-segment-invalid">repos</a>
+<span class="url-separator">/</span>
+<a href="/gateway/github/repos/microsoft" class="url-segment url-segment-invalid">microsoft</a>
+<span class="url-separator">/</span>
+<a href="/gateway/github/repos/microsoft/vscode" class="url-segment">vscode</a>
+<span class="url-separator">/</span>
+<a href="/gateway/github/repos/microsoft/vscode/issues" class="url-segment">issues</a>
+<span class="url-separator">/</span>
+<a href="/gateway/github/repos/microsoft/vscode/issues/123" class="url-segment">123</a>
+```
+
+**Segment Validity Detection:**
+- Segments are marked as potentially invalid (`url-segment-invalid`) based on known API patterns
+- All segments are still clickable (consistent with "always create links" decision)
+- Invalid styling is a visual hint, not a guarantee - the link may still work
 
 ### Template Structure (JSON Response)
 
@@ -782,21 +1032,25 @@ Three servers have been selected to validate the implementation. Each server exe
         }
         .debug-header { border-bottom: 1px solid #3e3e42; }
         .debug-footer { border-top: 1px solid #3e3e42; margin-top: 2rem; }
-        .debug-url { color: #4ec9b0; }
+        .url-segment { color: #4ec9b0; text-decoration: none; }
+        .url-segment:hover { text-decoration: underline; }
+        .url-segment-invalid { color: #6e6e6e; }
+        .url-segment-invalid:hover { color: #858585; text-decoration: underline; }
+        .url-separator { color: #858585; }
         /* JSON syntax highlighting classes */
         /* Link hover states */
     </style>
 </head>
 <body>
     <div class="debug-header">
-        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+        <strong>Server URL:</strong> {{ server_url_segmented | safe }}
     </div>
     <div class="breadcrumb">{{ breadcrumb | safe }}</div>
     <div class="nav">{{ navigation | safe }}</div>
     <h1>{{ title }}</h1>
     <pre>{{ formatted_json | safe }}</pre>
     <div class="debug-footer">
-        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+        <strong>Linked from:</strong> {{ referrer_url_segmented | safe | default("(direct)", true) }}
     </div>
 </body>
 </html>
@@ -824,6 +1078,11 @@ Three servers have been selected to validate the implementation. Each server exe
             color: #858585;
             text-align: left;
         }
+        .url-segment { color: #4ec9b0; text-decoration: none; }
+        .url-segment:hover { text-decoration: underline; }
+        .url-segment-invalid { color: #6e6e6e; }
+        .url-segment-invalid:hover { color: #858585; text-decoration: underline; }
+        .url-separator { color: #858585; }
         .content-info {
             margin: 2rem 0;
             color: #858585;
@@ -837,7 +1096,7 @@ Three servers have been selected to validate the implementation. Each server exe
 </head>
 <body>
     <div class="debug-header">
-        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+        <strong>Server URL:</strong> {{ server_url_segmented | safe }}
     </div>
     <div class="content-info">
         <strong>Content-Type:</strong> {{ content_type }}<br>
@@ -851,7 +1110,7 @@ Three servers have been selected to validate the implementation. Each server exe
         {% endif %}
     </div>
     <div class="debug-footer">
-        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+        <strong>Linked from:</strong> {{ referrer_url_segmented | safe | default("(direct)", true) }}
     </div>
 </body>
 </html>
@@ -877,6 +1136,11 @@ Three servers have been selected to validate the implementation. Each server exe
             font-size: 0.85rem;
             color: #858585;
         }
+        .url-segment { color: #4ec9b0; text-decoration: none; }
+        .url-segment:hover { text-decoration: underline; }
+        .url-segment-invalid { color: #6e6e6e; }
+        .url-segment-invalid:hover { color: #858585; text-decoration: underline; }
+        .url-separator { color: #858585; }
         .error-info {
             background: #3e2020;
             border: 1px solid #5a3030;
@@ -893,7 +1157,7 @@ Three servers have been selected to validate the implementation. Each server exe
 </head>
 <body>
     <div class="debug-header">
-        <strong>Server URL:</strong> <span class="debug-url">{{ server_url }}</span>
+        <strong>Server URL:</strong> {{ server_url_segmented | safe }}
     </div>
     <div class="error-info">
         <strong>Status Code:</strong> {{ status_code }}<br>
@@ -902,7 +1166,7 @@ Three servers have been selected to validate the implementation. Each server exe
     <h2>Response Body</h2>
     <pre>{{ response_body }}</pre>
     <div class="debug-footer">
-        <strong>Linked from:</strong> <span class="debug-url">{{ referrer_url | default("(direct)", true) }}</span>
+        <strong>Linked from:</strong> {{ referrer_url_segmented | safe | default("(direct)", true) }}
     </div>
 </body>
 </html>
@@ -933,6 +1197,8 @@ All design questions have been resolved. The following decisions guide implement
 | 15 | **Text parsing in strings** | Only detect URLs in string values, not emails or issue references |
 | 16 | **Debug info placement** | Server URL in header, link that led there in footer |
 | 17 | **Debug on improperly linked pages** | Every page shows both URLs so mislinked pages reveal the fix |
+| 18 | **URL segment linking** | All segments linked; invalid segments styled dimmed/grayed but still clickable |
+| 19 | **Segmented URLs scope** | Both server URL (header) and referrer URL (footer) are segmented |
 
 ---
 
@@ -970,7 +1236,7 @@ The test suite includes an automated crawler that validates link integrity:
 
 ## Success Criteria
 
-1. **All test cases pass** for the three validation servers
+1. **All test cases pass** for the five validation servers
 2. **JSON is rendered identically** to the current JSONPlaceholder gateway style
 3. **All four link detection strategies** work correctly
 4. **Configuration is flexible** enough to support arbitrary REST APIs
