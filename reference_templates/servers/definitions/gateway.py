@@ -153,9 +153,27 @@ def _main_impl(context=None):
     if first_part == "response":
         return _handle_response_form(gateways, context)
 
-    if first_part == "meta" and len(path_parts) > 1:
-        server_name = path_parts[1]
-        return _handle_meta_page(server_name, gateways, context)
+    if first_part == "meta":
+        if len(path_parts) > 1:
+            # Check for test meta pattern: /gateway/meta/test/{test-server-path}/as/{server}
+            if path_parts[1] == "test" and len(path_parts) > 4 and "as" in path_parts:
+                as_index = path_parts.index("as")
+                if as_index > 2 and as_index + 1 < len(path_parts):
+                    test_server_path = "/".join(path_parts[2:as_index])
+                    server_name = path_parts[as_index + 1]
+                    return _handle_meta_page_with_test(server_name, test_server_path, gateways, context)
+            else:
+                server_name = path_parts[1]
+                return _handle_meta_page(server_name, gateways, context)
+
+    # Check for test pattern: /gateway/test/{test-server-path}/as/{server}/{rest}
+    if first_part == "test" and len(path_parts) > 2 and "as" in path_parts:
+        as_index = path_parts.index("as")
+        if as_index > 1 and as_index + 1 < len(path_parts):
+            test_server_path = "/".join(path_parts[1:as_index])
+            server_name = path_parts[as_index + 1]
+            rest_path = "/".join(path_parts[as_index + 2:]) if len(path_parts) > as_index + 2 else ""
+            return _handle_gateway_test_request(server_name, rest_path, test_server_path, gateways, context)
 
     # Otherwise, treat first part as server name
     server_name = first_part
@@ -864,6 +882,469 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
             "output": response_details.get("content", b""),
             "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
         }
+
+
+def _handle_gateway_test_request(server_name, rest_path, test_server_path, gateways, context):
+    """Handle a gateway test request using a test server in place of the normal server.
+    
+    Pattern: /gateway/test/{test-server-path}/as/{server}/{rest}
+    
+    Args:
+        server_name: The gateway server name (for transforms)
+        rest_path: The remaining path after the server name
+        test_server_path: The test server path to use instead of the normal server
+        gateways: Gateway configurations
+        context: Request context
+    """
+    if server_name not in gateways:
+        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
+        return _render_error(
+            "Gateway Not Found",
+            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            gateways,
+        )
+
+    config = gateways[server_name]
+
+    debug_context = {
+        "gateway": server_name,
+        "rest_path": rest_path,
+        "test_server_path": test_server_path,
+        "request_path": getattr(flask_request, "path", None),
+        "request_method": getattr(flask_request, "method", None),
+    }
+
+    # Build request details
+    try:
+        json_body = flask_request.get_json(silent=True)
+    except Exception:
+        json_body = None
+
+    try:
+        raw_body = flask_request.get_data(as_text=True)
+    except Exception:
+        raw_body = None
+
+    request_details = {
+        "path": rest_path,
+        "query_string": flask_request.query_string.decode("utf-8"),
+        "method": flask_request.method,
+        "headers": {k: v for k, v in flask_request.headers if k.lower() != "cookie"},
+        "json": json_body,
+        "data": raw_body,
+    }
+
+    original_rest_path = rest_path
+
+    gateway_archive = None
+    gateway_path = None
+    if server_name == "hrx" or server_name == "cids":
+        # For archive-based gateways, try to parse archive info from test_server_path
+        parts = test_server_path.strip("/").split("/", 1)
+        if parts:
+            gateway_archive = parts[0] if parts else ""
+            gateway_path = parts[1] if len(parts) > 1 else ""
+
+    debug_context["request_details_before_transform"] = {
+        "path": request_details.get("path"),
+        "query_string": request_details.get("query_string"),
+        "method": request_details.get("method"),
+    }
+
+    # Create template resolver and enhance context
+    template_resolver = _create_template_resolver(config, context)
+    enhanced_context = {
+        **(context or {}),
+        "resolve_template": template_resolver,
+        "test_mode": True,
+        "test_server_path": test_server_path,
+    }
+
+    # Load and execute request transform (same as normal gateway request)
+    request_cid = config.get("request_transform_cid")
+    response_details = None
+    
+    if request_cid:
+        try:
+            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), enhanced_context)
+            if not transform_fn:
+                return _render_error(
+                    "Request Transform Not Found",
+                    f"Could not load request transform: {escape(str(request_cid))}",
+                    gateways,
+                    exception_summary=f"RequestTransformNotFoundError: Could not load request transform: {escape(str(request_cid))}",
+                    error_detail=json.dumps(
+                        {
+                            "gateway": server_name,
+                            "request_transform_cid": request_cid,
+                            "test_mode": True,
+                        },
+                        indent=2,
+                    ),
+                    gateway_archive=gateway_archive,
+                    gateway_path=gateway_path,
+                )
+            if transform_fn:
+                transformed = transform_fn(request_details, enhanced_context)
+                if isinstance(transformed, dict):
+                    # Check if this is a direct response
+                    if "response" in transformed:
+                        direct_response = transformed["response"]
+                        # Validate the direct response
+                        is_valid, error_msg = _validate_direct_response(direct_response)
+                        if not is_valid:
+                            return _render_error(
+                                "Invalid Direct Response",
+                                f"Request transform returned invalid direct response: {error_msg}",
+                                gateways,
+                                exception_summary=f"InvalidDirectResponseError: {error_msg}",
+                                error_detail=json.dumps(
+                                    {
+                                        "gateway": server_name,
+                                        "request_transform_cid": request_cid,
+                                        "validation_error": error_msg,
+                                        "direct_response": str(direct_response)[:500],
+                                        "test_mode": True,
+                                    },
+                                    indent=2,
+                                ),
+                                gateway_archive=gateway_archive,
+                                gateway_path=gateway_path,
+                            )
+                        
+                        # Build response_details from direct response
+                        output = direct_response.get("output", "")
+                        content = output.encode("utf-8") if isinstance(output, str) else output
+                        text = output if isinstance(output, str) else output.decode("utf-8", errors="replace")
+                        
+                        response_details = {
+                            "status_code": direct_response.get("status_code", 200),
+                            "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
+                            "content": content,
+                            "text": text,
+                            "json": None,
+                            "request_path": rest_path,
+                            "source": "request_transform",
+                            "_original_output": output,
+                            "_original_content_type": direct_response.get("content_type", "text/html"),
+                        }
+                    else:
+                        # Normal request transformation
+                        request_details = transformed
+        except Exception as e:
+            logger.error(f"Request transform error: {e}")
+            return _render_error(
+                "Request Transform Error",
+                f"Failed to execute request transform: {escape(str(e))}",
+                gateways,
+                exception_summary=f"RequestTransformError: {type(e).__name__}: {str(e)}",
+                error_detail=_format_exception_detail(
+                    e,
+                    debug_context={
+                        **debug_context,
+                        "request_transform_cid": request_cid,
+                    },
+                ),
+                gateway_archive=gateway_archive,
+                gateway_path=gateway_path,
+            )
+
+    # Skip server execution if we have a direct response
+    if response_details is None:
+        debug_context["request_details_after_transform"] = _safe_preview_request_details(
+            request_details
+        )
+
+        # Use test server path instead of normal server
+        resolved_target = _resolve_test_target(test_server_path, request_details)
+        debug_context["resolved_target"] = resolved_target
+
+        try:
+            response = _execute_target_request(resolved_target, request_details)
+        except Exception as e:
+            logger.error(f"Target request error: {e}")
+            return _render_error(
+                "Request Failed",
+                f"Failed to connect to test target: {escape(str(e))}",
+                gateways,
+                exception_summary=f"TargetRequestError: {type(e).__name__}: {str(e)}",
+                error_detail=_format_exception_detail(e, debug_context=debug_context),
+                gateway_archive=gateway_archive,
+                gateway_path=gateway_path,
+            )
+
+        status_code = getattr(response, "status_code", 200)
+        response_text = getattr(response, "text", "")
+        if isinstance(status_code, int) and status_code >= 500:
+            exception_summary = _extract_exception_summary_from_internal_error_html(response_text)
+            stack_trace_html = _extract_stack_trace_list_from_internal_error_html(response_text)
+            return _render_error(
+                "Gateway Error",
+                "An internal server error occurred.",
+                gateways,
+                exception_summary=exception_summary,
+                stack_trace_html=stack_trace_html,
+                server_args_json=json.dumps(
+                    {
+                        "target": resolved_target,
+                        "test_server_path": test_server_path,
+                        "request": {
+                            **_safe_preview_request_details(request_details),
+                            "original_rest_path": original_rest_path,
+                        },
+                    },
+                    indent=2,
+                ),
+                gateway_archive=gateway_archive,
+                gateway_path=gateway_path,
+            )
+
+        # Build response details
+        try:
+            response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
+        except Exception:
+            response_json = None
+
+        response_details = {
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "content": response.content,
+            "text": response.text,
+            "json": response_json,
+            "request_path": rest_path,
+            "source": "test_server",
+        }
+
+    # Load and execute response transform (same as normal gateway request)
+    response_cid = config.get("response_transform_cid")
+    if response_cid:
+        try:
+            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), enhanced_context)
+            if not transform_fn:
+                return _render_error(
+                    "Response Transform Not Found",
+                    f"Could not load response transform: {escape(str(response_cid))}",
+                    gateways,
+                    exception_summary=f"ResponseTransformNotFoundError: Could not load response transform: {escape(str(response_cid))}",
+                    error_detail=json.dumps(
+                        {
+                            "gateway": server_name,
+                            "response_transform_cid": response_cid,
+                            "test_mode": True,
+                        },
+                        indent=2,
+                    ),
+                    gateway_archive=gateway_archive,
+                    gateway_path=gateway_path,
+                )
+            if transform_fn:
+                result = transform_fn(response_details, enhanced_context)
+                if isinstance(result, dict) and "output" in result:
+                    return result
+        except Exception as e:
+            logger.error(f"Response transform error: {e}")
+            return _render_error(
+                "Response Transform Error",
+                f"Failed to execute response transform: {escape(str(e))}",
+                gateways,
+                exception_summary=_format_exception_summary(e),
+                gateway_archive=gateway_archive,
+                gateway_path=gateway_path,
+            )
+
+    # Default: return raw response
+    if "_original_output" in response_details:
+        return {
+            "output": response_details["_original_output"],
+            "content_type": response_details.get("_original_content_type", "text/plain"),
+        }
+    else:
+        return {
+            "output": response_details.get("content", b""),
+            "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
+        }
+
+
+def _resolve_test_target(test_server_path: str, request_details: dict) -> dict:
+    """Resolve the test target path.
+    
+    Args:
+        test_server_path: The test server path (e.g., "cids/SOME_CID")
+        request_details: Request details dict
+        
+    Returns:
+        Target dict with mode and url
+    """
+    # Ensure test server path starts with /
+    if not test_server_path.startswith("/"):
+        test_server_path = f"/{test_server_path}"
+    
+    return {"mode": "internal", "url": test_server_path}
+
+
+def _handle_meta_page_with_test(server_name, test_server_path, gateways, context):
+    """Handle meta page with test server information.
+    
+    Shows information about both the configured server and the test server that will be used.
+    """
+    if server_name not in gateways:
+        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
+        return _render_error(
+            "Gateway Not Found",
+            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            gateways,
+        )
+
+    config = gateways[server_name]
+    template = _load_template("meta.html")
+
+    # Load and validate transforms (same as regular meta page)
+    request_transform_source = None
+    request_transform_status = "error"
+    request_transform_status_text = "Not Found"
+    request_transform_error = None
+    request_transform_warnings = []
+
+    response_transform_source = None
+    response_transform_status = "error"
+    response_transform_status_text = "Not Found"
+    response_transform_error = None
+    response_transform_warnings = []
+
+    request_cid_link_html = ""
+    response_cid_link_html = ""
+
+    # Load request transform
+    request_cid = config.get("request_transform_cid")
+    request_cid_lookup = _normalize_cid_lookup(request_cid)
+    if request_cid_lookup and request_cid_lookup.startswith("/"):
+        request_cid_link_html = str(render_cid_link(request_cid_lookup))
+    if request_cid:
+        source, error, warnings = _load_and_validate_transform(request_cid_lookup, "transform_request", context)
+        request_transform_source = source
+        if error:
+            request_transform_error = error
+            request_transform_status = "error"
+            request_transform_status_text = "Error"
+        elif warnings:
+            request_transform_warnings = warnings
+            request_transform_status = "warning"
+            request_transform_status_text = "Valid with Warnings"
+        else:
+            request_transform_status = "valid"
+            request_transform_status_text = "Valid"
+
+    # Load response transform
+    response_cid = config.get("response_transform_cid")
+    response_cid_lookup = _normalize_cid_lookup(response_cid)
+    if response_cid_lookup and response_cid_lookup.startswith("/"):
+        response_cid_link_html = str(render_cid_link(response_cid_lookup))
+    if response_cid:
+        source, error, warnings = _load_and_validate_transform(response_cid_lookup, "transform_response", context)
+        response_transform_source = source
+        if error:
+            response_transform_error = error
+            response_transform_status = "error"
+            response_transform_status_text = "Error"
+        elif warnings:
+            response_transform_warnings = warnings
+            response_transform_status = "warning"
+            response_transform_status_text = "Valid with Warnings"
+        else:
+            response_transform_status = "valid"
+            response_transform_status_text = "Valid"
+
+    # Check if normal server exists
+    server_exists = _check_server_exists(server_name, context)
+
+    server_definition_info = _get_server_definition_info(server_name)
+    server_definition_diagnostics_url = None
+    if server_exists:
+        server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
+
+    # Load template information
+    templates_config = config.get("templates", {})
+    templates_info = []
+
+    def _extract_resolve_template_calls(source: str | None) -> set[str]:
+        if not source or not isinstance(source, str):
+            return set()
+        pattern = r"resolve_template\(\s*[\"\']([^\"\']+)[\"\']\s*\)"
+        return set(re.findall(pattern, source))
+
+    referenced_template_names = set(templates_config.keys())
+    referenced_template_names |= _extract_resolve_template_calls(request_transform_source)
+    referenced_template_names |= _extract_resolve_template_calls(response_transform_source)
+
+    for template_name in sorted(referenced_template_names):
+        template_cid = templates_config.get(template_name)
+        template_info = {
+            "name": template_name,
+            "cid": template_cid,
+            "cid_link_html": "",
+            "source": None,
+            "status": "error",
+            "status_text": "Not Found",
+            "error": None,
+            "variables": [],
+        }
+
+        if not template_cid:
+            template_info["error"] = "Template referenced by gateway transforms but not configured in gateway templates map"
+            template_info["status"] = "error"
+            template_info["status_text"] = "Missing Mapping"
+            templates_info.append(template_info)
+            continue
+
+        # Generate CID link
+        template_cid_lookup = _normalize_cid_lookup(template_cid)
+        if template_cid_lookup and template_cid_lookup.startswith("/"):
+            template_info["cid_link_html"] = str(render_cid_link(template_cid_lookup))
+
+        # Load and validate template
+        source, error, variables = _load_and_validate_template(template_cid, context)
+        template_info["source"] = source
+        if error:
+            template_info["error"] = error
+            template_info["status"] = "error"
+            template_info["status_text"] = "Error"
+        else:
+            template_info["status"] = "valid"
+            template_info["status_text"] = "Valid"
+            template_info["variables"] = variables
+
+        templates_info.append(template_info)
+
+    # Generate test paths based on server type
+    test_paths = _get_test_paths(server_name)
+
+    html = template.render(
+        server_name=server_name,
+        config=config,
+        server_exists=server_exists,
+        server_definition_info=server_definition_info,
+        server_definition_diagnostics_url=server_definition_diagnostics_url,
+        request_cid_lookup=request_cid_lookup,
+        response_cid_lookup=response_cid_lookup,
+        request_cid_link_html=request_cid_link_html,
+        response_cid_link_html=response_cid_link_html,
+        request_transform_source=request_transform_source,
+        request_transform_status=request_transform_status,
+        request_transform_status_text=request_transform_status_text,
+        request_transform_error=request_transform_error,
+        request_transform_warnings=request_transform_warnings,
+        response_transform_source=response_transform_source,
+        response_transform_status=response_transform_status,
+        response_transform_status_text=response_transform_status_text,
+        response_transform_error=response_transform_error,
+        response_transform_warnings=response_transform_warnings,
+        templates_info=templates_info,
+        test_paths=test_paths,
+        # Test mode specific
+        test_mode=True,
+        test_server_path=test_server_path,
+    )
+    return {"output": html, "content_type": "text/html"}
 
 
 def _execute_target_request(target, request_details):

@@ -1,0 +1,1 @@
+/gateway/jsonplaceholder/** -> /gateway/test/hrx/AAAAASIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0s/as/jsonplaceholder/**
