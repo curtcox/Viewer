@@ -1,0 +1,19 @@
+{
+  "id": "501",
+  "properties": {
+    "createdate": "2024-01-15T10:30:00.000Z",
+    "email": "jane.doe@acme-corp.example.com",
+    "firstname": "Jane",
+    "hs_object_id": "501",
+    "lastmodifieddate": "2024-01-20T14:22:00.000Z",
+    "lastname": "Doe",
+    "phone": "+1-555-0101",
+    "company": "Acme Corporation",
+    "jobtitle": "Senior Widget Engineer",
+    "lifecyclestage": "customer",
+    "hs_lead_status": "QUALIFIED"
+  },
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-01-20T14:22:00.000Z",
+  "archived": false
+}

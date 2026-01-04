@@ -1,0 +1,49 @@
+{
+  "results": [
+    {
+      "id": "501",
+      "properties": {
+        "createdate": "2024-01-15T10:30:00.000Z",
+        "email": "jane.doe@acme-corp.example.com",
+        "firstname": "Jane",
+        "hs_object_id": "501",
+        "lastmodifieddate": "2024-01-20T14:22:00.000Z",
+        "lastname": "Doe"
+      },
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-20T14:22:00.000Z",
+      "archived": false
+    },
+    {
+      "id": "502",
+      "properties": {
+        "createdate": "2024-01-16T09:15:00.000Z",
+        "email": "john.smith@globex.example.com",
+        "firstname": "John",
+        "hs_object_id": "502",
+        "lastmodifieddate": "2024-01-18T11:45:00.000Z",
+        "lastname": "Smith"
+      },
+      "createdAt": "2024-01-16T09:15:00.000Z",
+      "updatedAt": "2024-01-18T11:45:00.000Z",
+      "archived": false
+    },
+    {
+      "id": "503",
+      "properties": {
+        "createdate": "2024-01-17T16:00:00.000Z",
+        "email": "bogus@fakester.example.com",
+        "firstname": "Bogus",
+        "hs_object_id": "503",
+        "lastmodifieddate": "2024-01-17T16:00:00.000Z",
+        "lastname": "McFakester"
+      },
+      "createdAt": "2024-01-17T16:00:00.000Z",
+      "updatedAt": "2024-01-17T16:00:00.000Z",
+      "archived": false
+    }
+  ],
+  "paging": {
+    "next": null
+  }
+}

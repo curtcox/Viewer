@@ -1,0 +1,7 @@
+/crm/v3/objects/contacts ../../files/hubspot/contacts.json
+/crm/v3/objects/contacts?limit=0 ../../files/hubspot/contacts_empty.json
+/crm/v3/objects/contacts?limit=1 ../../files/hubspot/contacts_single.json
+/crm/v3/objects/contacts/501 ../../files/hubspot/contacts_501.json
+/crm/v3/objects/companies ../../files/hubspot/companies.json
+/crm/v3/objects/companies/101 ../../files/hubspot/companies_101.json
+/errors/401 ../../files/hubspot/errors/401_unauthorized.json

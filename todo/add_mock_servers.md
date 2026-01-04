@@ -1158,6 +1158,56 @@ Proxy
 
 ---
 
+## Open Questions (From Implementation)
+
+The following questions arose during implementation of the HubSpot CID archive:
+
+### Q1: File Naming Convention for Query String Variants
+
+When a source.cids key includes a query string like `/crm/v3/objects/contacts?limit=0`, what should the corresponding file be named?
+
+**Options:**
+1. **Semantic names**: `contacts_empty.json`, `contacts_single.json` (current approach)
+2. **Query-encoded names**: `contacts_limit_0.json`, `contacts_limit_1.json`
+3. **URL-encoded names**: `contacts%3Flimit%3D0.json` (not recommended)
+
+**Current approach**: Semantic names (`contacts_empty.json`)
+
+**Trade-offs**:
+- Semantic names are clearer but don't match the source.cids key directly
+- Query-encoded names are mechanical but may be confusing when query strings are complex
+- Need consistency across 93 services
+
+---
+
+### Q2: Directory Structure - Flat vs Nested
+
+Should files be organized in a flat structure or nested to match the API path?
+
+**Options:**
+1. **Flat**: `hubspot/contacts.json`, `hubspot/contacts_501.json`
+2. **Nested**: `hubspot/crm/v3/objects/contacts.json`, `hubspot/crm/v3/objects/contacts/501.json`
+3. **Hybrid**: Flat within service but grouped by resource type
+
+**Current approach**: Flat structure
+
+**Trade-offs**:
+- Flat is simpler and avoids deeply nested directories
+- Nested mirrors the API structure but creates many directories
+- Flat may have naming conflicts for complex APIs
+
+---
+
+### Q3: Cross-Platform Filename Compatibility
+
+Query strings in source.cids keys can contain characters that are invalid in Windows filenames (`?`, `<`, `>`, `:`, `*`, `|`, `"`).
+
+**Current approach**: Files use safe names; source.cids maps query-string paths to those safe filenames
+
+**Confirmed**: The source.cids file handles the mapping, so filenames don't need to contain special characters.
+
+---
+
 ## Success Criteria
 
 1. **All 93 .source.cids files exist** for external API services
