@@ -206,27 +206,10 @@ def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
     except Exception:
         pass
 
-    # Try filesystem path resolution (e.g. reference_templates/...)
-    try:
-        from pathlib import Path
-
-        candidate = str(cid_value) if cid_value is not None else ""
-        if candidate:
-            normalized = candidate.lstrip("/")
-            candidate_path = Path(normalized)
-            if candidate_path.exists() and candidate_path.is_file():
-                if as_bytes:
-                    return candidate_path.read_bytes()
-                return candidate_path.read_text(encoding="utf-8")
-    except Exception:
-        pass
-
     # Try file system as fallback
     try:
         # Remove leading slash if present for filesystem lookup
         bare_cid = cid_value.lstrip("/")
-        from pathlib import Path
-
         cid_file = Path("cids") / bare_cid
         if cid_file.exists():
             if as_bytes:
@@ -875,6 +858,16 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
             if transform_fn:
                 result = transform_fn(response_details, enhanced_context)
                 if isinstance(result, dict) and "output" in result:
+                    content_type = str(result.get("content_type") or "")
+                    if "html" in content_type.lower():
+                        output = result.get("output")
+                        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
+                        old_prefix = f"/gateway/{server_name}"
+                        if isinstance(output, str):
+                            result["output"] = output.replace(old_prefix, prefix)
+                        elif isinstance(output, (bytes, bytearray)):
+                            decoded = bytes(output).decode("utf-8", errors="replace")
+                            result["output"] = decoded.replace(old_prefix, prefix)
                     return result
         except Exception as e:
             logger.error(f"Response transform error: {e}")
@@ -1158,16 +1151,6 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
             if transform_fn:
                 result = transform_fn(response_details, enhanced_context)
                 if isinstance(result, dict) and "output" in result:
-                    content_type = str(result.get("content_type") or "")
-                    if "html" in content_type.lower():
-                        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
-                        old_prefix = f"/gateway/{server_name}"
-                        output = result.get("output")
-                        if isinstance(output, str):
-                            result["output"] = output.replace(old_prefix, prefix)
-                        elif isinstance(output, (bytes, bytearray)):
-                            decoded = bytes(output).decode("utf-8", errors="replace")
-                            result["output"] = decoded.replace(old_prefix, prefix)
                     return result
         except Exception as e:
             logger.error(f"Response transform error: {e}")

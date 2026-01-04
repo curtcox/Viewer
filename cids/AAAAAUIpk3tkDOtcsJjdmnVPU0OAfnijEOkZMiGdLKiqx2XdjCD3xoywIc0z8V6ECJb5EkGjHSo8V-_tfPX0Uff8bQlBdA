@@ -1158,16 +1158,6 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
             if transform_fn:
                 result = transform_fn(response_details, enhanced_context)
                 if isinstance(result, dict) and "output" in result:
-                    content_type = str(result.get("content_type") or "")
-                    if "html" in content_type.lower():
-                        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
-                        old_prefix = f"/gateway/{server_name}"
-                        output = result.get("output")
-                        if isinstance(output, str):
-                            result["output"] = output.replace(old_prefix, prefix)
-                        elif isinstance(output, (bytes, bytearray)):
-                            decoded = bytes(output).decode("utf-8", errors="replace")
-                            result["output"] = decoded.replace(old_prefix, prefix)
                     return result
         except Exception as e:
             logger.error(f"Response transform error: {e}")

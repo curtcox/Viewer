@@ -137,6 +137,35 @@ def test_gateway_test_meta_page(
     assert "jsonplaceholder" in page.lower()
 
 
+def test_gateway_test_rewrites_embedded_gateway_links(
+    client,
+    integration_app,
+    hrx_server,
+    gateway_server,
+    gateways_variable_with_jsonplaceholder,
+):
+    """Test that /gateway/{server} links in HTML are rewritten in test mode."""
+    test_archive_cid = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A"
+    with integration_app.app_context():
+        from pathlib import Path
+
+        from db_access import create_cid_record
+
+        cid_bytes = (Path("cids") / test_archive_cid).read_bytes()
+        create_cid_record(test_archive_cid, cid_bytes)
+
+    test_server_path = f"hrx/{test_archive_cid}"
+    response = client.get(
+        f"/gateway/test/{test_server_path}/as/jsonplaceholder/posts/1",
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "/gateway/jsonplaceholder/posts" not in page
+    assert f"/gateway/test/{test_server_path}/as/jsonplaceholder/posts" in page
+
+
 def test_local_jsonplaceholder_alias_disabled_by_default(
     client,
     integration_app,
