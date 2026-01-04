@@ -106,7 +106,12 @@ def main():
     _store_server(server_name, definition)
 
 
-@step(['And a CID containing "<content>"', "And a CID containing <content>"])
+@step(
+    [
+        'Given a CID containing "<content>"',
+        'And a CID containing "<content>"',
+    ]
+)
 def and_cid_containing(content: str) -> None:
     """Store a CID with the given content."""
     state = get_scenario_state()
@@ -220,7 +225,12 @@ def main(payload):
     _store_server(server_name, definition)
 
 
-@step("When I request the resource /<path_prefix>/{stored CID}")
+@step(
+    [
+        "When I request the resource /<path_prefix>/{stored CID}",
+        "When I request the resource /<path_prefix>/\\{stored CID\\}",
+    ]
+)
 def when_request_resource_with_cid(path_prefix: str) -> None:
     """Request a chained resource using the stored CID."""
 
@@ -628,12 +638,18 @@ def _substitute_placeholders(path: str) -> str:
     state = get_scenario_state()
     result = path
 
+    stored_cid = state.get("last_cid")
+    if isinstance(stored_cid, str):
+        result = result.replace("{stored CID}", stored_cid)
+        result = result.replace("\\{stored CID\\}", stored_cid)
+
     # Replace all {key} placeholders with values from state
     for key, value in state.items():
         if not isinstance(value, str):
             continue
         placeholder = f"{{{key}}}"
         result = result.replace(placeholder, value)
+        result = result.replace(f"\\{{{key}\\}}", value)
 
     return result
 
@@ -645,7 +661,12 @@ def _request_path_and_store_response(path: str) -> None:
     _perform_get_request(resolved_path)
 
 
-@step("When I request the resource /{stored CID}.py/<suffix>")
+@step(
+    [
+        "When I request the resource /{stored CID}.py/<suffix>",
+        "When I request the resource /\\{stored CID\\}.py/<suffix>",
+    ]
+)
 def when_request_python_cid_literal(suffix: str) -> None:
     """Request a Python CID literal server with a suffix."""
     state = get_scenario_state()
@@ -655,7 +676,12 @@ def when_request_python_cid_literal(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}.py/{suffix}")
 
 
-@step("When I request the resource /{stored CID}.sh/<suffix>")
+@step(
+    [
+        "When I request the resource /{stored CID}.sh/<suffix>",
+        "When I request the resource /\\{stored CID\\}.sh/<suffix>",
+    ]
+)
 def when_request_bash_cid_literal(suffix: str) -> None:
     """Request a Bash CID literal server with a suffix."""
     state = get_scenario_state()
@@ -666,7 +692,10 @@ def when_request_bash_cid_literal(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{bash server CID}.sh/{python server CID}.py/<suffix>"
+    [
+        "When I request the resource /{bash server CID}.sh/{python server CID}.py/<suffix>",
+        "When I request the resource /\\{bash server CID\\}.sh/\\{python server CID\\}.py/<suffix>",
+    ]
 )
 def when_request_bash_then_python(suffix: str) -> None:
     """Request bash CID chained into python CID."""
@@ -680,7 +709,10 @@ def when_request_bash_then_python(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{python server CID}.py/{bash server CID}.sh/<suffix>"
+    [
+        "When I request the resource /{python server CID}.py/{bash server CID}.sh/<suffix>",
+        "When I request the resource /\\{python server CID\\}.py/\\{bash server CID\\}.sh/<suffix>",
+    ]
 )
 def when_request_python_then_bash(suffix: str) -> None:
     """Request python CID chained into bash CID."""
@@ -694,7 +726,10 @@ def when_request_python_then_bash(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{python server CID}.py/{clojure server CID}.clj/<suffix>"
+    [
+        "When I request the resource /{python server CID}.py/{clojure server CID}.clj/<suffix>",
+        "When I request the resource /\\{python server CID\\}.py/\\{clojure server CID\\}.clj/<suffix>",
+    ]
 )
 def when_request_python_then_clojure(suffix: str) -> None:
     """Request python CID chained into clojure CID."""
@@ -708,7 +743,10 @@ def when_request_python_then_clojure(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/<suffix>"
+    [
+        "When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/<suffix>",
+        "When I request the resource /\\{bash server CID\\}.sh/\\{clojure server CID\\}.clj/<suffix>",
+    ]
 )
 def when_request_bash_then_clojure(suffix: str) -> None:
     """Request bash CID chained into clojure CID."""
@@ -721,7 +759,12 @@ def when_request_bash_then_clojure(suffix: str) -> None:
     _request_path_and_store_response(f"/{bash_cid}.sh/{clojure_cid}.clj/{suffix}")
 
 
-@step("When I request the resource /{clojure server CID}.clj/{bash server CID}.sh")
+@step(
+    [
+        "When I request the resource /{clojure server CID}.clj/{bash server CID}.sh",
+        "When I request the resource /\\{clojure server CID\\}.clj/\\{bash server CID\\}.sh",
+    ]
+)
 def when_request_clojure_then_bash() -> None:
     """Request clojure CID chained into bash CID."""
     state = get_scenario_state()
@@ -735,7 +778,12 @@ def when_request_clojure_then_bash() -> None:
     _request_path_and_store_response(f"/{clojure_cid}.clj/{bash_cid}.sh")
 
 
-@step("When I request the resource /{clojure server CID}.clj/{python server CID}.py")
+@step(
+    [
+        "When I request the resource /{clojure server CID}.clj/{python server CID}.py",
+        "When I request the resource /\\{clojure server CID\\}.clj/\\{python server CID\\}.py",
+    ]
+)
 def when_request_clojure_then_python() -> None:
     """Request clojure CID chained into python CID."""
     state = get_scenario_state()
@@ -750,7 +798,10 @@ def when_request_clojure_then_python() -> None:
 
 
 @step(
-    "When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj"
+    [
+        "When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj",
+        "When I request the resource /\\{left clojure server CID\\}.clj/\\{right clojure server CID\\}.clj",
+    ]
 )
 def when_request_clojure_chain() -> None:
     """Request left clojure CID chained into right clojure CID."""
@@ -763,7 +814,12 @@ def when_request_clojure_chain() -> None:
     _request_path_and_store_response(f"/{left_cid}.clj/{right_cid}.clj")
 
 
-@step("When I request the resource /{clojure CID}/<suffix>")
+@step(
+    [
+        "When I request the resource /{clojure CID}/<suffix>",
+        "When I request the resource /\\{clojure CID\\}/<suffix>",
+    ]
+)
 def when_request_clojure_no_ext(suffix: str) -> None:
     """Request a clojure CID without extension."""
     state = get_scenario_state()
@@ -774,7 +830,10 @@ def when_request_clojure_no_ext(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/<suffix>"
+    [
+        "When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/<suffix>",
+        "When I request the resource /\\{python server CID\\}.py/\\{clojurescript server CID\\}.cljs/<suffix>",
+    ]
 )
 def when_request_python_then_clojurescript(suffix: str) -> None:
     """Request python CID chained into clojurescript CID."""
@@ -788,7 +847,10 @@ def when_request_python_then_clojurescript(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/<suffix>"
+    [
+        "When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/<suffix>",
+        "When I request the resource /\\{bash server CID\\}.sh/\\{clojurescript server CID\\}.cljs/<suffix>",
+    ]
 )
 def when_request_bash_then_clojurescript(suffix: str) -> None:
     """Request bash CID chained into clojurescript CID."""
@@ -802,7 +864,10 @@ def when_request_bash_then_clojurescript(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs"
+    [
+        "When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs",
+        "When I request the resource /\\{left clojurescript server CID\\}.cljs/\\{right clojurescript server CID\\}.cljs",
+    ]
 )
 def when_request_clojurescript_chain() -> None:
     """Request left clojurescript CID chained into right clojurescript CID."""
@@ -816,7 +881,10 @@ def when_request_clojurescript_chain() -> None:
 
 
 @step(
-    "When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py"
+    [
+        "When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py",
+        "When I request the resource /\\{clojurescript server CID\\}.cljs/\\{python server CID\\}.py",
+    ]
 )
 def when_request_clojurescript_then_python() -> None:
     """Request clojurescript CID chained into python CID."""
@@ -832,7 +900,10 @@ def when_request_clojurescript_then_python() -> None:
 
 
 @step(
-    "When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh"
+    [
+        "When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh",
+        "When I request the resource /\\{clojurescript server CID\\}.cljs/\\{bash server CID\\}.sh",
+    ]
 )
 def when_request_clojurescript_then_bash() -> None:
     """Request clojurescript CID chained into bash CID."""
@@ -847,7 +918,12 @@ def when_request_clojurescript_then_bash() -> None:
     _request_path_and_store_response(f"/{cljs_cid}.cljs/{bash_cid}.sh")
 
 
-@step("When I request the resource /cljs-chain/{python server CID}.py/<suffix>")
+@step(
+    [
+        "When I request the resource /cljs-chain/{python server CID}.py/<suffix>",
+        "When I request the resource /cljs-chain/\\{python server CID\\}.py/<suffix>",
+    ]
+)
 def when_request_cljs_chain_python(suffix: str) -> None:
     """Request named cljs-chain server with python CID input."""
     state = get_scenario_state()
@@ -857,7 +933,12 @@ def when_request_cljs_chain_python(suffix: str) -> None:
     _request_path_and_store_response(f"/cljs-chain/{python_cid}.py/{suffix}")
 
 
-@step("When I request the resource /{clojurescript CID}/<suffix>")
+@step(
+    [
+        "When I request the resource /{clojurescript CID}/<suffix>",
+        "When I request the resource /\\{clojurescript CID\\}/<suffix>",
+    ]
+)
 def when_request_clojurescript_no_ext(suffix: str) -> None:
     """Request a clojurescript CID without extension."""
     state = get_scenario_state()
@@ -868,7 +949,10 @@ def when_request_clojurescript_no_ext(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{python server CID}.py/{typescript server CID}.ts/<suffix>"
+    [
+        "When I request the resource /{python server CID}.py/{typescript server CID}.ts/<suffix>",
+        "When I request the resource /\\{python server CID\\}.py/\\{typescript server CID\\}.ts/<suffix>",
+    ]
 )
 def when_request_python_then_typescript(suffix: str) -> None:
     """Request python CID chained into typescript CID."""
@@ -882,7 +966,10 @@ def when_request_python_then_typescript(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/<suffix>"
+    [
+        "When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/<suffix>",
+        "When I request the resource /\\{bash server CID\\}.sh/\\{typescript server CID\\}.ts/<suffix>",
+    ]
 )
 def when_request_bash_then_typescript(suffix: str) -> None:
     """Request bash CID chained into typescript CID."""
@@ -896,7 +983,10 @@ def when_request_bash_then_typescript(suffix: str) -> None:
 
 
 @step(
-    "When I request the resource /{left typescript server CID}.ts/{right typescript server CID}.ts"
+    [
+        "When I request the resource /{left typescript server CID}.ts/{right typescript server CID}.ts",
+        "When I request the resource /\\{left typescript server CID\\}.ts/\\{right typescript server CID\\}.ts",
+    ]
 )
 def when_request_typescript_chain() -> None:
     """Request left typescript CID chained into right typescript CID."""
@@ -909,7 +999,12 @@ def when_request_typescript_chain() -> None:
     _request_path_and_store_response(f"/{left_cid}.ts/{right_cid}.ts")
 
 
-@step("When I request the resource /{typescript server CID}.ts/{python server CID}.py")
+@step(
+    [
+        "When I request the resource /{typescript server CID}.ts/{python server CID}.py",
+        "When I request the resource /\\{typescript server CID\\}.ts/\\{python server CID\\}.py",
+    ]
+)
 def when_request_typescript_then_python() -> None:
     """Request typescript CID chained into python CID."""
     state = get_scenario_state()
@@ -923,7 +1018,12 @@ def when_request_typescript_then_python() -> None:
     _request_path_and_store_response(f"/{ts_cid}.ts/{python_cid}.py")
 
 
-@step("When I request the resource /{typescript server CID}.ts/{bash server CID}.sh")
+@step(
+    [
+        "When I request the resource /{typescript server CID}.ts/{bash server CID}.sh",
+        "When I request the resource /\\{typescript server CID\\}.ts/\\{bash server CID\\}.sh",
+    ]
+)
 def when_request_typescript_then_bash() -> None:
     """Request typescript CID chained into bash CID."""
     state = get_scenario_state()
@@ -937,7 +1037,12 @@ def when_request_typescript_then_bash() -> None:
     _request_path_and_store_response(f"/{ts_cid}.ts/{bash_cid}.sh")
 
 
-@step("When I request the resource /ts-chain/{python server CID}.py/<suffix>")
+@step(
+    [
+        "When I request the resource /ts-chain/{python server CID}.py/<suffix>",
+        "When I request the resource /ts-chain/\\{python server CID\\}.py/<suffix>",
+    ]
+)
 def when_request_ts_chain_python(suffix: str) -> None:
     """Request named ts-chain server with python CID input."""
     state = get_scenario_state()
@@ -947,7 +1052,12 @@ def when_request_ts_chain_python(suffix: str) -> None:
     _request_path_and_store_response(f"/ts-chain/{python_cid}.py/{suffix}")
 
 
-@step("When I request the resource /{typescript CID}/<suffix>")
+@step(
+    [
+        "When I request the resource /{typescript CID}/<suffix>",
+        "When I request the resource /\\{typescript CID\\}/<suffix>",
+    ]
+)
 def when_request_typescript_no_ext(suffix: str) -> None:
     """Request a typescript CID without extension."""
     state = get_scenario_state()
@@ -957,7 +1067,12 @@ def when_request_typescript_no_ext(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}/{suffix}")
 
 
-@step("When I request the resource /{typescript CID}.ts/<suffix>")
+@step(
+    [
+        "When I request the resource /{typescript CID}.ts/<suffix>",
+        "When I request the resource /\\{typescript CID\\}.ts/<suffix>",
+    ]
+)
 def when_request_typescript_with_ext(suffix: str) -> None:
     """Request a typescript CID with .ts extension."""
     state = get_scenario_state()

@@ -6,7 +6,7 @@ from boot_cid_importer import import_boot_cid
 from database import db
 from identity import ensure_default_resources
 from main import get_default_boot_cid
-from models import Server
+from models import Server, ServerInvocation
 from step_impl.shared_state import get_scenario_state
 from step_impl.artifacts import attach_response_snapshot
 from step_impl.http_helpers import (
@@ -59,6 +59,10 @@ def when_i_request_new_secret_page() -> None:
 @step("When I request the page /server_events")
 def when_i_request_server_events_page() -> None:
     """Request the server events page."""
+    app = _require_app()
+    with app.app_context():
+        db.session.query(ServerInvocation).delete()
+        db.session.commit()
     _perform_get_request("/server_events")
 
 
@@ -291,7 +295,7 @@ def pvipha() -> None:
 def given_echo_server_available() -> None:
     """Ensure the echo server is available in the workspace."""
     _create_server_from_definition_file(
-        "echo", "reference/templates/servers/definitions/echo.py"
+        "echo", "reference/templates/servers/definitions/echo.sh"
     )
 
 
