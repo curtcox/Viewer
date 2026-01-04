@@ -288,10 +288,6 @@ def resolve_segment_type(segment: str) -> Literal["server", "parameter", "cid", 
     if is_cid:
         return "cid"
 
-    # Check if it looks like a CID even if validation fails
-    if is_probable_cid_component(base):
-        return "cid"
-
     # Fallback to parameter
     return "parameter"
 
@@ -403,6 +399,8 @@ def analyze_segment(
 
     # Determine segment type
     info.segment_type = resolve_segment_type(segment)
+    if info.segment_type == "parameter" and total_segments > 1 and position == 0:
+        info.segment_type = "server"
 
     # Determine resolution type
     info.resolution_type = get_resolution_type(segment, info.segment_type)
