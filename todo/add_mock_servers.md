@@ -18,399 +18,799 @@ reference/
 │   └── cids/
 │       ├── jsonplaceholder.source.cids    # Existing reference
 │       │
-│       │   # Group 1: Version Control
+│       │   # Group 1: Version Control & Dev Tools (4 servers)
 │       ├── github.source.cids
 │       ├── gitlab.source.cids
+│       ├── jira.source.cids
+│       ├── confluence.source.cids
 │       │
-│       │   # Group 2: AI/LLM Services
+│       │   # Group 2: AI/LLM Services (7 servers)
 │       ├── openai.source.cids
 │       ├── anthropic.source.cids
 │       ├── gemini.source.cids
+│       ├── openrouter.source.cids
+│       ├── nvidia_nim.source.cids
+│       ├── ai_assist.source.cids
 │       │
-│       │   # Group 3: Communication Platforms
+│       │   # Group 3: Communication Platforms (5 servers)
 │       ├── slack.source.cids
 │       ├── discord.source.cids
 │       ├── teams.source.cids
 │       ├── telegram.source.cids
+│       ├── whatsapp.source.cids
 │       │
-│       │   # Group 4: CRM Systems
+│       │   # Group 4: CRM Systems (8 servers)
 │       ├── hubspot.source.cids
 │       ├── salesforce.source.cids
-│       ├── jira.source.cids
+│       ├── pipedrive.source.cids
+│       ├── close_crm.source.cids
+│       ├── activecampaign.source.cids
+│       ├── insightly.source.cids
+│       ├── gorgias.source.cids
+│       ├── zoho_crm.source.cids
 │       │
-│       │   # Group 5: Payment Processing
+│       │   # Group 5: Payment & Finance (5 servers)
 │       ├── stripe.source.cids
 │       ├── paypal.source.cids
+│       ├── quickbooks.source.cids
+│       ├── xero.source.cids
+│       ├── freshbooks.source.cids
 │       │
-│       │   # Group 6: Email & Marketing
-│       ├── mailchimp.source.cids
+│       │   # Group 6: Email & Marketing (10 servers)
 │       ├── sendgrid.source.cids
+│       ├── mailchimp.source.cids
+│       ├── postmark.source.cids
+│       ├── mailgun.source.cids
+│       ├── mailerlite.source.cids
+│       ├── klaviyo.source.cids
+│       ├── amplitude.source.cids
+│       ├── segment.source.cids
+│       ├── mixpanel.source.cids
+│       ├── typeform.source.cids
 │       │
-│       │   # Group 7: Productivity & Knowledge
+│       │   # Group 7: Project Management & Productivity (9 servers)
 │       ├── notion.source.cids
 │       ├── airtable.source.cids
+│       ├── asana.source.cids
+│       ├── trello.source.cids
+│       ├── monday.source.cids
+│       ├── todoist.source.cids
+│       ├── clickup.source.cids
+│       ├── coda.source.cids
+│       ├── basecamp.source.cids
 │       │
-│       │   # Group 8: E-commerce
-│       └── shopify.source.cids
+│       │   # Group 8: E-commerce (7 servers)
+│       ├── shopify.source.cids
+│       ├── woocommerce.source.cids
+│       ├── ebay.source.cids
+│       ├── etsy.source.cids
+│       ├── squarespace.source.cids
+│       ├── wix.source.cids
+│       │
+│       │   # Group 9: Google Workspace (10 servers)
+│       ├── google_sheets.source.cids
+│       ├── google_docs.source.cids
+│       ├── google_drive.source.cids
+│       ├── google_calendar.source.cids
+│       ├── gmail.source.cids
+│       ├── google_contacts.source.cids
+│       ├── google_forms.source.cids
+│       ├── google_ads.source.cids
+│       ├── google_analytics.source.cids
+│       ├── youtube.source.cids
+│       │
+│       │   # Group 10: Microsoft Services (5 servers)
+│       ├── onedrive.source.cids
+│       ├── microsoft_outlook.source.cids
+│       ├── microsoft_excel.source.cids
+│       ├── dynamics365.source.cids
+│       │
+│       │   # Group 11: Cloud Storage (5 servers)
+│       ├── dropbox.source.cids
+│       ├── box.source.cids
+│       ├── aws_s3.source.cids
+│       ├── azure_blob.source.cids
+│       ├── gcs.source.cids
+│       │
+│       │   # Group 12: Support & Ticketing (4 servers)
+│       ├── zendesk.source.cids
+│       ├── freshdesk.source.cids
+│       ├── helpscout.source.cids
+│       ├── intercom.source.cids
+│       │
+│       │   # Group 13: Document & File Services (5 servers)
+│       ├── docusign.source.cids
+│       ├── docparser.source.cids
+│       ├── pdfco.source.cids
+│       ├── cloudconvert.source.cids
+│       ├── pandadoc.source.cids
+│       │
+│       │   # Group 14: Content & Design (5 servers)
+│       ├── wordpress.source.cids
+│       ├── webflow.source.cids
+│       ├── figma.source.cids
+│       ├── calendly.source.cids
+│       ├── miro.source.cids
+│       │
+│       │   # Group 15: Video & Meetings (2 servers)
+│       ├── zoom.source.cids
+│       │
+│       │   # Group 16: Data Services & Enrichment (6 servers)
+│       ├── hunter.source.cids
+│       ├── clearbit.source.cids
+│       ├── bitly.source.cids
+│       ├── apify.source.cids
+│       ├── parseur.source.cids
+│       ├── jotform.source.cids
+│       │
+│       │   # Group 17: Advertising (2 servers)
+│       ├── linkedin_ads.source.cids
+│       ├── meta_ads.source.cids
+│       │
+│       │   # Group 18: Database Services (3 servers)
+│       ├── bigquery.source.cids
+│       ├── snowflake.source.cids
+│       ├── mongodb.source.cids
+│       │
+│       │   # Group 19: Business & Operations (4 servers)
+│       ├── servicenow.source.cids
+│       ├── uptimerobot.source.cids
+│       ├── front.source.cids
+│       ├── twilio.source.cids
+│       │
+│       │   # Group 20: Generic/Utility
+│       └── proxy.source.cids
 │
 └── files/
-    ├── jsonplaceholder_*.json              # Existing reference
-    │
-    │   # Group 1: Version Control
+    │   # Organized by service - see detailed structure below
     ├── github/
-    │   ├── repos_acme-corp_widgets_issues.json
-    │   ├── repos_acme-corp_widgets_issues_1.json
-    │   ├── repos_acme-corp_widgets_issues_2.json
-    │   ├── rate_limit.json
-    │   └── errors/
-    │       ├── 401_unauthorized.json
-    │       ├── 403_rate_limited.json
-    │       └── 404_not_found.json
     ├── gitlab/
-    │   ├── api_v4_projects.json
-    │   ├── api_v4_projects_42.json
-    │   ├── api_v4_projects_42_issues.json
-    │   ├── api_v4_projects_42_issues_7.json
-    │   ├── api_v4_projects_42_merge_requests.json
-    │   └── errors/
-    │       ├── 401_unauthorized.json
-    │       └── 404_not_found.json
-    │
-    │   # Group 2: AI/LLM Services
-    ├── openai/
-    │   ├── v1_chat_completions.json
-    │   ├── v1_models.json
-    │   └── errors/
-    │       ├── 401_invalid_api_key.json
-    │       └── 429_rate_limited.json
-    ├── anthropic/
-    │   ├── v1_messages.json
-    │   └── errors/
-    │       ├── 401_invalid_api_key.json
-    │       └── 529_overloaded.json
-    ├── gemini/
-    │   ├── v1beta_models_gemini-1.5-flash-latest_generateContent.json
-    │   └── errors/
-    │       └── 400_invalid_request.json
-    │
-    │   # Group 3: Communication Platforms
-    ├── slack/
-    │   ├── api_chat.postMessage.json
-    │   ├── api_conversations.list.json
-    │   └── errors/
-    │       ├── channel_not_found.json
-    │       └── not_authed.json
-    ├── discord/
-    │   ├── users_@me_guilds.json
-    │   ├── guilds_8675309.json
-    │   ├── guilds_8675309_channels.json
-    │   ├── channels_42_messages.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    ├── teams/
-    │   ├── me_joinedTeams.json
-    │   ├── teams_abc-123.json
-    │   ├── teams_abc-123_channels.json
-    │   ├── teams_abc-123_channels_general_messages.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    ├── telegram/
-    │   ├── getUpdates.json
-    │   ├── sendMessage.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    │
-    │   # Group 4: CRM Systems
-    ├── hubspot/
-    │   ├── crm_v3_objects_contacts.json
-    │   ├── crm_v3_objects_contacts_501.json
-    │   ├── crm_v3_objects_companies.json
-    │   ├── crm_v3_objects_companies_101.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    ├── salesforce/
-    │   ├── services_data_v59.0_query.json
-    │   ├── services_data_v59.0_sobjects_Account_001ABC.json
-    │   ├── services_data_v59.0_sobjects_Contact_003XYZ.json
-    │   └── errors/
-    │       └── 401_session_expired.json
     ├── jira/
-    │   ├── rest_api_3_project.json
-    │   ├── rest_api_3_project_ACME.json
-    │   ├── rest_api_3_search.json
-    │   ├── rest_api_3_issue_ACME-42.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    │
-    │   # Group 5: Payment Processing
-    ├── stripe/
-    │   ├── v1_customers.json
-    │   ├── v1_customers_cus_DrBogusMcFakester.json
-    │   ├── v1_charges.json
-    │   ├── v1_charges_ch_1234567890.json
-    │   └── errors/
-    │       ├── 401_invalid_api_key.json
-    │       └── 402_card_declined.json
-    ├── paypal/
-    │   ├── v2_checkout_orders.json
-    │   ├── v2_checkout_orders_5O190127TN364715T.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    │
-    │   # Group 6: Email & Marketing
-    ├── mailchimp/
-    │   ├── 3.0_lists.json
-    │   ├── 3.0_lists_abc123def.json
-    │   ├── 3.0_lists_abc123def_members.json
-    │   ├── 3.0_campaigns.json
-    │   └── errors/
-    │       └── 401_api_key_invalid.json
-    ├── sendgrid/
-    │   ├── v3_mail_send.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    │
-    │   # Group 7: Productivity & Knowledge
-    ├── notion/
-    │   ├── v1_search.json
-    │   ├── v1_pages_abc123.json
-    │   ├── v1_databases_def456_query.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    ├── airtable/
-    │   ├── v0_meta_bases.json
-    │   ├── v0_appXYZ123_Projects.json
-    │   └── errors/
-    │       └── 401_unauthorized.json
-    │
-    │   # Group 8: E-commerce
-    └── shopify/
-        ├── admin_api_2024-01_products.json
-        ├── admin_api_2024-01_products_7654321.json
-        ├── admin_api_2024-01_orders.json
-        ├── admin_api_2024-01_customers.json
-        └── errors/
-            └── 401_unauthorized.json
+    ... (93 service directories)
 ```
 
 ---
 
-## Server Groups (Independent Chunks)
+## Complete Server List (93 External APIs)
 
-### Group 1: Version Control (GitHub, GitLab)
-**Priority**: High - Most commonly used for issue tracking
+### Group 1: Version Control & Dev Tools (4 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| github | `https://api.github.com` | list_issues, get_issue, create_issue |
+| gitlab | `https://gitlab.com/api/v4` | list_projects, list_issues, list_merge_requests |
+| jira | `https://{domain}/rest/api/3` | list_projects, search, get_issue, create_issue |
+| confluence | `https://{domain}/wiki/rest/api` | get_page, search, create_page |
 
-#### GitHub Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/repos/acme-corp/widgets/issues` | `github/repos_acme-corp_widgets_issues.json` | List issues for Acme Corp's widgets repo |
-| `/repos/acme-corp/widgets/issues/1` | `github/repos_acme-corp_widgets_issues_1.json` | Issue #1: "Widget fails on Tuesdays" |
-| `/repos/acme-corp/widgets/issues/2` | `github/repos_acme-corp_widgets_issues_2.json` | Issue #2: "Add support for hexagonal widgets" |
-| `/rate_limit` | `github/rate_limit.json` | API rate limit status |
-| `/errors/401` | `github/errors/401_unauthorized.json` | Bad credentials error |
-| `/errors/403` | `github/errors/403_rate_limited.json` | Rate limit exceeded |
-| `/errors/404` | `github/errors/404_not_found.json` | Not found |
+### Group 2: AI/LLM Services (7 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| openai | `https://api.openai.com` | chat/completions, models |
+| anthropic | `https://api.anthropic.com` | messages |
+| gemini | `https://generativelanguage.googleapis.com` | generateContent |
+| openrouter | `https://openrouter.ai/api/v1` | chat/completions |
+| nvidia_nim | `https://integrate.api.nvidia.com` | chat/completions |
+| ai_assist | `https://openrouter.ai/api/v1` | chat/completions |
+| jsonplaceholder | `https://jsonplaceholder.typicode.com` | posts, users, comments (test API) |
 
-#### GitLab Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/api/v4/projects` | `gitlab/api_v4_projects.json` | List projects |
-| `/api/v4/projects/42` | `gitlab/api_v4_projects_42.json` | Acme Corp's flagship project |
-| `/api/v4/projects/42/issues` | `gitlab/api_v4_projects_42_issues.json` | Project issues |
-| `/api/v4/projects/42/issues/7` | `gitlab/api_v4_projects_42_issues_7.json` | Issue #7 details |
-| `/api/v4/projects/42/merge_requests` | `gitlab/api_v4_projects_42_merge_requests.json` | List MRs |
-| `/errors/401` | `gitlab/errors/401_unauthorized.json` | Unauthorized |
-| `/errors/404` | `gitlab/errors/404_not_found.json` | Not found |
+### Group 3: Communication Platforms (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| slack | `https://slack.com/api` | chat.postMessage, conversations.list |
+| discord | `https://discord.com/api/v10` | guilds, channels, messages |
+| teams | `https://graph.microsoft.com/v1.0` | joinedTeams, channels, messages |
+| telegram | `https://api.telegram.org` | getUpdates, sendMessage |
+| whatsapp | `https://graph.facebook.com/v18.0` | messages |
 
----
+### Group 4: CRM Systems (8 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| hubspot | `https://api.hubapi.com` | contacts, companies, deals |
+| salesforce | `https://{instance}.salesforce.com` | query, sobjects |
+| pipedrive | `https://api.pipedrive.com/v1` | deals, persons, organizations |
+| close_crm | `https://api.close.com/api/v1` | leads, contacts, opportunities |
+| activecampaign | `https://{account}.api-us1.com` | contacts, deals, lists |
+| insightly | `https://api.insightly.com/v3.1` | contacts, opportunities, projects |
+| gorgias | `https://{domain}.gorgias.com/api` | tickets, customers |
+| zoho_crm | `https://www.zohoapis.com/crm/v3` | Leads, Contacts, Deals |
 
-### Group 2: AI/LLM Services (OpenAI, Anthropic, Gemini)
-**Priority**: High - Core AI functionality
+### Group 5: Payment & Finance (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| stripe | `https://api.stripe.com/v1` | customers, charges, subscriptions |
+| paypal | `https://api-m.paypal.com` | orders, payments |
+| quickbooks | `https://quickbooks.api.intuit.com` | invoices, customers, items |
+| xero | `https://api.xero.com/api.xro/2.0` | Invoices, Contacts, Accounts |
+| freshbooks | `https://api.freshbooks.com` | clients, invoices, expenses |
 
-#### OpenAI Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v1/chat/completions` | `openai/v1_chat_completions.json` | Chat completion response |
-| `/v1/models` | `openai/v1_models.json` | List available models |
-| `/errors/401` | `openai/errors/401_invalid_api_key.json` | Invalid API key |
-| `/errors/429` | `openai/errors/429_rate_limited.json` | Rate limited |
+### Group 6: Email & Marketing (10 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| sendgrid | `https://api.sendgrid.com/v3` | mail/send, contacts |
+| mailchimp | `https://{dc}.api.mailchimp.com/3.0` | lists, members, campaigns |
+| postmark | `https://api.postmarkapp.com` | email, templates |
+| mailgun | `https://api.mailgun.net/v3` | messages, domains |
+| mailerlite | `https://connect.mailerlite.com/api` | subscribers, campaigns |
+| klaviyo | `https://a.klaviyo.com/api` | profiles, lists, campaigns |
+| amplitude | `https://api2.amplitude.com` | events, identify |
+| segment | `https://api.segment.io/v1` | track, identify |
+| mixpanel | `https://api.mixpanel.com` | track, engage |
+| typeform | `https://api.typeform.com` | forms, responses |
 
-#### Anthropic Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v1/messages` | `anthropic/v1_messages.json` | Message response |
-| `/errors/401` | `anthropic/errors/401_invalid_api_key.json` | Invalid API key |
-| `/errors/529` | `anthropic/errors/529_overloaded.json` | API overloaded |
+### Group 7: Project Management & Productivity (9 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| notion | `https://api.notion.com/v1` | search, pages, databases |
+| airtable | `https://api.airtable.com/v0` | bases, records |
+| asana | `https://app.asana.com/api/1.0` | tasks, projects, workspaces |
+| trello | `https://api.trello.com/1` | boards, lists, cards |
+| monday | `https://api.monday.com/v2` | boards, items (GraphQL) |
+| todoist | `https://api.todoist.com/rest/v2` | tasks, projects |
+| clickup | `https://api.clickup.com/api/v2` | tasks, lists, spaces |
+| coda | `https://coda.io/apis/v1` | docs, tables, rows |
+| basecamp | `https://3.basecampapi.com` | projects, todos, messages |
 
-#### Google Gemini Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v1beta/models/gemini-1.5-flash-latest:generateContent` | `gemini/v1beta_models_gemini-1.5-flash-latest_generateContent.json` | Generate content |
-| `/errors/400` | `gemini/errors/400_invalid_request.json` | Invalid request |
+### Group 8: E-commerce (7 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| shopify | `https://{store}/admin/api/2024-01` | products, orders, customers |
+| woocommerce | `{store}/wp-json/wc/v3` | products, orders, customers |
+| ebay | `https://api.ebay.com` | browse, sell |
+| etsy | `https://openapi.etsy.com/v3` | listings, shops, receipts |
+| squarespace | `https://api.squarespace.com/1.0` | orders, products, inventory |
+| wix | `https://www.wixapis.com` | stores, products, orders |
 
----
+### Group 9: Google Workspace (10 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| google_sheets | `https://sheets.googleapis.com/v4` | values, spreadsheets |
+| google_docs | `https://docs.googleapis.com/v1` | documents |
+| google_drive | `https://www.googleapis.com/drive/v3` | files, permissions |
+| google_calendar | `https://www.googleapis.com/calendar/v3` | events, calendars |
+| gmail | `https://gmail.googleapis.com/gmail/v1` | messages, labels |
+| google_contacts | `https://people.googleapis.com/v1` | people, connections |
+| google_forms | `https://forms.googleapis.com/v1` | forms, responses |
+| google_ads | `https://googleads.googleapis.com` | campaigns, ad_groups |
+| google_analytics | `https://analyticsdata.googleapis.com` | reports, properties |
+| youtube | `https://www.googleapis.com/youtube/v3` | videos, channels, playlists |
 
-### Group 3: Communication Platforms (Slack, Discord, Teams, Telegram)
-**Priority**: Medium - Collaboration integrations
+### Group 10: Microsoft Services (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| onedrive | `https://graph.microsoft.com/v1.0` | files, folders |
+| microsoft_outlook | `https://graph.microsoft.com/v1.0` | messages, calendar |
+| microsoft_excel | `https://graph.microsoft.com/v1.0` | workbooks, worksheets |
+| dynamics365 | `https://{org}.api.crm.dynamics.com` | accounts, contacts, leads |
 
-#### Slack Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/api/chat.postMessage` | `slack/api_chat.postMessage.json` | Post message success response |
-| `/api/conversations.list` | `slack/api_conversations.list.json` | List channels |
-| `/errors/channel_not_found` | `slack/errors/channel_not_found.json` | Channel not found error |
-| `/errors/not_authed` | `slack/errors/not_authed.json` | Not authenticated |
+### Group 11: Cloud Storage (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| dropbox | `https://api.dropboxapi.com/2` | files, folders, sharing |
+| box | `https://api.box.com/2.0` | files, folders, collaborations |
+| aws_s3 | AWS S3 endpoints | buckets, objects |
+| azure_blob | Azure Blob endpoints | containers, blobs |
+| gcs | `https://storage.googleapis.com` | buckets, objects |
 
-#### Discord Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/users/@me/guilds` | `discord/users_@me_guilds.json` | List user's guilds |
-| `/guilds/8675309` | `discord/guilds_8675309.json` | "The Lounge" guild |
-| `/guilds/8675309/channels` | `discord/guilds_8675309_channels.json` | Guild channels |
-| `/channels/42/messages` | `discord/channels_42_messages.json` | Channel messages |
-| `/errors/401` | `discord/errors/401_unauthorized.json` | Unauthorized |
+### Group 12: Support & Ticketing (4 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| zendesk | `https://{subdomain}.zendesk.com/api/v2` | tickets, users, organizations |
+| freshdesk | `https://{domain}.freshdesk.com/api/v2` | tickets, contacts, companies |
+| helpscout | `https://api.helpscout.net/v2` | conversations, customers |
+| intercom | `https://api.intercom.io` | contacts, conversations, companies |
 
-#### Microsoft Teams Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/me/joinedTeams` | `teams/me_joinedTeams.json` | List joined teams |
-| `/teams/abc-123` | `teams/teams_abc-123.json` | "Project Phoenix" team |
-| `/teams/abc-123/channels` | `teams/teams_abc-123_channels.json` | Team channels |
-| `/teams/abc-123/channels/general/messages` | `teams/teams_abc-123_channels_general_messages.json` | Channel messages |
-| `/errors/401` | `teams/errors/401_unauthorized.json` | Unauthorized |
+### Group 13: Document & File Services (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| docusign | `https://demo.docusign.net/restapi` | envelopes, templates |
+| docparser | `https://api.docparser.com/v1` | parsers, documents |
+| pdfco | `https://api.pdf.co/v1` | pdf operations |
+| cloudconvert | `https://api.cloudconvert.com/v2` | jobs, tasks |
+| pandadoc | `https://api.pandadoc.com/public/v1` | documents, templates |
 
-#### Telegram Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/getUpdates` | `telegram/getUpdates.json` | Bot updates |
-| `/sendMessage` | `telegram/sendMessage.json` | Send message response |
-| `/errors/401` | `telegram/errors/401_unauthorized.json` | Invalid bot token |
+### Group 14: Content & Design (5 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| wordpress | `{site}/wp-json/wp/v2` | posts, pages, media |
+| webflow | `https://api.webflow.com` | sites, collections, items |
+| figma | `https://api.figma.com/v1` | files, images, comments |
+| calendly | `https://api.calendly.com` | events, users, invitees |
+| miro | `https://api.miro.com/v2` | boards, items, widgets |
 
----
+### Group 15: Video & Meetings (2 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| zoom | `https://api.zoom.us/v2` | meetings, users, recordings |
+| youtube | (in Google group) | videos, channels |
 
-### Group 4: CRM Systems (HubSpot, Salesforce, Jira)
-**Priority**: Medium - Business integrations
+### Group 16: Data Services & Enrichment (6 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| hunter | `https://api.hunter.io/v2` | domain-search, email-finder |
+| clearbit | `https://company.clearbit.com/v2` | companies, people |
+| bitly | `https://api-ssl.bitly.com/v4` | shorten, clicks |
+| apify | `https://api.apify.com/v2` | actors, runs, datasets |
+| parseur | `https://api.parseur.com/v1` | mailboxes, documents |
+| jotform | `https://api.jotform.com` | forms, submissions |
 
-#### HubSpot Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/crm/v3/objects/contacts` | `hubspot/crm_v3_objects_contacts.json` | List contacts |
-| `/crm/v3/objects/contacts/501` | `hubspot/crm_v3_objects_contacts_501.json` | Jane Doe contact |
-| `/crm/v3/objects/companies` | `hubspot/crm_v3_objects_companies.json` | List companies |
-| `/crm/v3/objects/companies/101` | `hubspot/crm_v3_objects_companies_101.json` | Acme Corporation |
-| `/errors/401` | `hubspot/errors/401_unauthorized.json` | Unauthorized |
+### Group 17: Advertising (2 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| linkedin_ads | `https://api.linkedin.com/v2` | adAccounts, campaigns |
+| meta_ads | `https://graph.facebook.com/v18.0` | adaccounts, campaigns |
 
-#### Salesforce Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/services/data/v59.0/query` | `salesforce/services_data_v59.0_query.json` | SOQL query results |
-| `/services/data/v59.0/sobjects/Account/001ABC` | `salesforce/services_data_v59.0_sobjects_Account_001ABC.json` | Acme Inc account |
-| `/services/data/v59.0/sobjects/Contact/003XYZ` | `salesforce/services_data_v59.0_sobjects_Contact_003XYZ.json` | Jane Doe contact |
-| `/errors/401` | `salesforce/errors/401_session_expired.json` | Session expired |
+### Group 18: Database Services (3 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| bigquery | Google BigQuery API | query, tables, datasets |
+| snowflake | Snowflake SQL API | queries, warehouses |
+| mongodb | MongoDB Atlas API | clusters, databases, collections |
 
-#### Jira Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/rest/api/3/project` | `jira/rest_api_3_project.json` | List projects |
-| `/rest/api/3/project/ACME` | `jira/rest_api_3_project_ACME.json` | ACME project |
-| `/rest/api/3/search` | `jira/rest_api_3_search.json` | JQL search results |
-| `/rest/api/3/issue/ACME-42` | `jira/rest_api_3_issue_ACME-42.json` | Issue ACME-42 |
-| `/errors/401` | `jira/errors/401_unauthorized.json` | Unauthorized |
+### Group 19: Business & Operations (4 servers)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| servicenow | `https://{instance}.service-now.com/api` | incidents, requests |
+| uptimerobot | `https://api.uptimerobot.com/v2` | monitors, alert_contacts |
+| front | `https://api2.frontapp.com` | conversations, inboxes |
+| twilio | `https://api.twilio.com` | messages, calls |
 
----
-
-### Group 5: Payment Processing (Stripe, PayPal)
-**Priority**: Lower - Specialized use cases
-
-#### Stripe Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v1/customers` | `stripe/v1_customers.json` | List customers |
-| `/v1/customers/cus_DrBogusMcFakester` | `stripe/v1_customers_cus_DrBogusMcFakester.json` | Dr. Bogus McFakester |
-| `/v1/charges` | `stripe/v1_charges.json` | List charges |
-| `/v1/charges/ch_1234567890` | `stripe/v1_charges_ch_1234567890.json` | Charge details |
-| `/errors/401` | `stripe/errors/401_invalid_api_key.json` | Invalid API key |
-| `/errors/402` | `stripe/errors/402_card_declined.json` | Card declined |
-
-#### PayPal Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v2/checkout/orders` | `paypal/v2_checkout_orders.json` | List orders |
-| `/v2/checkout/orders/5O190127TN364715T` | `paypal/v2_checkout_orders_5O190127TN364715T.json` | Order details |
-| `/errors/401` | `paypal/errors/401_unauthorized.json` | Unauthorized |
-
----
-
-### Group 6: Email & Marketing (Mailchimp, SendGrid)
-**Priority**: Lower - Specialized use cases
-
-#### Mailchimp Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/3.0/lists` | `mailchimp/3.0_lists.json` | List mailing lists |
-| `/3.0/lists/abc123def` | `mailchimp/3.0_lists_abc123def.json` | "Monthly Newsletter" list |
-| `/3.0/lists/abc123def/members` | `mailchimp/3.0_lists_abc123def_members.json` | List subscribers |
-| `/3.0/campaigns` | `mailchimp/3.0_campaigns.json` | List campaigns |
-| `/errors/401` | `mailchimp/errors/401_api_key_invalid.json` | API key invalid |
-
-#### SendGrid Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v3/mail/send` | `sendgrid/v3_mail_send.json` | Send mail response (202 Accepted) |
-| `/errors/401` | `sendgrid/errors/401_unauthorized.json` | Unauthorized |
-
----
-
-### Group 7: Productivity & Knowledge (Notion, Airtable)
-**Priority**: Lower - Specialized use cases
-
-#### Notion Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v1/search` | `notion/v1_search.json` | Search results |
-| `/v1/pages/abc123` | `notion/v1_pages_abc123.json` | "Project Roadmap" page |
-| `/v1/databases/def456/query` | `notion/v1_databases_def456_query.json` | Database query results |
-| `/errors/401` | `notion/errors/401_unauthorized.json` | Unauthorized |
-
-#### Airtable Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/v0/meta/bases` | `airtable/v0_meta_bases.json` | List bases |
-| `/v0/appXYZ123/Projects` | `airtable/v0_appXYZ123_Projects.json` | Projects table records |
-| `/errors/401` | `airtable/errors/401_unauthorized.json` | Unauthorized |
-
----
-
-### Group 8: E-commerce (Shopify)
-**Priority**: Lower - Specialized use cases
-
-#### Shopify Archive Endpoints
-| Request Path | File | Description |
-|------|------|-------------|
-| `/admin/api/2024-01/products.json` | `shopify/admin_api_2024-01_products.json` | List products |
-| `/admin/api/2024-01/products/7654321.json` | `shopify/admin_api_2024-01_products_7654321.json` | "Artisanal Widget Deluxe" |
-| `/admin/api/2024-01/orders.json` | `shopify/admin_api_2024-01_orders.json` | List orders |
-| `/admin/api/2024-01/customers.json` | `shopify/admin_api_2024-01_customers.json` | List customers |
-| `/errors/401` | `shopify/errors/401_unauthorized.json` | Unauthorized |
+### Group 20: Generic/Utility (1 server)
+| Server | Base URL | Key Operations |
+|--------|----------|----------------|
+| proxy | Configurable | Generic HTTP proxy |
 
 ---
 
-## Source CID File Format
+## Detailed Archive Structure by Group
 
-Each `.source.cids` file maps request paths to local JSON files. The file extension on the CID determines the MIME type.
+### Group 1: Version Control & Dev Tools
 
+#### GitHub (`reference/files/github/`)
 ```
-# github.source.cids
-/repos/acme-corp/widgets/issues ../../files/github/repos_acme-corp_widgets_issues.json
-/repos/acme-corp/widgets/issues/1 ../../files/github/repos_acme-corp_widgets_issues_1.json
-/repos/acme-corp/widgets/issues/2 ../../files/github/repos_acme-corp_widgets_issues_2.json
-/rate_limit ../../files/github/rate_limit.json
-/errors/401 ../../files/github/errors/401_unauthorized.json
-/errors/403 ../../files/github/errors/403_rate_limited.json
-/errors/404 ../../files/github/errors/404_not_found.json
+github/
+├── repos/acme-corp/widgets/issues                    # List (0 items case)
+├── repos/acme-corp/widgets/issues?state=open         # List (multiple items)
+├── repos/acme-corp/widgets/issues/1                  # Single issue
+├── repos/acme-corp/widgets/issues/2                  # Another issue
+├── rate_limit                                        # Rate limit status
+└── errors/
+    ├── 401_bad_credentials.json
+    ├── 403_rate_limited.json
+    └── 404_not_found.json
 ```
 
-The `.json` extension on file paths ensures responses are served with `application/json` MIME type.
+#### GitLab (`reference/files/gitlab/`)
+```
+gitlab/
+├── api/v4/projects                                   # List projects
+├── api/v4/projects?per_page=1                        # Single item
+├── api/v4/projects/42                                # Project detail
+├── api/v4/projects/42/issues                         # Project issues
+├── api/v4/projects/42/issues/7                       # Issue detail
+├── api/v4/projects/42/merge_requests                 # MRs
+└── errors/
+    ├── 401_unauthorized.json
+    └── 404_not_found.json
+```
+
+#### Jira (`reference/files/jira/`)
+```
+jira/
+├── rest/api/3/project                                # List projects
+├── rest/api/3/project/ACME                           # Project detail
+├── rest/api/3/search?jql=project=ACME                # Search results
+├── rest/api/3/issue/ACME-42                          # Issue detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Confluence (`reference/files/confluence/`)
+```
+confluence/
+├── wiki/rest/api/content                             # List content
+├── wiki/rest/api/content/12345                       # Page detail
+├── wiki/rest/api/content?spaceKey=ACME               # Space content
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 2: AI/LLM Services
+
+#### OpenAI (`reference/files/openai/`)
+```
+openai/
+├── v1/chat/completions                               # Chat response
+├── v1/models                                         # Model list
+└── errors/
+    ├── 401_invalid_api_key.json
+    └── 429_rate_limited.json
+```
+
+#### Anthropic (`reference/files/anthropic/`)
+```
+anthropic/
+├── v1/messages                                       # Message response
+└── errors/
+    ├── 401_invalid_api_key.json
+    └── 529_overloaded.json
+```
+
+#### Gemini (`reference/files/gemini/`)
+```
+gemini/
+├── v1beta/models/gemini-1.5-flash-latest:generateContent
+└── errors/
+    └── 400_invalid_request.json
+```
+
+### Group 3: Communication Platforms
+
+#### Slack (`reference/files/slack/`)
+```
+slack/
+├── api/chat.postMessage                              # Post response
+├── api/conversations.list                            # Channel list
+├── api/conversations.list?limit=1                    # Single channel
+└── errors/
+    ├── channel_not_found.json
+    └── not_authed.json
+```
+
+#### Discord (`reference/files/discord/`)
+```
+discord/
+├── users/@me/guilds                                  # Guild list
+├── guilds/8675309                                    # Guild detail
+├── guilds/8675309/channels                           # Channel list
+├── channels/42/messages                              # Message list
+├── channels/42/messages?limit=1                      # Single message
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Teams (`reference/files/teams/`)
+```
+teams/
+├── me/joinedTeams                                    # Team list
+├── teams/abc-123                                     # Team detail
+├── teams/abc-123/channels                            # Channel list
+├── teams/abc-123/channels/general/messages           # Messages
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 4: CRM Systems
+
+#### HubSpot (`reference/files/hubspot/`)
+```
+hubspot/
+├── crm/v3/objects/contacts                           # Contact list
+├── crm/v3/objects/contacts?limit=0                   # Empty list
+├── crm/v3/objects/contacts?limit=1                   # Single contact
+├── crm/v3/objects/contacts/501                       # Contact detail
+├── crm/v3/objects/companies                          # Company list
+├── crm/v3/objects/companies/101                      # Company detail
+├── crm/v3/objects/deals                              # Deal list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Salesforce (`reference/files/salesforce/`)
+```
+salesforce/
+├── services/data/v59.0/query?q=SELECT+Id,Name+FROM+Account
+├── services/data/v59.0/sobjects/Account/001ABC
+├── services/data/v59.0/sobjects/Contact/003XYZ
+├── services/data/v59.0/sobjects/Opportunity/006DEF
+└── errors/
+    └── 401_session_expired.json
+```
+
+#### Pipedrive (`reference/files/pipedrive/`)
+```
+pipedrive/
+├── v1/deals                                          # Deal list
+├── v1/deals/123                                      # Deal detail
+├── v1/persons                                        # Person list
+├── v1/organizations                                  # Org list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 5: Payment & Finance
+
+#### Stripe (`reference/files/stripe/`)
+```
+stripe/
+├── v1/customers                                      # Customer list
+├── v1/customers?limit=0                              # Empty list
+├── v1/customers/cus_DrBogusMcFakester                # Customer detail
+├── v1/charges                                        # Charge list
+├── v1/charges/ch_1234567890                          # Charge detail
+├── v1/subscriptions                                  # Subscription list
+└── errors/
+    ├── 401_invalid_api_key.json
+    └── 402_card_declined.json
+```
+
+#### PayPal (`reference/files/paypal/`)
+```
+paypal/
+├── v2/checkout/orders                                # Order list
+├── v2/checkout/orders/5O190127TN364715T              # Order detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### QuickBooks (`reference/files/quickbooks/`)
+```
+quickbooks/
+├── v3/company/1234567890/query?query=select+*+from+Invoice
+├── v3/company/1234567890/invoice/123
+├── v3/company/1234567890/customer/456
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 6: Email & Marketing
+
+#### SendGrid (`reference/files/sendgrid/`)
+```
+sendgrid/
+├── v3/mail/send                                      # 202 Accepted response
+├── v3/marketing/contacts                             # Contact list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Mailchimp (`reference/files/mailchimp/`)
+```
+mailchimp/
+├── 3.0/lists                                         # List of lists
+├── 3.0/lists/abc123def                               # List detail
+├── 3.0/lists/abc123def/members                       # Member list
+├── 3.0/lists/abc123def/members?count=0               # Empty
+├── 3.0/campaigns                                     # Campaign list
+└── errors/
+    └── 401_api_key_invalid.json
+```
+
+### Group 7: Project Management & Productivity
+
+#### Notion (`reference/files/notion/`)
+```
+notion/
+├── v1/search                                         # Search results
+├── v1/pages/abc123                                   # Page detail
+├── v1/databases/def456/query                         # Query results
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Airtable (`reference/files/airtable/`)
+```
+airtable/
+├── v0/meta/bases                                     # Base list
+├── v0/appXYZ123/Projects                             # Table records
+├── v0/appXYZ123/Projects?maxRecords=0                # Empty
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Asana (`reference/files/asana/`)
+```
+asana/
+├── api/1.0/tasks                                     # Task list
+├── api/1.0/tasks/12345                               # Task detail
+├── api/1.0/projects                                  # Project list
+├── api/1.0/workspaces                                # Workspace list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Trello (`reference/files/trello/`)
+```
+trello/
+├── 1/boards/abc123                                   # Board detail
+├── 1/boards/abc123/lists                             # List of lists
+├── 1/boards/abc123/cards                             # Card list
+├── 1/cards/xyz789                                    # Card detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 8: E-commerce
+
+#### Shopify (`reference/files/shopify/`)
+```
+shopify/
+├── admin/api/2024-01/products.json                   # Product list
+├── admin/api/2024-01/products.json?limit=0           # Empty
+├── admin/api/2024-01/products/7654321.json           # Product detail
+├── admin/api/2024-01/orders.json                     # Order list
+├── admin/api/2024-01/customers.json                  # Customer list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 9: Google Workspace
+
+#### Google Sheets (`reference/files/google_sheets/`)
+```
+google_sheets/
+├── v4/spreadsheets/1BxiMVs0XRA5nFMdKvBd                 # Spreadsheet
+├── v4/spreadsheets/1BxiMVs0XRA5nFMdKvBd/values/Sheet1!A1:C10
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Google Drive (`reference/files/google_drive/`)
+```
+google_drive/
+├── drive/v3/files                                    # File list
+├── drive/v3/files?q=mimeType='application/pdf'       # Filtered
+├── drive/v3/files/abc123                             # File detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 10: Microsoft Services
+
+#### OneDrive (`reference/files/onedrive/`)
+```
+onedrive/
+├── v1.0/me/drive/root/children                       # File list
+├── v1.0/me/drive/items/abc123                        # Item detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 11: Cloud Storage
+
+#### Dropbox (`reference/files/dropbox/`)
+```
+dropbox/
+├── 2/files/list_folder                               # Folder contents
+├── 2/files/get_metadata                              # File metadata
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### AWS S3 (`reference/files/aws_s3/`)
+```
+aws_s3/
+├── list_buckets                                      # Bucket list
+├── list_objects?bucket=acme-widgets                  # Object list
+└── errors/
+    └── 403_access_denied.json
+```
+
+### Group 12: Support & Ticketing
+
+#### Zendesk (`reference/files/zendesk/`)
+```
+zendesk/
+├── api/v2/tickets                                    # Ticket list
+├── api/v2/tickets.json?page[size]=0                  # Empty
+├── api/v2/tickets/12345                              # Ticket detail
+├── api/v2/users                                      # User list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Freshdesk (`reference/files/freshdesk/`)
+```
+freshdesk/
+├── api/v2/tickets                                    # Ticket list
+├── api/v2/tickets/67890                              # Ticket detail
+├── api/v2/contacts                                   # Contact list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 13: Document & File Services
+
+#### DocuSign (`reference/files/docusign/`)
+```
+docusign/
+├── restapi/v2.1/accounts/abc123/envelopes            # Envelope list
+├── restapi/v2.1/accounts/abc123/envelopes/xyz789     # Envelope detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 14: Content & Design
+
+#### WordPress (`reference/files/wordpress/`)
+```
+wordpress/
+├── wp-json/wp/v2/posts                               # Post list
+├── wp-json/wp/v2/posts/123                           # Post detail
+├── wp-json/wp/v2/pages                               # Page list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Figma (`reference/files/figma/`)
+```
+figma/
+├── v1/files/abc123                                   # File detail
+├── v1/files/abc123/images                            # Image exports
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 15: Video & Meetings
+
+#### Zoom (`reference/files/zoom/`)
+```
+zoom/
+├── v2/users/me/meetings                              # Meeting list
+├── v2/meetings/12345                                 # Meeting detail
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 16: Data Services & Enrichment
+
+#### Hunter (`reference/files/hunter/`)
+```
+hunter/
+├── v2/domain-search?domain=acme.example.com          # Domain search
+├── v2/email-finder?domain=acme.example.com&first_name=Jane
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### Clearbit (`reference/files/clearbit/`)
+```
+clearbit/
+├── v2/companies/find?domain=acme.example.com         # Company lookup
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 17: Advertising
+
+#### LinkedIn Ads (`reference/files/linkedin_ads/`)
+```
+linkedin_ads/
+├── v2/adAccountsV2                                   # Account list
+├── v2/adCampaignsV2?search.account.values[0]=urn:li:sponsoredAccount:123
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 18: Database Services
+
+#### BigQuery (`reference/files/bigquery/`)
+```
+bigquery/
+├── bigquery/v2/projects/my-project/datasets          # Dataset list
+├── bigquery/v2/projects/my-project/queries           # Query result
+└── errors/
+    └── 401_unauthorized.json
+```
+
+### Group 19: Business & Operations
+
+#### Twilio (`reference/files/twilio/`)
+```
+twilio/
+├── 2010-04-01/Accounts/AC123/Messages.json           # Message list
+├── 2010-04-01/Accounts/AC123/Messages/SM456.json     # Message detail
+├── 2010-04-01/Accounts/AC123/Calls.json              # Call list
+└── errors/
+    └── 401_unauthorized.json
+```
+
+#### ServiceNow (`reference/files/servicenow/`)
+```
+servicenow/
+├── api/now/table/incident                            # Incident list
+├── api/now/table/incident/abc123                     # Incident detail
+└── errors/
+    └── 401_unauthorized.json
+```
 
 ---
 
@@ -436,11 +836,14 @@ CID archives contain static response data. How different HTTP methods (POST, PUT
 CID archives simply serve static content. Authentication validation would be handled by the consuming gateway or mock server.
 
 ### Query Parameter Handling
-**Decision**: Fixed paths matching realistic request URLs.
+**Decision**: Full URL path including query string.
 
-Archive paths should match realistic request URLs against the real server. For example:
-- `/repos/acme-corp/widgets/issues` (not `/repos/{owner}/{repo}/issues`)
-- `/v1/customers/cus_DrBogusMcFakester` (not `/v1/customers/{id}`)
+Archive keys are the URL minus protocol, server, and port. Query strings are included as-is:
+- `/repos/acme-corp/widgets/issues?state=open`
+- `/v1/customers?limit=10`
+- `/services/data/v59.0/query?q=SELECT+Id,Name+FROM+Account`
+
+No special encoding needed - URLs cannot contain spaces, so space-separated format works.
 
 ### Error Response Mocking
 **Decision**: Special `/errors/{status_code}` paths.
@@ -454,27 +857,54 @@ Each archive includes an `errors/` subdirectory with error responses:
 ### Response Headers
 **Decision**: Determined by CID file extension.
 
-The `.json` extension on CID file paths ensures `application/json` MIME type. Additional headers would be added by the consuming gateway.
+The `.json` extension on CID file paths ensures `application/json` MIME type.
 
 ### Versioning
 **Decision**: One archive per service.
 
-Start with single archives per service. Add versioning if API changes require different response formats.
-
 ### Data Generation
 **Decision**: Either hand-crafted or generated is acceptable.
 
-Use clearly fake data with realistic structure. All mock data should use fictional names, emails, and identifiers that are obviously not real.
+### List Response Item Counts
+**Decision**: Cover 0, 1, and multiple items.
+
+For list endpoints, provide variants to test edge cases:
+- Empty list: `?limit=0` or `?count=0` → 0 items
+- Single item: `?limit=1` or `?per_page=1` → 1 item
+- Multiple items: Default → 2-3 realistic items
+
+This ensures tests cover all list handling scenarios.
+
+### Pagination in List Responses
+**Decision**: Include pagination fields indicating end of list.
+
+Include realistic pagination fields but with values showing no more pages:
+- `has_more: false`
+- `next_cursor: null`
+- No `Link` header for next page
 
 ### Transform Reuse
 **Decision**: Yes - archives replace internal server calls.
 
-The same request/response transforms work for both real APIs and CID archives. The CID archive replaces the external API call portion of the internal server.
-
 ### Archive Compilation
 **Decision**: Already part of CI/CD.
 
-The `.source.cids` files are compiled to `.cids` files (with actual CIDs) as part of the existing CI/CD pipeline.
+---
+
+## Source CID File Format
+
+Each `.source.cids` file maps request paths (including query strings) to local JSON files:
+
+```
+# github.source.cids
+/repos/acme-corp/widgets/issues ../../files/github/repos/acme-corp/widgets/issues.json
+/repos/acme-corp/widgets/issues?state=open ../../files/github/repos/acme-corp/widgets/issues_state_open.json
+/repos/acme-corp/widgets/issues/1 ../../files/github/repos/acme-corp/widgets/issues/1.json
+/rate_limit ../../files/github/rate_limit.json
+/errors/401 ../../files/github/errors/401_bad_credentials.json
+```
+
+The `.json` extension ensures `application/json` MIME type.
 
 ---
 
@@ -483,9 +913,9 @@ The `.source.cids` files are compiled to `.cids` files (with actual CIDs) as par
 ### Archive Structure Tests
 
 ```gherkin
-Scenario: Source CID file exists for each service
+Scenario: Source CID file exists for each of the 93 services
   Given the reference/archive/cids/ directory
-  Then there should be a .source.cids file for each planned service
+  Then there should be a .source.cids file for each external API service
 
 Scenario: All referenced files exist
   Given a .source.cids file
@@ -496,322 +926,265 @@ Scenario: All JSON files are valid
   Given a JSON file in reference/files/
   When the file is parsed
   Then it should be valid JSON
+```
 
-Scenario: JSON files have correct structure for their API
-  Given github/repos_acme-corp_widgets_issues.json
-  When validated against GitHub API schema
-  Then it should have required fields: url, repository_url, labels_url, etc.
-  And each issue should have: id, number, title, state, user
+### List Response Tests
+
+```gherkin
+Scenario: List endpoints have empty, single, and multiple item variants
+  Given a service with list endpoints
+  Then there should be a variant returning 0 items
+  And there should be a variant returning 1 item
+  And there should be a variant returning multiple items
+
+Scenario: Empty list response has correct structure
+  Given hubspot/crm/v3/objects/contacts?limit=0
+  Then results array should be empty
+  And paging should indicate no more results
+
+Scenario: Single item list response has one element
+  Given hubspot/crm/v3/objects/contacts?limit=1
+  Then results array should have exactly 1 element
+
+Scenario: Multiple item list response has variety
+  Given hubspot/crm/v3/objects/contacts
+  Then results array should have 2-3 elements
+  And elements should have different IDs and data
+```
+
+### Query String Tests
+
+```gherkin
+Scenario: Paths with query strings are valid keys
+  Given github.source.cids contains "/repos/acme-corp/widgets/issues?state=open"
+  Then the key should be stored without additional encoding
+  And the file path should use underscores for special characters
+
+Scenario: Query string variations map to different files
+  Given paths "/v1/customers" and "/v1/customers?limit=10"
+  Then each should map to a different response file
 ```
 
 ### Response Content Tests
 
 ```gherkin
 Scenario: GitHub issues list has realistic content
-  Given github/repos_acme-corp_widgets_issues.json
-  Then it should contain multiple issues
+  Given github/repos/acme-corp/widgets/issues.json
+  Then it should contain 2-3 issues
   And issues should have realistic titles and bodies
   And user.login values should be fictional names
   And all URLs should reference acme-corp/widgets
 
 Scenario: OpenAI completion has correct structure
-  Given openai/v1_chat_completions.json
+  Given openai/v1/chat/completions.json
   Then it should have id starting with "chatcmpl-"
   And object should be "chat.completion"
   And choices array should contain message with role "assistant"
   And usage should have prompt_tokens, completion_tokens, total_tokens
 
-Scenario: Anthropic message has correct structure
-  Given anthropic/v1_messages.json
-  Then it should have id starting with "msg_"
-  And type should be "message"
-  And role should be "assistant"
-  And content should be array with type "text"
-  And stop_reason should be "end_turn"
-
-Scenario: Slack response has ok field
-  Given slack/api_chat.postMessage.json
-  Then it should have ok: true
-  And channel should be a valid channel ID format
-  And ts should be a timestamp string
-
-Scenario: Stripe customer has correct structure
-  Given stripe/v1_customers_cus_DrBogusMcFakester.json
-  Then object should be "customer"
-  And id should be "cus_DrBogusMcFakester"
-  And email should be a fictional email address
+Scenario: Stripe customer list has correct pagination
+  Given stripe/v1/customers.json
+  Then object should be "list"
+  And has_more should be false
+  And data should contain 2-3 customer objects
 ```
 
 ### Error Response Tests
 
 ```gherkin
-Scenario: GitHub 401 error has correct structure
-  Given github/errors/401_unauthorized.json
+Scenario: Each service has at least a 401 error response
+  Given any service directory in reference/files/
+  Then it should have an errors/ subdirectory
+  And errors/ should contain at least 401_*.json
+
+Scenario: Error responses match API format
+  Given github/errors/401_bad_credentials.json
   Then it should have message field
   And documentation_url should be a valid GitHub docs URL
-
-Scenario: GitHub 403 rate limit error has rate limit info
-  Given github/errors/403_rate_limited.json
-  Then it should have message about rate limit
-  And documentation_url should reference rate limiting
-
-Scenario: OpenAI 401 error has correct structure
-  Given openai/errors/401_invalid_api_key.json
-  Then error.type should be "invalid_api_key" or similar
-  And error.message should mention API key
-
-Scenario: Slack error has ok: false
-  Given slack/errors/channel_not_found.json
-  Then ok should be false
-  And error should be "channel_not_found"
-
-Scenario: Stripe 402 error has decline details
-  Given stripe/errors/402_card_declined.json
-  Then error.type should be "card_error"
-  And error.code should indicate decline reason
 ```
 
 ### Data Consistency Tests
 
 ```gherkin
-Scenario: Cross-references are consistent
-  Given github/repos_acme-corp_widgets_issues.json
-  When an issue references user.login "janedoe"
-  Then that user should appear consistently across all files
-
 Scenario: IDs are consistent within service
-  Given stripe/v1_customers.json (list)
-  And stripe/v1_customers_cus_DrBogusMcFakester.json (detail)
+  Given stripe/v1/customers.json (list)
+  And stripe/v1/customers/cus_DrBogusMcFakester.json (detail)
   Then the customer in the detail file should appear in the list
 
 Scenario: Fictional data is clearly fake
   Given any mock JSON file
   Then email addresses should use example.com or similar
-  And company names should be obviously fictional (Acme, Globex)
-  And person names should be obviously fake (Jane Doe, Dr. Bogus McFakester)
-```
-
-### MIME Type Tests
-
-```gherkin
-Scenario: JSON files specify correct MIME type
-  Given a .source.cids file
-  When a path maps to a .json file
-  Then the file extension should cause application/json MIME type
-
-Scenario: All paths map to JSON files for API archives
-  Given any API service .source.cids file
-  Then all file references should end in .json
-```
-
-### Source CID Compilation Tests
-
-```gherkin
-Scenario: Source CID files compile without errors
-  Given a valid .source.cids file
-  When compiled by CI/CD
-  Then a corresponding .cids file should be created
-  And no compilation errors should occur
-
-Scenario: All file paths in source.cids are valid
-  Given a .source.cids file
-  Then all relative paths should resolve to existing files
-  And paths should use consistent forward slash separators
+  And company names should be obviously fictional
+  And person names should be obviously fake
 ```
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Version Control (Group 1) - GitHub & GitLab
-1. Create `reference/files/github/` directory
-2. Create mock JSON files for GitHub endpoints
-3. Create `reference/archive/cids/github.source.cids`
-4. Repeat for GitLab
-5. Run tests to validate structure
+### Phase 1: Version Control & Dev Tools (4 servers)
+GitHub, GitLab, Jira, Confluence
 
-### Phase 2: AI/LLM Services (Group 2) - OpenAI, Anthropic, Gemini
-1. Create mock response files with realistic AI completions
-2. Include proper token counts and model identifiers
-3. Create source.cids files
-4. Run tests
+### Phase 2: AI/LLM Services (7 servers)
+OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, AI Assist, JSONPlaceholder
 
-### Phase 3: Communication Platforms (Group 3) - Slack, Discord, Teams, Telegram
-1. Create mock responses for each platform
-2. Use realistic channel/guild/team names
-3. Create source.cids files
-4. Run tests
+### Phase 3: Communication Platforms (5 servers)
+Slack, Discord, Teams, Telegram, WhatsApp
 
-### Phase 4-8: Remaining Groups
-Follow same pattern for CRM, Payment, Email, Productivity, E-commerce groups.
+### Phase 4: CRM Systems (8 servers)
+HubSpot, Salesforce, Pipedrive, Close CRM, ActiveCampaign, Insightly, Gorgias, Zoho CRM
+
+### Phase 5: Payment & Finance (5 servers)
+Stripe, PayPal, QuickBooks, Xero, FreshBooks
+
+### Phase 6: Email & Marketing (10 servers)
+SendGrid, Mailchimp, Postmark, Mailgun, MailerLite, Klaviyo, Amplitude, Segment, Mixpanel, Typeform
+
+### Phase 7: Project Management (9 servers)
+Notion, Airtable, Asana, Trello, Monday, Todoist, ClickUp, Coda, Basecamp
+
+### Phase 8: E-commerce (7 servers)
+Shopify, WooCommerce, eBay, Etsy, Squarespace, Wix
+
+### Phase 9: Google Workspace (10 servers)
+Sheets, Docs, Drive, Calendar, Gmail, Contacts, Forms, Ads, Analytics, YouTube
+
+### Phase 10: Microsoft Services (5 servers)
+OneDrive, Outlook, Excel, Dynamics 365, (Teams in Group 3)
+
+### Phase 11: Cloud Storage (5 servers)
+Dropbox, Box, AWS S3, Azure Blob, GCS
+
+### Phase 12: Support & Ticketing (4 servers)
+Zendesk, Freshdesk, HelpScout, Intercom
+
+### Phase 13: Document & File Services (5 servers)
+DocuSign, Docparser, PDF.co, CloudConvert, PandaDoc
+
+### Phase 14: Content & Design (5 servers)
+WordPress, Webflow, Figma, Calendly, Miro
+
+### Phase 15: Video & Meetings (2 servers)
+Zoom, (YouTube in Google group)
+
+### Phase 16: Data Services (6 servers)
+Hunter, Clearbit, Bitly, Apify, Parseur, JotForm
+
+### Phase 17: Advertising (2 servers)
+LinkedIn Ads, Meta Ads
+
+### Phase 18: Database Services (3 servers)
+BigQuery, Snowflake, MongoDB
+
+### Phase 19: Business & Operations (4 servers)
+ServiceNow, UptimeRobot, Front, Twilio
+
+### Phase 20: Generic (1 server)
+Proxy
 
 ---
 
 ## Sample Mock Data
 
-### GitHub Issue (repos_acme-corp_widgets_issues_1.json)
+### GitHub Issue List (repos/acme-corp/widgets/issues.json)
+```json
+[
+  {
+    "id": 1,
+    "number": 1,
+    "title": "Widget fails to spin on Tuesdays",
+    "state": "open",
+    "user": {"login": "janedoe", "id": 12345}
+  },
+  {
+    "id": 2,
+    "number": 2,
+    "title": "Add support for hexagonal widgets",
+    "state": "open",
+    "user": {"login": "johnsmith", "id": 67890}
+  }
+]
+```
+
+### Empty List (hubspot/crm/v3/objects/contacts?limit=0)
 ```json
 {
-  "id": 1,
-  "node_id": "I_kwDOExample",
-  "url": "https://api.github.com/repos/acme-corp/widgets/issues/1",
-  "repository_url": "https://api.github.com/repos/acme-corp/widgets",
-  "number": 1,
-  "title": "Widget fails to spin on Tuesdays",
-  "body": "## Description\n\nThe widget refuses to spin when the current day is Tuesday. This affects all widget models manufactured after 2023.\n\n## Steps to Reproduce\n1. Wait until Tuesday\n2. Attempt to spin widget\n3. Observe failure\n\n## Expected Behavior\nWidget should spin regardless of day of week.",
-  "state": "open",
-  "user": {
-    "login": "janedoe",
-    "id": 12345,
-    "avatar_url": "https://avatars.example.com/janedoe",
-    "type": "User"
-  },
-  "labels": [
-    {"id": 1, "name": "bug", "color": "d73a4a"},
-    {"id": 2, "name": "priority: high", "color": "ff0000"}
-  ],
-  "assignee": {
-    "login": "johnsmith",
-    "id": 67890,
-    "type": "User"
-  },
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-16T14:22:00Z",
-  "comments": 3
+  "results": [],
+  "paging": {}
 }
 ```
 
-### OpenAI Chat Completion (v1_chat_completions.json)
+### Single Item List (hubspot/crm/v3/objects/contacts?limit=1)
 ```json
 {
-  "id": "chatcmpl-abc123def456",
-  "object": "chat.completion",
-  "created": 1704067200,
-  "model": "gpt-4o-mini",
-  "choices": [
+  "results": [
     {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Hello! I'm a simulated response from the OpenAI API. This is mock data for testing purposes. How can I help you today?"
-      },
-      "logprobs": null,
-      "finish_reason": "stop"
+      "id": "501",
+      "properties": {
+        "firstname": "Jane",
+        "lastname": "Doe",
+        "email": "jane.doe@example.com"
+      }
     }
   ],
-  "usage": {
-    "prompt_tokens": 12,
-    "completion_tokens": 28,
-    "total_tokens": 40
-  },
-  "system_fingerprint": "fp_mock123"
-}
-```
-
-### Anthropic Message (v1_messages.json)
-```json
-{
-  "id": "msg_mock123abc",
-  "type": "message",
-  "role": "assistant",
-  "content": [
-    {
-      "type": "text",
-      "text": "Hello! I'm a simulated response from the Anthropic API. This is mock data for testing gateway functionality."
-    }
-  ],
-  "model": "claude-sonnet-4-20250514",
-  "stop_reason": "end_turn",
-  "stop_sequence": null,
-  "usage": {
-    "input_tokens": 15,
-    "output_tokens": 24
+  "paging": {
+    "next": null
   }
 }
 ```
 
-### Stripe Customer (v1_customers_cus_DrBogusMcFakester.json)
+### Stripe Customer List (v1/customers.json)
 ```json
 {
-  "id": "cus_DrBogusMcFakester",
-  "object": "customer",
-  "created": 1704067200,
-  "email": "bogus@fakester.example.com",
-  "name": "Dr. Bogus McFakester",
-  "description": "Test customer for mock API responses",
-  "phone": "+1-555-FAKE-123",
-  "address": {
-    "line1": "123 Fictional Street",
-    "city": "Faketown",
-    "state": "FS",
-    "postal_code": "12345",
-    "country": "US"
-  },
-  "currency": "usd",
-  "default_source": null,
-  "livemode": false,
-  "metadata": {
-    "test": "true"
-  }
+  "object": "list",
+  "url": "/v1/customers",
+  "has_more": false,
+  "data": [
+    {
+      "id": "cus_DrBogusMcFakester",
+      "object": "customer",
+      "email": "bogus@fakester.example.com",
+      "name": "Dr. Bogus McFakester"
+    },
+    {
+      "id": "cus_JaneDoe123",
+      "object": "customer",
+      "email": "jane.doe@example.com",
+      "name": "Jane Doe"
+    }
+  ]
 }
 ```
-
-### GitHub 403 Rate Limit Error (errors/403_rate_limited.json)
-```json
-{
-  "message": "API rate limit exceeded for user ID 12345. See https://docs.github.com/rest/overview/rate-limits-for-the-rest-api for more information.",
-  "documentation_url": "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api"
-}
-```
-
----
-
-## Follow-up Questions
-
-### Q1: Should error paths include the HTTP status code or descriptive name?
-Currently proposed: `/errors/401`, `/errors/403`, etc.
-Alternative: `/errors/unauthorized`, `/errors/rate_limited`, etc.
-
-**Recommendation**: Use status codes as primary since they're what callers will look up. The file names can include descriptions (e.g., `401_unauthorized.json`).
-
-### Q2: Should we include pagination tokens/links in list responses?
-Some APIs (GitHub, Stripe) return pagination info (Link headers, `has_more` fields, next/prev cursors).
-
-**Recommendation**: Include pagination fields in responses to test that consuming code handles them correctly, but with values indicating "end of list" (e.g., `has_more: false`).
-
-### Q3: How should query strings be handled in path matching?
-Example: `/services/data/v59.0/query?q=SELECT...`
-
-The source.cids format uses space-separated path and file. Should query strings be:
-- Ignored (path only matching)
-- Encoded in the path somehow
-- Handled by separate mechanism
-
-**Recommendation**: For now, use base paths without query strings. The actual query string handling would be part of the gateway, which is out of scope.
-
-### Q4: Should list endpoints return 1, 2, or more items?
-For list responses like `/repos/acme-corp/widgets/issues`, how many items should be included?
-
-**Recommendation**: 2-3 items is sufficient to demonstrate list behavior without excessive file size. Include enough to show variety.
 
 ---
 
 ## Success Criteria
 
-1. **All .source.cids files exist** for planned services
+1. **All 93 .source.cids files exist** for external API services
 2. **All referenced JSON files exist** and parse correctly
 3. **JSON structure matches** real API response formats
-4. **Error responses exist** for common error cases per service
-5. **All tests pass** validating structure and content
-6. **Data is clearly fictional** (no real emails, companies, etc.)
-7. **CI/CD compilation** produces valid .cids files
+4. **List endpoints have 0, 1, and multiple item variants**
+5. **Error responses exist** for common error cases per service
+6. **All tests pass** validating structure and content
+7. **Data is clearly fictional** (no real emails, companies, etc.)
+8. **CI/CD compilation** produces valid .cids files
+
+---
+
+## Total File Count Estimate
+
+- 93 services
+- ~5-10 endpoints per service average
+- ~3 variants for list endpoints (0, 1, many)
+- ~2-3 error responses per service
+
+**Estimated total: ~800-1000 JSON files**
 
 ---
 
 ## Next Steps
 
-1. **Resolve follow-up questions** through iteration
-2. **Implement Phase 1** (GitHub, GitLab) as proof of concept
-3. **Run structure validation tests**
-4. **Verify CI/CD compilation** works for new archives
-5. **Proceed with remaining phases**
+1. **Implement Phase 1** (GitHub, GitLab, Jira, Confluence) as proof of concept
+2. **Run structure validation tests**
+3. **Verify CI/CD compilation** works for new archives
+4. **Proceed with remaining phases**
