@@ -36,10 +36,13 @@
 
     <p>The gateway server provides a unified interface for accessing internal servers with customizable request and response transformations.</p>
 
-    <h2>How It Works</h2>
+    <h2>How it Works</h2>
 
     <div class="card">
         <h3>URL Format</h3>
+        <p><code>/gateway?target_server=&lt;url&gt;</code></p>
+        <p>Use <code>target_server</code> to select the upstream REST API.</p>
+        <p><code>request_transform</code> and <code>response_transform</code> optionally customize the request and response.</p>
         <p><code>/gateway/{server}/{path}</code></p>
         <p>Where <code>{server}</code> is a configured gateway name and <code>{path}</code> is passed to the internal server.</p>
     </div>
@@ -64,6 +67,46 @@
             <h3><a href="/gateway/response">Response Experimenter</a></h3>
             <p>Test and modify response transformations interactively. Load previous invocations by CID.</p>
         </div>
+    </div>
+
+    <h2>API Examples</h2>
+
+    <div class="card">
+        <h3>GitHub API</h3>
+        <p><strong>No Auth</strong></p>
+        <p><a href="/gateway?target_server=https://api.github.com">/gateway?target_server=https://api.github.com</a></p>
+    </div>
+
+    <div class="card">
+        <h3>OpenAI API</h3>
+        <p><strong>API Key Required</strong></p>
+        <p><a href="/gateway?target_server=https://api.openai.com">/gateway?target_server=https://api.openai.com</a></p>
+    </div>
+
+    <div class="card">
+        <h3>Anthropic API</h3>
+        <p><strong>API Key Required</strong></p>
+        <p><a href="/gateway?target_server=https://api.anthropic.com">/gateway?target_server=https://api.anthropic.com</a></p>
+    </div>
+
+    <div class="card">
+        <h3>Google</h3>
+        <p><strong>API Key Required</strong></p>
+    </div>
+
+    <div class="card">
+        <h3>OpenRouter</h3>
+        <p><strong>API Key Required</strong></p>
+    </div>
+
+    <div class="card">
+        <h3>Eleven Labs</h3>
+        <p><strong>API Key Required</strong></p>
+    </div>
+
+    <div class="card">
+        <h3>Vercel</h3>
+        <p><strong>API Key Required</strong></p>
     </div>
 
     <h2>Configured Gateways</h2>

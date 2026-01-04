@@ -32,6 +32,7 @@ class BootImageGenerator:
         self.base_dir = base_dir
         self.reference_templates_dir = base_dir / "reference" / "templates"
         self.reference_files_dir = base_dir / "reference" / "files"
+        self.reference_archive_cids_dir = base_dir / "reference" / "archive" / "cids"
         self.cids_dir = base_dir / "cids"
         self.processed_files: Set[str] = set()
         self.file_to_cid: Dict[str, str] = {}
@@ -54,6 +55,62 @@ class BootImageGenerator:
                 continue
             relative_path = str(file_path.relative_to(self.base_dir)).replace("\\", "/")
             self.generate_and_store_cid(file_path, relative_path)
+
+    def process_reference_source_cids_archives(self) -> None:
+        """Convert reference/archive/cids/*.source.cids into reference/files/*.cids.
+
+        Source archives list response payload files by a path that is relative to the
+        .source.cids file itself. The generated .cids archive will reference the
+        response payloads by CID (with request path extension preserved).
+        """
+        if not self.reference_archive_cids_dir.exists():
+            return
+
+        self.reference_files_dir.mkdir(parents=True, exist_ok=True)
+
+        for source_path in sorted(self.reference_archive_cids_dir.glob("*.source.cids")):
+            target_path = self.reference_files_dir / source_path.name.replace(
+                ".source.cids", ".cids"
+            )
+
+            lines = source_path.read_text(encoding="utf-8").splitlines()
+            processed_lines: list[str] = []
+
+            for line_num, raw_line in enumerate(lines, 1):
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                parts = line.split(None, 1)
+                if len(parts) != 2:
+                    print(f"    WARNING: Line {line_num} invalid format: {raw_line}")
+                    continue
+
+                request_path, response_ref = parts
+                response_ref = response_ref.strip()
+
+                response_file = (source_path.parent / response_ref).resolve()
+                if not response_file.exists() or not response_file.is_file():
+                    print(
+                        f"    WARNING: Referenced file not found: {response_ref} (from {source_path})"
+                    )
+                    continue
+
+                relative_response_path = str(
+                    response_file.relative_to(self.base_dir)
+                ).replace("\\", "/")
+                response_cid = self.generate_and_store_cid(
+                    response_file, relative_response_path
+                )
+
+                request_ext = Path(request_path).suffix
+                if request_ext:
+                    response_cid = f"{response_cid}{request_ext}"
+
+                processed_lines.append(f"{request_path} {response_cid}")
+
+            target_path.write_text("\n".join(processed_lines) + "\n", encoding="utf-8")
+            print(f"Generated: {target_path}")
 
     def read_file_content(self, file_path: Path) -> bytes:
         """Read file content as bytes.
@@ -645,6 +702,9 @@ class BootImageGenerator:
 
         # Ensure cids directory exists
         self.ensure_cids_directory()
+
+        # Generate reference/files/*.cids from reference/archive/cids/*.source.cids
+        self.process_reference_source_cids_archives()
 
         # Store any non-literal reference/files content into /cids.
         self.process_reference_files()
