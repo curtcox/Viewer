@@ -393,6 +393,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                         "Failed to load CIDs from directory: %s", error_message
                     )
                     flask_app.config["CID_LOAD_ERROR"] = error_message
+                    if not testing_mode:
+                        raise
 
             if not testing_mode:
                 # Wrap ensure_default_resources in error handling to prevent initialization failures

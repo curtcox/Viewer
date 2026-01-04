@@ -387,6 +387,54 @@ class TestBootCidImporter(unittest.TestCase):
             alias = Alias.query.filter_by(name="test-alias-2").first()
             self.assertIsNotNone(alias)
 
+    def test_import_boot_cid_missing_server_definition_cid_includes_diagnostics(self):
+        """Missing server definition CID should include lookup diagnostics and fix guidance."""
+        with self.app.app_context():
+            # Generate a CID for some content, but intentionally DO NOT store it in the DB
+            # and do not provide it under cid_values. This should make the import fail.
+            # Use >64 bytes so we get a hash-based CID (avoids collisions with any
+            # preloaded literal CIDs from the repo's cids/ directory).
+            server_definition_bytes = (b'print("hello")\n' * 10) + b"missing"
+            server_definition_cid = generate_cid(server_definition_bytes)
+
+            servers_data = [
+                {
+                    "name": "gateway",
+                    "definition_cid": server_definition_cid,
+                }
+            ]
+            servers_content = json.dumps(servers_data).encode("utf-8")
+            servers_cid = generate_cid(servers_content)
+            create_cid_record(servers_cid, servers_content)
+
+            payload_data = {
+                "version": 6,
+                "servers": servers_cid,
+            }
+            content = json.dumps(payload_data).encode("utf-8")
+            boot_cid = generate_cid(content)
+            create_cid_record(boot_cid, content)
+
+            # Ensure the server definition CID is not present in the database.
+            # (If CIDs are loaded globally from disk in this test environment, we want
+            # to keep this test stable by using a CID that is not part of the repo.)
+            from routes.import_export.cid_utils import normalise_cid  # pylint: disable=import-outside-toplevel
+            from cid_presenter import cid_path  # pylint: disable=import-outside-toplevel
+            from db_access import get_cid_by_path  # pylint: disable=import-outside-toplevel
+
+            missing_path = cid_path(normalise_cid(server_definition_cid))
+            assert missing_path is not None
+            assert get_cid_by_path(missing_path) is None
+
+            success, error = import_boot_cid(self.app, boot_cid)
+            self.assertFalse(success)
+            self.assertIsNotNone(error)
+            self.assertIn("While importing server", error)
+            self.assertIn("could not be resolved", error)
+            self.assertIn("Details:", error)
+            self.assertIn("Lookup order:", error)
+            self.assertIn("Fix options:", error)
+
     def test_import_boot_cid_works_without_request_context(self):
         """Test that boot CID import works without request context (no CSRF error)."""
         with self.app.app_context():

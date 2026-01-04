@@ -852,6 +852,16 @@ def _inject_nested_parameter_value(
             available,
         )
 
+    if server_name == "hrx" and missing == ["archive"]:
+        remainder_segments = _remaining_path_segments(server_name)
+        if not remainder_segments:
+            return None
+
+        injected: Dict[str, Any] = {"archive": remainder_segments[0]}
+        if len(remainder_segments) > 1 and "path" not in resolved:
+            injected["path"] = "/".join(remainder_segments[1:])
+        return injected
+
     remainder_segments = _remaining_path_segments(server_name)
     if not remainder_segments:
         return None
@@ -885,6 +895,16 @@ def _inject_optional_parameter_from_path(
 
     if server_name == "gateway":
         return None, None
+
+    if server_name == "hrx" and "archive" in details.parameter_order and "archive" not in resolved:
+        remainder_segments = _remaining_path_segments(server_name)
+        if not remainder_segments:
+            return None, None
+
+        injected: Dict[str, Any] = {"archive": remainder_segments[0]}
+        if "path" in details.parameter_order and "path" not in resolved and len(remainder_segments) > 1:
+            injected["path"] = "/".join(remainder_segments[1:])
+        return injected, None
 
     for name in details.parameter_order:
         if name not in resolved:

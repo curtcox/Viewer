@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Iterable
 
@@ -12,6 +13,101 @@ from cid_utils import generate_cid, is_normalized_cid
 from db_access import create_cid_record, get_cid_by_path
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _describe_invalid_cid_filename(filename: str) -> str:
+    """Return a detailed diagnostic for why a CID filename is invalid."""
+    try:
+        from cid_core import (  # pylint: disable=import-outside-toplevel
+            CID_CHARACTER_CLASS,
+            CID_LENGTH,
+            CID_LENGTH_PREFIX_CHARS,
+            CID_MIN_LENGTH,
+            DIRECT_CONTENT_EMBED_LIMIT,
+            parse_cid_components,
+        )
+    except Exception:
+        # Fall back to a simple diagnostic when CID internals are unavailable.
+        return "Could not load CID format details; the filename does not pass is_normalized_cid()."
+
+    raw = filename
+    stripped = (raw or "").strip()
+    normalized = stripped.lstrip("/")
+
+    lines: list[str] = []
+    lines.append("CID format spec: https://256t.org/index.html")
+    lines.append("What this loader expects:")
+    lines.append(
+        "  - CID filenames must be Viewer-generated CIDs using base64url characters (A-Z a-z 0-9 '_' '-')."
+    )
+    lines.append(
+        f"  - Length must be between {CID_MIN_LENGTH} and {CID_LENGTH} characters (inclusive)."
+    )
+    lines.append(
+        f"  - The first {CID_LENGTH_PREFIX_CHARS} characters encode the original content length."
+    )
+    lines.append(
+        f"  - If content length <= {DIRECT_CONTENT_EMBED_LIMIT}, the remaining characters embed the content bytes."
+    )
+    lines.append(
+        "  - If content length > 64 bytes, the remaining characters must be an 86-character SHA-512 digest."
+    )
+
+    if stripped != raw:
+        lines.append(f"Filename has leading/trailing whitespace; stripped={stripped!r}.")
+    if normalized != stripped:
+        lines.append(
+            "Filename starts with '/', but CID filenames must not include leading slashes."
+        )
+    if "/" in normalized:
+        lines.append("Filename contains '/', but CID filenames must be a single path component.")
+
+    allowed = re.compile(rf"^[{CID_CHARACTER_CLASS}]+$")
+    if not normalized:
+        lines.append("Filename is empty after normalization.")
+        return "\n".join(lines)
+
+    if not allowed.fullmatch(normalized):
+        illegal_chars = sorted({ch for ch in normalized if not re.fullmatch(rf"[{CID_CHARACTER_CLASS}]", ch)})
+        illegal_preview = "".join(illegal_chars) if illegal_chars else "(unknown)"
+        lines.append(
+            f"Filename contains characters outside base64url set; illegal characters: {illegal_preview!r}."
+        )
+
+    length = len(normalized)
+    if length < CID_MIN_LENGTH or length > CID_LENGTH:
+        lines.append(
+            f"Filename length is {length}, but must be between {CID_MIN_LENGTH} and {CID_LENGTH}."
+        )
+        return "\n".join(lines)
+
+    try:
+        content_length, _payload = parse_cid_components(normalized)
+        lines.append(
+            f"Parsed length prefix indicates original content length = {content_length} bytes."
+        )
+    except ValueError as exc:
+        # This is the most common failure when the file looks CID-ish but is not in
+        # the canonical Viewer CID format (e.g., from a different CID scheme).
+        lines.append(
+            "Filename matches the basic character/length constraints, but it is not a canonical Viewer CID."
+        )
+        lines.append(f"CID structural validation failed: {exc}.")
+        lines.append(
+            "This usually means the file was created using a different CID format and should not be placed in CID_DIRECTORY."
+        )
+
+    lines.append("How to fix:")
+    lines.append(
+        "  - If this file is not meant to be a CID fixture, move it out of the cids/ directory (CID_DIRECTORY)."
+    )
+    lines.append(
+        "  - If it is meant to be a CID fixture, regenerate it with Viewer so the filename equals generate_cid(file_bytes)."
+    )
+    lines.append(
+        "  - If you intentionally use a different CID scheme, the loader must be updated to support it (currently only Viewer CIDs are supported)."
+    )
+    return "\n".join(lines)
 
 
 def _iter_candidate_files(directory: Path) -> Iterable[Path]:
@@ -87,7 +183,11 @@ def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
         filename = file_path.name
 
         if not is_normalized_cid(filename):
-            message = f"CID filename {filename!r} in {directory} is not a valid normalized CID"
+            diagnostic = _describe_invalid_cid_filename(filename)
+            message = (
+                f"CID filename {filename!r} in {directory} is not a valid normalized CID.\n"
+                f"{diagnostic}"
+            )
             LOGGER.error(message)
             raise RuntimeError(message)
 
