@@ -36,8 +36,8 @@ diff_one() {
   return $rc
 }
 
-diff_one reference_templates/default.boot.cid reference_templates/boot.cid
-diff_one reference_templates/default.boot.json reference_templates/boot.json
-diff_one reference_templates/default.boot.source.json reference_templates/boot.source.json
+diff_one reference/templates/default.boot.cid reference/templates/boot.cid
+diff_one reference/templates/default.boot.json reference/templates/boot.json
+diff_one reference/templates/default.boot.source.json reference/templates/boot.source.json
 
 exit "$had_differences"

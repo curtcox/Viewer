@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import mysql
+from reference.templates.servers.definitions import mysql
 
 
 def test_requires_host():

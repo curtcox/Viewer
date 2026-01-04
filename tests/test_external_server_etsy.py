@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import requests
 
-from reference_templates.servers.definitions import etsy
+from reference.templates.servers.definitions import etsy
 
 
 class DummyResponse:

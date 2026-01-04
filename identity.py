@@ -49,7 +49,7 @@ def _ensure_editor_servers() -> None:
 
     editor_names = ("ai_editor", "urleditor")
     definitions_dir = (
-        Path(__file__).parent / "reference_templates" / "servers" / "definitions"
+        Path(__file__).parent / "reference/templates" / "servers" / "definitions"
     )
 
     changed = False
@@ -90,7 +90,7 @@ def _ensure_cookie_editor_alias() -> None:
     from models import Alias  # pylint: disable=import-outside-toplevel
 
     alias_path = (
-        Path(__file__).parent / "reference_templates" / "aliases" / "cookies.txt"
+        Path(__file__).parent / "reference/templates" / "aliases" / "cookies.txt"
     )
     if not alias_path.exists():
         return

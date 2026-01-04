@@ -1,6 +1,6 @@
 import requests
 
-from reference_templates.servers.definitions import helpscout
+from reference.templates.servers.definitions import helpscout
 
 
 class DummyResponse:

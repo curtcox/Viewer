@@ -96,8 +96,8 @@ class TestGatewayHRXOneShot:
         return status_code, "\n".join(output_lines)
 
     def _get_default_boot_cid(self) -> str:
-        """Get the default boot CID from reference_templates."""
-        boot_cid_file = self.CLI_ROOT / "reference_templates" / "default.boot.cid"
+        """Get the default boot CID from reference.templates."""
+        boot_cid_file = self.CLI_ROOT / "reference/templates" / "default.boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")
         return boot_cid_file.read_text(encoding="utf-8").strip()
@@ -318,7 +318,7 @@ class TestHRXServerCidOrText:
     CLI_ROOT = Path(__file__).parent.parent.parent
 
     def _get_default_boot_cid(self) -> str:
-        boot_cid_file = self.CLI_ROOT / "reference_templates" / "default.boot.cid"
+        boot_cid_file = self.CLI_ROOT / "reference/templates" / "default.boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")
         return boot_cid_file.read_text(encoding="utf-8").strip()
@@ -408,7 +408,7 @@ class TestGatewayHRXWithHTTPClient:
         )
 
         # Load default boot CID to get gateway server and gateways variable
-        boot_cid_file = Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        boot_cid_file = Path(__file__).parent.parent.parent / "reference/templates" / "default.boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")
 
@@ -542,7 +542,7 @@ class TestGatewayManIntegration:
         )
 
         # Load default boot CID to get gateway server and gateways variable
-        boot_cid_file = Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        boot_cid_file = Path(__file__).parent.parent.parent / "reference/templates" / "default.boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")
 
@@ -591,7 +591,7 @@ class TestGatewayTldrIntegration:
             }
         )
 
-        boot_cid_file = Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        boot_cid_file = Path(__file__).parent.parent.parent / "reference/templates" / "default.boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")
 
@@ -652,7 +652,7 @@ class TestGatewayGeneralIntegration:
         )
 
         boot_cid_file = (
-            Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+            Path(__file__).parent.parent.parent / "reference/templates" / "default.boot.cid"
         )
         if not boot_cid_file.exists():
             pytest.skip("No default.boot.cid file found")

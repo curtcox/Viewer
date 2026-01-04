@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import close_crm
+from reference.templates.servers.definitions import close_crm
 
 
 def test_missing_api_key_returns_auth_error():

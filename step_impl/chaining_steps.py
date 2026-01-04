@@ -197,7 +197,7 @@ def given_default_server_available(server_name: str) -> None:
     """Load a default server definition from reference templates."""
 
     definition_path = (
-        Path("reference_templates") / "servers" / "definitions" / f"{server_name}.py"
+        Path("reference/templates") / "servers" / "definitions" / f"{server_name}.py"
     )
     assert definition_path.exists(), f"Default server {server_name} not found"
 

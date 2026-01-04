@@ -61,14 +61,14 @@ def _resolve_cid_content(location: str) -> Optional[str]:
 def _load_server_from_reference(name: str) -> str:
     """Load a server definition from reference templates."""
     definition_path = (
-        Path("reference_templates") / "servers" / "definitions" / f"{name}.sh"
+        Path("reference/templates") / "servers" / "definitions" / f"{name}.sh"
     )
     if definition_path.exists():
         return definition_path.read_text(encoding="utf-8")
 
     # Try .py extension
     definition_path = (
-        Path("reference_templates") / "servers" / "definitions" / f"{name}.py"
+        Path("reference/templates") / "servers" / "definitions" / f"{name}.py"
     )
     assert definition_path.exists(), f"Server {name} not found"
     return definition_path.read_text(encoding="utf-8")

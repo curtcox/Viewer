@@ -29,7 +29,7 @@ class TestCIDSServer(unittest.TestCase):
 
         # Read the CIDS server definition
         with open(
-            "reference_templates/servers/definitions/cids.py", "r", encoding="utf-8"
+            "reference/templates/servers/definitions/cids.py", "r", encoding="utf-8"
         ) as f:
             cids_definition = f.read()
 

@@ -2,7 +2,7 @@
 """Generate boot image from reference templates.
 
 This script:
-1. Reads all files in /reference_templates
+1. Reads all files in /reference/templates
 2. Generates CIDs for all referenced files
 3. Stores CIDs in /cids directory
 4. Converts templates.source.json to templates.json (filenames -> CIDs)
@@ -30,7 +30,8 @@ class BootImageGenerator:
         if base_dir is None:
             base_dir = Path(__file__).parent
         self.base_dir = base_dir
-        self.reference_templates_dir = base_dir / "reference_templates"
+        self.reference_templates_dir = base_dir / "reference" / "templates"
+        self.reference_files_dir = base_dir / "reference" / "files"
         self.cids_dir = base_dir / "cids"
         self.processed_files: Set[str] = set()
         self.file_to_cid: Dict[str, str] = {}
@@ -38,6 +39,21 @@ class BootImageGenerator:
     def ensure_cids_directory(self):
         """Ensure the cids directory exists."""
         self.cids_dir.mkdir(exist_ok=True)
+
+    def process_reference_files(self) -> None:
+        """Process all files under reference/files.
+
+        Any file that is too large to be a CID literal (i.e., generates a non-literal
+        CID) will be stored in /cids under its CID filename.
+        """
+        if not self.reference_files_dir.exists():
+            return
+
+        for file_path in self.reference_files_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+            relative_path = str(file_path.relative_to(self.base_dir)).replace("\\", "/")
+            self.generate_and_store_cid(file_path, relative_path)
 
     def read_file_content(self, file_path: Path) -> bytes:
         """Read file content as bytes.
@@ -126,7 +142,7 @@ class BootImageGenerator:
             request_path, response_ref = parts
             
             # Check if response_ref is a file path
-            if response_ref.startswith('reference_templates/'):
+            if response_ref.startswith('reference/templates/'):
                 # It's a file path, need to generate CID for it
                 ref_file_path = self.base_dir / response_ref
                 if ref_file_path.exists():
@@ -186,7 +202,7 @@ class BootImageGenerator:
                 if key == "templates" and isinstance(value, dict):
                     for template_name, template_value in value.items():
                         if isinstance(template_value, str) and template_value.startswith(
-                            "reference_templates/"
+                            "reference/templates/"
                         ):
                             file_path = self.base_dir / template_value
                             if file_path.exists():
@@ -199,7 +215,7 @@ class BootImageGenerator:
                 if key.endswith("_cid") or key.endswith("_file"):
                     # This is a file reference
                     if isinstance(value, str) and value.startswith(
-                        "reference_templates/"
+                        "reference/templates/"
                     ):
                         file_path = self.base_dir / value
                         if file_path.exists():
@@ -216,7 +232,7 @@ class BootImageGenerator:
         """Process a server definition Python file to replace embedded filenames with CIDs.
 
         Args:
-            server_def_path: Path to the server definition file (e.g., "reference_templates/servers/definitions/urleditor.py")
+            server_def_path: Path to the server definition file (e.g., "reference/templates/servers/definitions/urleditor.py")
 
         Returns:
             CID of the processed server definition, or None if no changes needed
@@ -278,7 +294,7 @@ class BootImageGenerator:
         """
         # Handle CID or file keys
         if key.endswith("_cid") or key.endswith("_file"):
-            if isinstance(value, str) and value.startswith("reference_templates/"):
+            if isinstance(value, str) and value.startswith("reference/templates/"):
                 if value in self.file_to_cid:
                     return self.file_to_cid[value]
                 print(f"  WARNING: No CID found for {value}")
@@ -289,7 +305,7 @@ class BootImageGenerator:
             result: dict[str, Any] = {}
             for template_name, template_value in value.items():
                 if isinstance(template_value, str) and template_value.startswith(
-                    "reference_templates/"
+                    "reference/templates/"
                 ):
                     if template_value in self.file_to_cid:
                         result[template_name] = self.file_to_cid[template_value]
@@ -629,6 +645,9 @@ class BootImageGenerator:
 
         # Ensure cids directory exists
         self.ensure_cids_directory()
+
+        # Store any non-literal reference/files content into /cids.
+        self.process_reference_files()
 
         # Generate templates.json and get its CID
         templates_cid = self.generate_templates_json()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import sqlalchemy_pool
+from reference.templates.servers.definitions import sqlalchemy_pool
 
 
 def test_requires_database_url():

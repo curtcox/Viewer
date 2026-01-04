@@ -1,4 +1,4 @@
-"""Integration tests for boot image generated from reference_templates."""
+"""Integration tests for boot image generated from reference.templates."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ pytestmark = pytest.mark.integration
 COOKIE_EDITOR_HTML_CID = CID.from_bytes(
     (
         Path(__file__).parent.parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "cookie_editor.html"
@@ -32,7 +32,7 @@ COOKIE_EDITOR_HTML_CID = CID.from_bytes(
 COOKIE_EDITOR_CSS_CID = CID.from_bytes(
     (
         Path(__file__).parent.parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "cookie_editor.css"
@@ -41,7 +41,7 @@ COOKIE_EDITOR_CSS_CID = CID.from_bytes(
 COOKIE_EDITOR_JS_CID = CID.from_bytes(
     (
         Path(__file__).parent.parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "cookie_editor.js"
@@ -50,7 +50,7 @@ COOKIE_EDITOR_JS_CID = CID.from_bytes(
 COOKIE_EDITOR_ICON_CID = CID.from_bytes(
     (
         Path(__file__).parent.parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "cookie_editor_icon.svg"
@@ -59,7 +59,7 @@ COOKIE_EDITOR_ICON_CID = CID.from_bytes(
 
 
 class TestBootImageReferenceTemplates:
-    """Integration tests for reference_templates boot image."""
+    """Integration tests for reference/templates boot image."""
 
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path):

@@ -9,7 +9,7 @@ from cid_core import is_literal_cid
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_PATH = (
     REPO_ROOT
-    / "reference_templates"
+    / "reference/templates"
     / "uploads"
     / "contents"
     / "embedded_cid_execution.formdown"

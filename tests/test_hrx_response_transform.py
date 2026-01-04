@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from reference_templates.gateways.transforms.hrx_response import (
+from reference.templates.gateways.transforms.hrx_response import (
     _build_breadcrumb,
     _fix_css_urls,
     _fix_relative_urls,

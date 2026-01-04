@@ -1,0 +1,15 @@
+{
+  "id": "notion",
+  "name": "Notion",
+  "description": "Search, retrieve, or create pages in Notion.",
+  "definition_cid": "reference/templates/servers/definitions/notion.py",
+  "operations": [
+    "search",
+    "retrieve_page",
+    "create_page"
+  ],
+  "secrets": [
+    "NOTION_TOKEN"
+  ],
+  "notes": "Requires a Notion integration token. Uses dry-run previews by default to avoid unintended writes."
+}

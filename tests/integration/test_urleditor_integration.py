@@ -17,7 +17,7 @@ class TestURLEditorIntegration:
 
             urleditor_path = (
                 Path(__file__).parent.parent.parent
-                / "reference_templates"
+                / "reference/templates"
                 / "servers"
                 / "definitions"
                 / "urleditor.py"

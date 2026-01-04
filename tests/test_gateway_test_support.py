@@ -123,12 +123,12 @@ class TestAliasDefinition:
     
     def test_alias_file_exists(self):
         """Test that the alias file was created."""
-        path = "reference_templates/aliases/local_jsonplaceholder.txt"
+        path = "reference/templates/aliases/local_jsonplaceholder.txt"
         assert os.path.exists(path), f"Alias file should exist at {path}"
     
     def test_alias_definition_format(self):
         """Test that the alias definition has the correct format."""
-        with open("reference_templates/aliases/local_jsonplaceholder.txt", "r") as f:
+        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r") as f:
             content = f.read().strip()
         
         # Should contain the pattern
@@ -139,7 +139,7 @@ class TestAliasDefinition:
     
     def test_alias_uses_correct_cid(self):
         """Test that the alias references the correct CID."""
-        with open("reference_templates/aliases/local_jsonplaceholder.txt", "r") as f:
+        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r") as f:
             content = f.read().strip()
         
         # Should contain the CID we created

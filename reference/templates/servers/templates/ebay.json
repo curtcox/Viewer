@@ -1,0 +1,15 @@
+{
+  "id": "ebay",
+  "name": "eBay",
+  "description": "Search and get items from eBay Browse API",
+  "definition_cid": "reference/templates/servers/definitions/ebay.py",
+  "operations": [
+    "search_items",
+    "get_item",
+    "get_item_by_legacy_id"
+  ],
+  "secrets": [
+    "EBAY_ACCESS_TOKEN"
+  ],
+  "notes": "Uses eBay OAuth access token for API calls. Supports searching items by query or category and retrieving item details. Supports dry-run previews for all operations."
+}

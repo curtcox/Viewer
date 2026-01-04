@@ -1,0 +1,20 @@
+{
+  "id": "telegram",
+  "name": "Telegram",
+  "description": "Send messages, photos, documents, and manage Telegram bot interactions.",
+  "definition_cid": "reference/templates/servers/definitions/telegram.py",
+  "operations": [
+    "send_message",
+    "send_photo",
+    "send_document",
+    "get_updates",
+    "get_me",
+    "edit_message",
+    "delete_message",
+    "send_poll"
+  ],
+  "secrets": [
+    "TELEGRAM_BOT_TOKEN"
+  ],
+  "notes": "Supports dry-run previews by default. Bot token from BotFather is required."
+}

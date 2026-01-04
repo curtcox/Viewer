@@ -1,7 +1,7 @@
 import requests
 from typing import Any
 
-from reference_templates.servers.definitions import twilio
+from reference.templates.servers.definitions import twilio
 
 
 class DummyResponse:

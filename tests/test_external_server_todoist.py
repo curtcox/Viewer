@@ -1,7 +1,7 @@
 import requests
 from typing import Any
 
-from reference_templates.servers.definitions import todoist
+from reference.templates.servers.definitions import todoist
 
 
 class DummyResponse:

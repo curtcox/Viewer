@@ -11,7 +11,7 @@ def load_urleditor_module():
     # Read the urleditor.py file
     urleditor_path = (
         Path(__file__).parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "servers"
         / "definitions"
         / "urleditor.py"

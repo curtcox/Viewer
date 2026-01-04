@@ -1,5 +1,5 @@
 import requests
-from reference_templates.servers.definitions import gorgias
+from reference.templates.servers.definitions import gorgias
 
 class DummyResponse:
     def __init__(self, status_code: int = 200, json_data=None, text: str = ""):

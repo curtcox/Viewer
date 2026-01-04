@@ -8,7 +8,7 @@ from flask import current_app
 
 from alias_definition import format_primary_alias_line
 from models import Alias, Server
-from reference_templates.servers import iter_server_templates
+from reference.templates.servers import iter_server_templates
 
 AI_ALIAS_NAME = "ai"
 AI_SERVER_NAME = "ai_stub"

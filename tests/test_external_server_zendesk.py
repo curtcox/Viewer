@@ -1,6 +1,6 @@
 import requests
 
-from reference_templates.servers.definitions import zendesk
+from reference.templates.servers.definitions import zendesk
 
 
 class DummyResponse:

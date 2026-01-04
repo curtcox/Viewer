@@ -222,7 +222,7 @@ class TestGitHubPRIntegration(unittest.TestCase):
             "mode": "manual",
             "target_repo": "",
             "branch_name": "",
-            "prepared_paths": ["reference_templates/default.boot.source.json"],
+            "prepared_paths": ["reference/templates/default.boot.source.json"],
         }
 
         response = self.client.post(

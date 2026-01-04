@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import pymongo_pool
+from reference.templates.servers.definitions import pymongo_pool
 
 
 def test_requires_uri():

@@ -222,7 +222,7 @@ class TestIntegrationWithServerDefinitions:
 
     def test_aws_s3_limit_validation_integration(self):
         """Test limit validation in AWS S3 context."""
-        from reference_templates.servers.definitions import aws_s3
+        from reference.templates.servers.definitions import aws_s3
 
         # Test valid limit
         result = aws_s3.main(
@@ -264,7 +264,7 @@ class TestIntegrationWithServerDefinitions:
 
     def test_github_limit_validation_integration(self):
         """Test limit validation in GitHub context."""
-        from reference_templates.servers.definitions import github
+        from reference.templates.servers.definitions import github
 
         # Test valid limit
         result = github.main(
@@ -293,7 +293,7 @@ class TestIntegrationWithServerDefinitions:
 
     def test_mongodb_limit_validation_integration(self):
         """Test limit validation in MongoDB context."""
-        from reference_templates.servers.definitions import mongodb
+        from reference.templates.servers.definitions import mongodb
 
         # Test valid limit
         result = mongodb.main(
@@ -325,7 +325,7 @@ class TestPreviewWithLimitConstraint:
 
     def test_aws_s3_preview_includes_limit_constraint(self):
         """Test that AWS S3 preview includes limit constraint info."""
-        from reference_templates.servers.definitions import aws_s3
+        from reference.templates.servers.definitions import aws_s3
 
         result = aws_s3.main(
             operation="list_objects",
@@ -344,7 +344,7 @@ class TestPreviewWithLimitConstraint:
 
     def test_github_preview_includes_limit_constraint(self):
         """Test that GitHub preview includes limit constraint info."""
-        from reference_templates.servers.definitions import github
+        from reference.templates.servers.definitions import github
 
         result = github.main(
             owner="test",
@@ -363,7 +363,7 @@ class TestPreviewWithLimitConstraint:
 
     def test_mongodb_preview_includes_limit_constraint(self):
         """Test that MongoDB preview includes limit constraint info."""
-        from reference_templates.servers.definitions import mongodb
+        from reference.templates.servers.definitions import mongodb
 
         result = mongodb.main(
             operation="find",
@@ -381,7 +381,7 @@ class TestPreviewWithLimitConstraint:
 
     def test_limit_constraint_not_in_non_list_operations(self):
         """Test that limit constraint is not included for non-list operations."""
-        from reference_templates.servers.definitions import aws_s3
+        from reference.templates.servers.definitions import aws_s3
 
         result = aws_s3.main(
             operation="get_object",

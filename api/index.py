@@ -32,7 +32,7 @@ def _resolve_boot_cid(project_root: Path, read_only: bool) -> str | None:
     if not read_only:
         return None
 
-    boot_cid_file = project_root / "reference_templates" / "readonly.boot.cid"
+    boot_cid_file = project_root / "reference/templates" / "readonly.boot.cid"
     if not boot_cid_file.exists():
         return None
 

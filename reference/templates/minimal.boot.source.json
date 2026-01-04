@@ -1,0 +1,51 @@
+{
+  "version": 6,
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "reference/templates/aliases/ai.txt",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "reference/templates/aliases/ai_about.txt",
+      "enabled": true
+    },
+    {
+      "name": "help",
+      "definition_cid": "reference/templates/aliases/help.txt",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "reference/templates/servers/definitions/ai_stub.py",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "reference/templates/servers/definitions/ai_editor.py",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "GENERATED:templates.json",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "GENERATED:uis.json",
+      "enabled": true
+    },
+    {
+      "name": "gateways",
+      "definition": "GENERATED:gateways.json",
+      "enabled": true
+    }
+  ]
+}

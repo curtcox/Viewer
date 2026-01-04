@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import azure_blob
+from reference.templates.servers.definitions import azure_blob
 
 
 class DummyResponse:

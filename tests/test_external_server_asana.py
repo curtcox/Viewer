@@ -1,7 +1,7 @@
 import requests
 from typing import Any
 
-from reference_templates.servers.definitions import asana
+from reference.templates.servers.definitions import asana
 
 
 class DummyResponse:

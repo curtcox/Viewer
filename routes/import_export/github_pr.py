@@ -19,10 +19,10 @@ from generate_boot_image import BootImageGenerator
 LOGGER = logging.getLogger(__name__)
 
 # Boot image file path in the repository
-BOOT_IMAGE_PATH = "reference_templates/default.boot.json"
+BOOT_IMAGE_PATH = "reference/templates/default.boot.json"
 
 
-REFERENCE_TEMPLATES_DIR = Path("reference_templates")
+REFERENCE_TEMPLATES_DIR = Path("reference") / "templates"
 CIDS_DIR = Path("cids")
 
 
@@ -233,17 +233,17 @@ def prepare_boot_image_update(
     generator.generate()
 
     for rel in generator.processed_files:
-        if rel.startswith("reference_templates/minimal.boot."):
+        if rel.startswith("reference/templates/minimal.boot."):
             continue
         changed_paths.add(rel)
 
     for rel in (
-        "reference_templates/templates.json",
-        "reference_templates/uis.json",
-        "reference_templates/default.boot.json",
-        "reference_templates/boot.json",
-        "reference_templates/default.boot.cid",
-        "reference_templates/boot.cid",
+        "reference/templates/templates.json",
+        "reference/templates/uis.json",
+        "reference/templates/default.boot.json",
+        "reference/templates/boot.json",
+        "reference/templates/default.boot.cid",
+        "reference/templates/boot.cid",
     ):
         if (base_dir / rel).exists():
             changed_paths.add(rel)
@@ -544,12 +544,12 @@ def fetch_pr_export_data(
         files = list(pull_request.get_files())
 
         allowed_markers = {
-            "reference_templates/default.boot.source.json",
-            "reference_templates/minimal.boot.source.json",
-            "reference_templates/boot.source.json",
-            "reference_templates/default.boot.cid",
-            "reference_templates/minimal.boot.cid",
-            "reference_templates/boot.cid",
+            "reference/templates/default.boot.source.json",
+            "reference/templates/minimal.boot.source.json",
+            "reference/templates/boot.source.json",
+            "reference/templates/default.boot.cid",
+            "reference/templates/minimal.boot.cid",
+            "reference/templates/boot.cid",
         }
 
         touches_boot_image = any(

@@ -15,7 +15,7 @@ from formdown_renderer import render_formdown_html
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FORMDOWN_SHOWCASE_PATH = (
     REPO_ROOT
-    / "reference_templates"
+    / "reference/templates"
     / "uploads"
     / "contents"
     / "formdown_showcase.formdown"

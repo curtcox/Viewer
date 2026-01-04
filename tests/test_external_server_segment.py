@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import segment
+from reference.templates.servers.definitions import segment
 
 
 def test_requires_write_key():

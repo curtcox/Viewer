@@ -15,9 +15,9 @@ class TestIOBootImageConfiguration(unittest.TestCase):
 
     def setUp(self):
         """Set up paths to boot configuration files."""
-        # Find the reference_templates directory
+        # Find the reference/templates directory
         self.base_dir = Path(__file__).parent.parent
-        self.templates_dir = self.base_dir / "reference_templates"
+        self.templates_dir = self.base_dir / "reference/templates"
 
     def test_io_in_default_boot(self):
         """IO server should be present in default.boot.source.json."""
@@ -76,7 +76,7 @@ class TestIOServerDefinitionStructure(unittest.TestCase):
         """Load the IO server definition."""
         self.base_dir = Path(__file__).parent.parent
         io_def_file = (
-            self.base_dir / "reference_templates" / "servers" / "definitions" / "io.py"
+            self.base_dir / "reference/templates" / "servers" / "definitions" / "io.py"
         )
         self.content = io_def_file.read_text()
 

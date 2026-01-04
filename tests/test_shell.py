@@ -7,7 +7,7 @@ import pytest
 
 import server_execution
 from app import app
-from reference_templates.servers.definitions import shell as shell_server
+from reference.templates.servers.definitions import shell as shell_server
 from text_function_runner import run_text_function
 
 
@@ -44,7 +44,7 @@ def test_shell_main_executes_shell_command():
 
 def test_shell_runs_through_text_function_runner():
     definition = """
-from reference_templates.servers.definitions import shell as shell_server
+from reference.templates.servers.definitions import shell as shell_server
 
 return shell_server.main(command=command)
 """.strip()
@@ -58,7 +58,7 @@ return shell_server.main(command=command)
 
 
 def test_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/shell.py").read_text(
+    definition = Path("reference/templates/servers/definitions/shell.py").read_text(
         encoding="utf-8"
     )
 

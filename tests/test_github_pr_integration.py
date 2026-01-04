@@ -98,7 +98,7 @@ class TestCreateExportPR(unittest.TestCase):
         """Test successfully creating a PR."""
         mock_prepare.return_value = {
             "mode": "prepared",
-            "changed_paths": ["reference_templates/default.boot.json"],
+            "changed_paths": ["reference/templates/default.boot.json"],
         }
 
         # Setup mocks
@@ -151,7 +151,7 @@ class TestCreateExportPR(unittest.TestCase):
         """Test creating PR without token returns manual preparation result."""
         mock_prepare.return_value = {
             "mode": "prepared",
-            "changed_paths": ["reference_templates/default.boot.source.json"],
+            "changed_paths": ["reference/templates/default.boot.source.json"],
         }
 
         result = create_export_pr(
@@ -183,7 +183,7 @@ class TestCreateExportPR(unittest.TestCase):
         """Test creating PR when branch already exists."""
         mock_prepare.return_value = {
             "mode": "prepared",
-            "changed_paths": ["reference_templates/default.boot.json"],
+            "changed_paths": ["reference/templates/default.boot.json"],
         }
 
         # Setup mocks
@@ -224,7 +224,7 @@ class TestCreateExportPR(unittest.TestCase):
         """Test creating PR when file already exists (update instead of create)."""
         mock_prepare.return_value = {
             "mode": "prepared",
-            "changed_paths": ["reference_templates/default.boot.json"],
+            "changed_paths": ["reference/templates/default.boot.json"],
         }
 
         # Setup mocks
@@ -287,7 +287,7 @@ class TestFetchPRExportData(unittest.TestCase):
 
         # Mock files in PR (either legacy boot image output or a boot source marker)
         mock_file = MagicMock()
-        mock_file.filename = "reference_templates/default.boot.json"
+        mock_file.filename = "reference/templates/default.boot.json"
         mock_pr.get_files.return_value = [mock_file]
 
         # Mock file content
@@ -324,7 +324,7 @@ class TestFetchPRExportData(unittest.TestCase):
         mock_repo.get_pull.return_value = mock_pr
 
         marker = MagicMock()
-        marker.filename = "reference_templates/default.boot.source.json"
+        marker.filename = "reference/templates/default.boot.source.json"
         mock_pr.get_files.return_value = [marker]
 
         # Legacy file required for import; simulate missing
@@ -358,7 +358,7 @@ class TestPrepareBootImageUpdate(unittest.TestCase):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             base_dir = Path(temp_dir)
-            ref_dir = base_dir / "reference_templates"
+            ref_dir = base_dir / "reference/templates"
             (ref_dir / "aliases").mkdir(parents=True)
             (ref_dir / "servers" / "definitions").mkdir(parents=True)
             (base_dir / "cids").mkdir(parents=True)
@@ -552,7 +552,7 @@ class TestPrepareBootImageUpdate(unittest.TestCase):
 
         # Mock files in PR
         mock_file = MagicMock()
-        mock_file.filename = "reference_templates/default.boot.json"
+        mock_file.filename = "reference/templates/default.boot.json"
         mock_pr.get_files.return_value = [mock_file]
 
         # Mock file content with invalid JSON

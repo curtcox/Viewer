@@ -20,7 +20,7 @@ class TestSystemPromptLookup(unittest.TestCase):
         """Load the ai_assist server definition and extract functions."""
         ai_assist_path = (
             Path(__file__).parent.parent
-            / "reference_templates"
+            / "reference/templates"
             / "servers"
             / "definitions"
             / "ai_assist.py"

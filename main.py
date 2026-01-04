@@ -55,7 +55,7 @@ def signal_handler(_sig, _frame):
 
 
 def get_default_boot_cid(readonly: bool = False) -> str | None:
-    """Get the default boot CID from reference_templates.
+    """Get the default boot CID from reference.templates.
 
     Args:
         readonly: If True, returns readonly.boot.cid instead of default
@@ -66,7 +66,7 @@ def get_default_boot_cid(readonly: bool = False) -> str | None:
     from pathlib import Path  # pylint: disable=import-outside-toplevel
 
     filename = "readonly.boot.cid" if readonly else "boot.cid"
-    boot_cid_file = Path(__file__).parent / "reference_templates" / filename
+    boot_cid_file = Path(__file__).parent / "reference" / "templates" / filename
     if boot_cid_file.exists():
         try:
             return boot_cid_file.read_text(encoding="utf-8").strip()
@@ -541,7 +541,7 @@ if __name__ == "__main__":
         default_cid = get_default_boot_cid(readonly=args.read_only)
         if default_cid:
             boot_type = "readonly" if args.read_only else "default"
-            print(f"Using {boot_type} boot CID from reference_templates: {default_cid}")
+            print(f"Using {boot_type} boot CID from reference/templates: {default_cid}")
             cid = default_cid
 
     # Register signal handlers for graceful shutdown

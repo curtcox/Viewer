@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 import server_execution
-import reference_templates.servers as server_templates
+import reference.templates.servers as server_templates
 from app import app
-from reference_templates.servers import get_server_templates
+from reference.templates.servers import get_server_templates
 
 
 @pytest.fixture(autouse=True)
@@ -645,10 +645,11 @@ def test_server_template_sources_retain_ruff_controls():
     base_dir = Path(server_templates.__file__).parent
     definitions_dir = base_dir / "definitions"
     definition_files = sorted(definitions_dir.glob("*.py"))
-
-    assert definition_files, "Server template definition files should exist"
+    assert definition_files
 
     for definition_path in definition_files:
+        if definition_path.name == "__init__.py":
+            continue
         content = definition_path.read_text(encoding="utf-8")
         assert any(
             line.lstrip().startswith("# ruff") for line in content.splitlines()

@@ -29,7 +29,7 @@ class TestHRXServer(unittest.TestCase):
 
         # Read the HRX server definition
         with open(
-            "reference_templates/servers/definitions/hrx.py", "r", encoding="utf-8"
+            "reference/templates/servers/definitions/hrx.py", "r", encoding="utf-8"
         ) as f:
             hrx_definition = f.read()
 

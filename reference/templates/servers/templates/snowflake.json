@@ -1,0 +1,18 @@
+{
+  "id": "snowflake",
+  "name": "Snowflake",
+  "description": "Execute Snowflake queries using Snowflake SQL API.",
+  "definition_cid": "reference/templates/servers/definitions/snowflake.py",
+  "operations": [
+    "query",
+    "execute"
+  ],
+  "secrets": [
+    "SNOWFLAKE_ACCOUNT",
+    "SNOWFLAKE_USER",
+    "SNOWFLAKE_PASSWORD",
+    "SNOWFLAKE_WAREHOUSE",
+    "SNOWFLAKE_ROLE"
+  ],
+  "notes": "Uses SQL API with Basic Auth. Supports synchronous and asynchronous query execution. Dry-run enabled by default."
+}

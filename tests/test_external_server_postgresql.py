@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import postgresql
+from reference.templates.servers.definitions import postgresql
 
 
 def test_requires_host():

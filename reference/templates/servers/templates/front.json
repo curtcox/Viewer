@@ -1,0 +1,17 @@
+{
+  "id": "front",
+  "name": "Front",
+  "description": "List, retrieve conversations, send messages, and manage teammates using Bearer token authentication.",
+  "definition_cid": "reference/templates/servers/definitions/front.py",
+  "operations": [
+    "list_conversations",
+    "get_conversation",
+    "send_message",
+    "list_teammates",
+    "get_teammate"
+  ],
+  "secrets": [
+    "FRONT_API_TOKEN"
+  ],
+  "notes": "Requires an API token from Front. Supports dry-run previews by default."
+}

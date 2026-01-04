@@ -1,0 +1,16 @@
+{
+  "id": "bigquery",
+  "name": "BigQuery",
+  "description": "Execute BigQuery queries using Google Cloud BigQuery API.",
+  "definition_cid": "reference/templates/servers/definitions/bigquery.py",
+  "operations": [
+    "query",
+    "list_datasets",
+    "list_tables"
+  ],
+  "secrets": [
+    "GOOGLE_SERVICE_ACCOUNT_JSON",
+    "GOOGLE_ACCESS_TOKEN"
+  ],
+  "notes": "Uses Google Service Account or OAuth token authentication. Supports SQL queries and dataset/table listing. Dry-run enabled by default."
+}

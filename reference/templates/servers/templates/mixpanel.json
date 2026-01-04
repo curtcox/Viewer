@@ -1,0 +1,16 @@
+{
+  "id": "mixpanel",
+  "name": "Mixpanel",
+  "description": "Send events to Mixpanel analytics platform.",
+  "definition_cid": "reference/templates/servers/definitions/mixpanel.py",
+  "operations": [
+    "track",
+    "engage",
+    "import"
+  ],
+  "secrets": [
+    "MIXPANEL_TOKEN",
+    "MIXPANEL_API_SECRET"
+  ],
+  "notes": "Uses HTTP API with token-based auth. Supports tracking events and updating user profiles. API secret required for import. Dry-run enabled by default."
+}

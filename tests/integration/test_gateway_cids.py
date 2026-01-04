@@ -29,12 +29,12 @@ class TestGatewayCIDS(unittest.TestCase):
 
         # Read server definitions
         with open(
-            "reference_templates/servers/definitions/cids.py", "r", encoding="utf-8"
+            "reference/templates/servers/definitions/cids.py", "r", encoding="utf-8"
         ) as f:
             cids_definition = f.read()
 
         with open(
-            "reference_templates/servers/definitions/gateway.py", "r", encoding="utf-8"
+            "reference/templates/servers/definitions/gateway.py", "r", encoding="utf-8"
         ) as f:
             gateway_definition = f.read()
 
@@ -46,7 +46,7 @@ class TestGatewayCIDS(unittest.TestCase):
 
         # Read gateway configuration
         with open(
-            "reference_templates/gateways.source.json", "r", encoding="utf-8"
+            "reference/templates/gateways.source.json", "r", encoding="utf-8"
         ) as f:
             import json
             gateways_config = json.load(f)

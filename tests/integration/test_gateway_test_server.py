@@ -15,7 +15,7 @@ pytestmark = pytest.mark.integration
 def hrx_server(integration_app):
     """Create the HRX server."""
     with open(
-        "reference_templates/servers/definitions/hrx.py", "r", encoding="utf-8"
+        "reference/templates/servers/definitions/hrx.py", "r", encoding="utf-8"
     ) as f:
         hrx_definition = f.read()
 
@@ -35,7 +35,7 @@ def hrx_server(integration_app):
 def gateway_server(integration_app):
     """Create the gateway server."""
     with open(
-        "reference_templates/servers/definitions/gateway.py", "r", encoding="utf-8"
+        "reference/templates/servers/definitions/gateway.py", "r", encoding="utf-8"
     ) as f:
         gateway_definition = f.read()
 
@@ -57,11 +57,11 @@ def gateways_variable_with_jsonplaceholder(integration_app):
     gateways_config = {
         "jsonplaceholder": {
             "description": "JSONPlaceholder fake REST API for testing",
-            "request_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_request.py",
-            "response_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_response.py",
+            "request_transform_cid": "reference/templates/gateways/transforms/jsonplaceholder_request.py",
+            "response_transform_cid": "reference/templates/gateways/transforms/jsonplaceholder_response.py",
             "templates": {
-                "jsonplaceholder_data.html": "reference_templates/gateways/templates/jsonplaceholder_data.html",
-                "jsonplaceholder_error.html": "reference_templates/gateways/templates/jsonplaceholder_error.html"
+                "jsonplaceholder_data.html": "reference/templates/gateways/templates/jsonplaceholder_data.html",
+                "jsonplaceholder_error.html": "reference/templates/gateways/templates/jsonplaceholder_error.html"
             }
         },
     }

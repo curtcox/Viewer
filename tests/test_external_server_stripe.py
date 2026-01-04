@@ -7,7 +7,7 @@ import time
 
 import requests
 
-from reference_templates.servers.definitions import stripe
+from reference.templates.servers.definitions import stripe
 
 
 class DummyResponse:

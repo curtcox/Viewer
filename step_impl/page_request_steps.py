@@ -291,7 +291,7 @@ def pvipha() -> None:
 def given_echo_server_available() -> None:
     """Ensure the echo server is available in the workspace."""
     _create_server_from_definition_file(
-        "echo", "reference_templates/servers/definitions/echo.py"
+        "echo", "reference/templates/servers/definitions/echo.py"
     )
 
 
@@ -299,7 +299,7 @@ def given_echo_server_available() -> None:
 def given_shell_server_available() -> None:
     """Ensure the shell server is available in the workspace."""
     _create_server_from_definition_file(
-        "shell", "reference_templates/servers/definitions/shell.py"
+        "shell", "reference/templates/servers/definitions/shell.py"
     )
 
 
@@ -328,7 +328,7 @@ def when_i_request_api_routes_page() -> None:
 
 
 def _create_server_from_definition_file(server_name: str, definition_path: str) -> None:
-    """Create a server using a definition file from reference_templates."""
+    """Create a server using a definition file from reference.templates."""
     from pathlib import Path
 
     app = _require_app()

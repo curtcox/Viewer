@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import requests
 
-from reference_templates.servers.definitions import aws_s3
+from reference.templates.servers.definitions import aws_s3
 
 
 class DummyResponse:
