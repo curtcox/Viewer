@@ -948,15 +948,15 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 ### Phase 6: Testing ✅ MOSTLY COMPLETE
 
 **Completed:**
-- ✅ Unit tests: 7 comprehensive tests, all passing
+- ✅ Unit tests: 8 comprehensive tests, all passing
   - test_json_api_gateway_basic_json_rendering
   - test_json_api_gateway_id_reference_detection
   - test_json_api_gateway_full_url_detection
+  - test_json_api_gateway_partial_url_detection
   - test_json_api_gateway_array_handling
   - test_json_api_gateway_nested_objects
   - test_json_api_gateway_breadcrumb_generation
   - test_json_api_gateway_with_id_references_in_json
-- ✅ Integration test framework created (tests/integration/test_json_api_gateway.py)
 - ⚠️ End-to-end integration tests skipped (infrastructure not fully set up)
 
 ---
@@ -974,8 +974,6 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 **Tests to pass:** ST-6, E-16
 
 ---
-
-### Phase 8: Composite Reference Detection (Strategy 4) - NOT IMPLEMENTED
 
 ### Phase 8: Composite Reference Detection (Strategy 4) - NOT IMPLEMENTED
 
