@@ -153,7 +153,7 @@ def try_server_execution(path: str) -> Optional[Response]:
             if _auto_main_accepts_additional_path(server):
                 return execute_server_code(server, server_name)
 
-            return execute_server_code(server, server_name)
+            return None
 
         result = execute_server_function(server, server_name, function_name)
         if result is None:
