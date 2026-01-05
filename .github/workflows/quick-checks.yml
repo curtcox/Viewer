@@ -133,10 +133,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run JavaScript unit tests for reference_templates
+      - name: Run JavaScript unit tests for reference/templates
         run: |
-          # Find all directories with package.json under reference_templates and run tests
-          find reference_templates -name "package.json" -type f | while read package_file; do
+          # Find all directories with package.json under reference/templates and run tests
+          find reference/templates -name "package.json" -type f | while read package_file; do
             dir=$(dirname "$package_file")
             echo "Running tests in $dir"
             cd "$dir"
