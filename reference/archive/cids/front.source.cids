@@ -1,0 +1,3 @@
+/conversations ../../files/front/conversations.json
+/conversations?limit=0 ../../files/front/conversations_limit_0.json
+/errors/401 ../../files/front/errors/401_unauthorized.json

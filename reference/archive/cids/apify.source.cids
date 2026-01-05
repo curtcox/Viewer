@@ -1,0 +1,3 @@
+/actors ../../files/apify/v2/actors.json
+/actors?limit=0 ../../files/apify/v2/actors_limit_0.json
+/errors/401 ../../files/apify/v2/errors/401_unauthorized.json

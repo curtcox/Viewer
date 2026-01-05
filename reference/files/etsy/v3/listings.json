@@ -1,0 +1,41 @@
+{
+  "count": 2,
+  "results": [
+    {
+      "listing_id": 1234567890,
+      "title": "Handmade Artisan Widget - Custom Colors Available",
+      "description": "Beautiful handcrafted widget made with love",
+      "state": "active",
+      "price": {
+        "amount": 4500,
+        "divisor": 100,
+        "currency_code": "USD"
+      },
+      "quantity": 15,
+      "shop_id": 98765432,
+      "url": "https://www.etsy.example.com/listing/1234567890",
+      "tags": ["handmade", "widget", "custom"],
+      "materials": ["wood", "metal"],
+      "views": 342,
+      "num_favorers": 28
+    },
+    {
+      "listing_id": 9876543210,
+      "title": "Vintage Globex Gadget - Rare 1960s Edition",
+      "description": "Authentic vintage gadget in excellent condition",
+      "state": "active",
+      "price": {
+        "amount": 12999,
+        "divisor": 100,
+        "currency_code": "USD"
+      },
+      "quantity": 1,
+      "shop_id": 98765433,
+      "url": "https://www.etsy.example.com/listing/9876543210",
+      "tags": ["vintage", "gadget", "collectible"],
+      "materials": ["brass", "glass"],
+      "views": 89,
+      "num_favorers": 12
+    }
+  ]
+}

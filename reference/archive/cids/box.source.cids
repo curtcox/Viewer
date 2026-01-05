@@ -1,0 +1,3 @@
+/2.0/folders/0/items ../../files/box/2.0/folders/0_items.json
+/2.0/folders/0/items?limit=0 ../../files/box/2.0/folders/0_items_limit_0.json
+/errors/401 ../../files/box/2.0/errors/401_unauthorized.json

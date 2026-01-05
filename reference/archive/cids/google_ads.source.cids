@@ -1,0 +1,2 @@
+/v14/customers:listAccessibleCustomers ../../files/google_ads/v14/customers.json
+/errors/401 ../../files/google_ads/v14/errors/401_unauthorized.json

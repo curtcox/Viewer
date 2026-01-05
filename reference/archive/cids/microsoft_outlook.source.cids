@@ -1,0 +1,3 @@
+/v1.0/me/messages ../../files/microsoft_outlook/v1.0/me/messages.json
+/v1.0/me/messages?$top=0 ../../files/microsoft_outlook/v1.0/me/messages_top_0.json
+/errors/401 ../../files/microsoft_outlook/v1.0/errors/401_unauthorized.json

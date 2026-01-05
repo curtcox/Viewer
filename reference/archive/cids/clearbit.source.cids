@@ -1,0 +1,3 @@
+/companies ../../files/clearbit/v2/companies.json
+/companies?limit=0 ../../files/clearbit/v2/companies_limit_0.json
+/errors/401 ../../files/clearbit/v2/errors/401_unauthorized.json

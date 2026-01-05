@@ -1,0 +1,3 @@
+/v1.0/me/drive/items ../../files/microsoft_excel/v1.0/me/drive/items.json
+/v1.0/me/drive/items?$top=0 ../../files/microsoft_excel/v1.0/me/drive/items_top_0.json
+/errors/401 ../../files/microsoft_excel/v1.0/errors/401_unauthorized.json

@@ -1,0 +1,3 @@
+/contacts ../../files/intercom/contacts.json
+/contacts?per_page=0 ../../files/intercom/contacts_per_page_0.json
+/errors/401 ../../files/intercom/errors/401_unauthorized.json

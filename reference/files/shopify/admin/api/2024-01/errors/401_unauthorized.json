@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "error": "Unauthorized",
+    "error_description": "The access token is invalid"
+  }
+}

@@ -1,0 +1,3 @@
+/api/v2/tickets ../../files/zendesk/api/v2/tickets.json
+/api/v2/tickets?per_page=0 ../../files/zendesk/api/v2/tickets_per_page_0.json
+/errors/401 ../../files/zendesk/api/v2/errors/401_unauthorized.json

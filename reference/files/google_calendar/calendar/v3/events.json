@@ -1,0 +1,44 @@
+{
+  "kind": "calendar#events",
+  "etag": "\"abc123\"",
+  "summary": "jane.doe@example.com",
+  "updated": "2024-01-22T10:00:00.000Z",
+  "timeZone": "America/New_York",
+  "items": [
+    {
+      "kind": "calendar#event",
+      "id": "evt123abc",
+      "status": "confirmed",
+      "htmlLink": "https://www.google.example.com/calendar/event?eid=evt123abc",
+      "created": "2024-01-15T09:00:00.000Z",
+      "updated": "2024-01-15T09:00:00.000Z",
+      "summary": "Team Meeting - Q1 Planning",
+      "description": "Quarterly planning session with the Acme Corp team",
+      "creator": {
+        "email": "jane.doe@example.com",
+        "displayName": "Jane Doe",
+        "self": true
+      },
+      "organizer": {
+        "email": "jane.doe@example.com",
+        "displayName": "Jane Doe",
+        "self": true
+      },
+      "start": {
+        "dateTime": "2024-01-25T10:00:00-05:00",
+        "timeZone": "America/New_York"
+      },
+      "end": {
+        "dateTime": "2024-01-25T11:00:00-05:00",
+        "timeZone": "America/New_York"
+      },
+      "attendees": [
+        {
+          "email": "john.smith@example.com",
+          "displayName": "John Smith",
+          "responseStatus": "accepted"
+        }
+      ]
+    }
+  ]
+}

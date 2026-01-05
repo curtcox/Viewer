@@ -1,0 +1,3 @@
+/posts ../../files/wordpress/wp-json/wp/v2/posts.json
+/posts?limit=0 ../../files/wordpress/wp-json/wp/v2/posts_limit_0.json
+/errors/401 ../../files/wordpress/wp-json/wp/v2/errors/401_unauthorized.json

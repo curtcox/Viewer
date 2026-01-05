@@ -1,0 +1,3 @@
+/v1/people/me/connections ../../files/google_contacts/v1/people.json
+/v1/people/me/connections?pageSize=0 ../../files/google_contacts/v1/people_pageSize_0.json
+/errors/401 ../../files/google_contacts/v1/errors/401_unauthorized.json

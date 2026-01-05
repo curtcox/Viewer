@@ -1,0 +1,4 @@
+/1.0/commerce/orders/transactions ../../files/squarespace/1.0/orders.json
+/1.0/commerce/orders/transactions?cursor=&limit=0 ../../files/squarespace/1.0/orders_cursor_limit_0.json
+/1.0/commerce/products ../../files/squarespace/1.0/products.json
+/errors/401 ../../files/squarespace/1.0/errors/401_unauthorized.json

@@ -1,0 +1,6 @@
+{
+  "total_count": 2, "entries": [
+    {"type": "folder", "id": "123456", "name": "Documents"},
+    {"type": "file", "id": "789012", "name": "report.pdf", "size": 45678}
+  ]
+}

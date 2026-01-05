@@ -1,0 +1,3 @@
+/v2/conversations ../../files/helpscout/v2/conversations.json
+/v2/conversations?page_size=0 ../../files/helpscout/v2/conversations_page_size_0.json
+/errors/401 ../../files/helpscout/v2/errors/401_unauthorized.json

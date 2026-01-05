@@ -1,0 +1,3 @@
+/shorten ../../files/bitly/v4/shorten.json
+/shorten?limit=0 ../../files/bitly/v4/shorten_limit_0.json
+/errors/401 ../../files/bitly/v4/errors/401_unauthorized.json
