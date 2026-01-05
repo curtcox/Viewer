@@ -1,0 +1,60 @@
+{
+  "products": [
+    {
+      "id": 7654321,
+      "title": "Acme Super Widget",
+      "vendor": "Acme Corp",
+      "product_type": "Widgets",
+      "created_at": "2024-01-15T10:30:00-05:00",
+      "updated_at": "2024-01-15T10:30:00-05:00",
+      "status": "active",
+      "variants": [
+        {
+          "id": 43210,
+          "product_id": 7654321,
+          "title": "Default Title",
+          "price": "29.99",
+          "sku": "WIDGET-001",
+          "inventory_quantity": 100
+        }
+      ],
+      "image": {
+        "id": 987654,
+        "product_id": 7654321,
+        "src": "https://cdn.shopify.example.com/widget-001.jpg"
+      }
+    },
+    {
+      "id": 7654322,
+      "title": "Globex Premium Gadget",
+      "vendor": "Globex Corporation",
+      "product_type": "Gadgets",
+      "created_at": "2024-01-16T14:20:00-05:00",
+      "updated_at": "2024-01-16T14:20:00-05:00",
+      "status": "active",
+      "variants": [
+        {
+          "id": 43211,
+          "product_id": 7654322,
+          "title": "Small",
+          "price": "49.99",
+          "sku": "GADGET-S",
+          "inventory_quantity": 50
+        },
+        {
+          "id": 43212,
+          "product_id": 7654322,
+          "title": "Large",
+          "price": "59.99",
+          "sku": "GADGET-L",
+          "inventory_quantity": 30
+        }
+      ],
+      "image": {
+        "id": 987655,
+        "product_id": 7654322,
+        "src": "https://cdn.shopify.example.com/gadget-001.jpg"
+      }
+    }
+  ]
+}

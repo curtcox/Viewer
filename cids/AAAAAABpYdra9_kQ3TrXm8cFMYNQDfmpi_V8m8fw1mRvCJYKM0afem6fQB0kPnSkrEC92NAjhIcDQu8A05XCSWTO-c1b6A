@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Authentication required",
+    "type": "auth_error",
+    "code": 401
+  }
+}

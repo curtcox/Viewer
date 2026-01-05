@@ -1,0 +1,33 @@
+{
+  "formId": "1FAIpQLSe_abc123",
+  "info": {
+    "title": "Acme Corp Customer Feedback Survey",
+    "documentTitle": "Customer Feedback"
+  },
+  "settings": {
+    "quizSettings": {
+      "isQuiz": false
+    }
+  },
+  "items": [
+    {
+      "itemId": "12345678",
+      "title": "How satisfied are you with our product?",
+      "questionItem": {
+        "question": {
+          "required": true,
+          "choiceQuestion": {
+            "type": "RADIO",
+            "options": [
+              {"value": "Very Satisfied"},
+              {"value": "Satisfied"},
+              {"value": "Neutral"},
+              {"value": "Unsatisfied"}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "responderUri": "https://docs.google.example.com/forms/d/e/1FAIpQLSe_abc123/viewform"
+}

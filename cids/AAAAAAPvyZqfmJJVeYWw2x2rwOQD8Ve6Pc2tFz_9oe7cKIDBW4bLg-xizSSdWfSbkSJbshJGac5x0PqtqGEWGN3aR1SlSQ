@@ -1,0 +1,31 @@
+{
+  "count": 2,
+  "results": [
+    {
+      "shop_id": 98765432,
+      "shop_name": "AcmeArtisanShop",
+      "user_id": 12345678,
+      "title": "Acme Artisan Shop - Handcrafted Widgets",
+      "announcement": "Welcome! All items are made to order.",
+      "currency_code": "USD",
+      "is_vacation": false,
+      "listing_active_count": 25,
+      "digital_listing_count": 0,
+      "sale_message": "Thank you for your purchase!",
+      "url": "https://www.etsy.example.com/shop/AcmeArtisanShop"
+    },
+    {
+      "shop_id": 98765433,
+      "shop_name": "VintageGlobexFinds",
+      "user_id": 87654321,
+      "title": "Vintage Globex Finds - Rare Collectibles",
+      "announcement": "Authentic vintage items from the 1950s-1980s",
+      "currency_code": "USD",
+      "is_vacation": false,
+      "listing_active_count": 48,
+      "digital_listing_count": 0,
+      "sale_message": "Your item will ship within 3 business days.",
+      "url": "https://www.etsy.example.com/shop/VintageGlobexFinds"
+    }
+  ]
+}

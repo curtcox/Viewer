@@ -1,0 +1,32 @@
+{
+  "members": [
+    {
+      "id": "mem_001",
+      "email_address": "jane.doe@acme-corp.example.com",
+      "unique_email_id": "abc123",
+      "email_type": "html",
+      "status": "subscribed",
+      "merge_fields": {
+        "FNAME": "Jane",
+        "LNAME": "Doe"
+      },
+      "timestamp_signup": "2024-01-15T10:30:00+00:00",
+      "last_changed": "2024-01-20T14:22:00+00:00"
+    },
+    {
+      "id": "mem_002",
+      "email_address": "john.smith@globex.example.com",
+      "unique_email_id": "def456",
+      "email_type": "html",
+      "status": "subscribed",
+      "merge_fields": {
+        "FNAME": "John",
+        "LNAME": "Smith"
+      },
+      "timestamp_signup": "2024-01-16T09:15:00+00:00",
+      "last_changed": "2024-01-18T11:45:00+00:00"
+    }
+  ],
+  "list_id": "abc123def",
+  "total_items": 2
+}

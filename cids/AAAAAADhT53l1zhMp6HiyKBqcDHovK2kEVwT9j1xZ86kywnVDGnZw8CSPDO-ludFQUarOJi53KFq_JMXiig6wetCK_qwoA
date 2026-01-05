@@ -1,0 +1,6 @@
+{
+  "type": "list", "data": [
+    {"type": "contact", "id": "5f8e8", "email": "jane.doe@example.com", "name": "Jane Doe"},
+    {"type": "contact", "id": "6g9f9", "email": "john.smith@example.com", "name": "John Smith"}
+  ]
+}

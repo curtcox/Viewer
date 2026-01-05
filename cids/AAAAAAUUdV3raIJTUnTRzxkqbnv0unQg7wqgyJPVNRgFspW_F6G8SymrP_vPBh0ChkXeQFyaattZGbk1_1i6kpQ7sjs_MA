@@ -1,0 +1,52 @@
+[
+  {
+    "id": 101,
+    "name": "Acme Widget Pro",
+    "slug": "acme-widget-pro",
+    "permalink": "https://shop.example.com/product/acme-widget-pro/",
+    "type": "simple",
+    "status": "publish",
+    "featured": true,
+    "catalog_visibility": "visible",
+    "description": "Professional grade widget for all your needs",
+    "short_description": "Pro widget",
+    "sku": "WC-WIDGET-PRO",
+    "price": "39.99",
+    "regular_price": "39.99",
+    "sale_price": "",
+    "stock_quantity": 75,
+    "stock_status": "instock",
+    "categories": [
+      {
+        "id": 15,
+        "name": "Widgets",
+        "slug": "widgets"
+      }
+    ]
+  },
+  {
+    "id": 102,
+    "name": "Globex Gadget Deluxe",
+    "slug": "globex-gadget-deluxe",
+    "permalink": "https://shop.example.com/product/globex-gadget-deluxe/",
+    "type": "variable",
+    "status": "publish",
+    "featured": false,
+    "catalog_visibility": "visible",
+    "description": "Deluxe gadget with multiple options",
+    "short_description": "Deluxe gadget",
+    "sku": "WC-GADGET-DLX",
+    "price": "69.99",
+    "regular_price": "79.99",
+    "sale_price": "69.99",
+    "stock_quantity": 50,
+    "stock_status": "instock",
+    "categories": [
+      {
+        "id": 16,
+        "name": "Gadgets",
+        "slug": "gadgets"
+      }
+    ]
+  }
+]

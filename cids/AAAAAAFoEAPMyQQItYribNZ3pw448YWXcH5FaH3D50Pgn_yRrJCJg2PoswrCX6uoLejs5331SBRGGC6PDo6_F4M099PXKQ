@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "id": "task001",
+      "name": "Complete widget design",
+      "status": {
+        "status": "in progress"
+      },
+      "date_created": "1705315800000"
+    },
+    {
+      "id": "task002",
+      "name": "Write documentation",
+      "status": {
+        "status": "complete"
+      },
+      "date_created": "1705402200000"
+    }
+  ]
+}

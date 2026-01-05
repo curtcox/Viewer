@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Missing or invalid access token",
+      "longMessage": "The request requires a valid OAuth access token."
+    }
+  ]
+}

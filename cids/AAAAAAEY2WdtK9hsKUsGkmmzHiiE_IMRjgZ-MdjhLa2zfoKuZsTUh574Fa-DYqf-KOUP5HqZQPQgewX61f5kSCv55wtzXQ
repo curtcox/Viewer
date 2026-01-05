@@ -1,0 +1,7 @@
+{
+  "entries": [
+    {".tag": "folder", "name": "Documents", "path_lower": "/documents", "id": "id:abc123"},
+    {".tag": "file", "name": "report.pdf", "path_lower": "/report.pdf", "id": "id:def456", "size": 45678}
+  ],
+  "cursor": "ZtkX9_EHj3x7PMkVuFIhwKYX", "has_more": false
+}

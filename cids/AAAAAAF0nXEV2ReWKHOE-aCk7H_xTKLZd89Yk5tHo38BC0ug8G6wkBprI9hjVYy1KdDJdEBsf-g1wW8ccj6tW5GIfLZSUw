@@ -1,0 +1,18 @@
+[
+  {
+    "id": "card001",
+    "name": "Design hexagonal widget",
+    "desc": "Create specs for new widget shape",
+    "closed": false,
+    "idList": "list001",
+    "idBoard": "abc123"
+  },
+  {
+    "id": "card002",
+    "name": "Update documentation",
+    "desc": "Add new API endpoints to docs",
+    "closed": false,
+    "idList": "list002",
+    "idBoard": "abc123"
+  }
+]

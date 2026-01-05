@@ -1,0 +1,43 @@
+{
+  "id": "12345",
+  "type": "page",
+  "status": "current",
+  "title": "Widget Architecture Overview",
+  "space": {
+    "id": 1001,
+    "key": "ACME",
+    "name": "Acme Widgets",
+    "type": "global"
+  },
+  "version": {
+    "by": {
+      "type": "known",
+      "accountId": "5b10a2844c20165700ede21g",
+      "displayName": "Jane Doe",
+      "emailAddress": "jane.doe@acme-corp.example.com"
+    },
+    "when": "2024-01-20T14:22:00.000Z",
+    "message": "Updated architecture diagrams",
+    "number": 3
+  },
+  "body": {
+    "storage": {
+      "value": "<h1>Widget Architecture</h1><p>This page describes the overall architecture of our widget system.</p>",
+      "representation": "storage"
+    }
+  },
+  "metadata": {
+    "labels": {
+      "results": [
+        {
+          "id": "5001",
+          "name": "architecture"
+        }
+      ]
+    }
+  },
+  "_links": {
+    "webui": "/spaces/ACME/pages/12345/Widget+Architecture+Overview",
+    "self": "https://acme-corp.atlassian.net/wiki/rest/api/content/12345"
+  }
+}

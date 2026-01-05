@@ -1,0 +1,18 @@
+{
+  "id": "msg_01ABC123XYZ",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Hexagonal widgets are an excellent choice for tessellation patterns. Their six-sided geometry allows them to fit together perfectly without gaps, similar to a honeycomb structure. This makes them ideal for applications requiring efficient space utilization and uniform coverage."
+    }
+  ],
+  "model": "claude-3-opus-20240229",
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 28,
+    "output_tokens": 52
+  }
+}

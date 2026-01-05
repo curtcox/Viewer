@@ -1,0 +1,6 @@
+{
+  "value": [
+    {"accountid": "acc001", "name": "Acme Corp", "revenue": 1000000},
+    {"accountid": "acc002", "name": "Globex Corporation", "revenue": 2500000}
+  ]
+}

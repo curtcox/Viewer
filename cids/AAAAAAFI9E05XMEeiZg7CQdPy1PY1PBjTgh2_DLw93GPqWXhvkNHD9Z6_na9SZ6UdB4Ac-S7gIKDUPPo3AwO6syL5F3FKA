@@ -1,0 +1,14 @@
+{
+  "id": "cus_DrBogusMcFakester",
+  "object": "customer",
+  "email": "bogus@fakester.example.com",
+  "name": "Dr. Bogus McFakester",
+  "created": 1706400000,
+  "currency": "usd",
+  "balance": 0,
+  "delinquent": false,
+  "description": "Premium widget customer",
+  "invoice_settings": {
+    "default_payment_method": null
+  }
+}

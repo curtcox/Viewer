@@ -1,0 +1,7 @@
+{
+  "type": "https://mailchimp.com/developer/marketing/docs/errors/",
+  "title": "API Key Invalid",
+  "status": 401,
+  "detail": "Your API key is invalid or has been revoked.",
+  "instance": "abc12345-1234-5678-9abc-def012345678"
+}

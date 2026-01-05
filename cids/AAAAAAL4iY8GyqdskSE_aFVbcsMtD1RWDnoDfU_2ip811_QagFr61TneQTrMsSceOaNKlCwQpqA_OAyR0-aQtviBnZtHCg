@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "doc001",
+      "type": "doc",
+      "href": "https://coda.io/apis/v1/docs/doc001",
+      "browserLink": "https://coda.io/d/_ddoc001",
+      "name": "Widget Project Docs",
+      "owner": "bogus@fakester.example.com",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-20T14:22:00.000Z"
+    },
+    {
+      "id": "doc002",
+      "type": "doc",
+      "href": "https://coda.io/apis/v1/docs/doc002",
+      "browserLink": "https://coda.io/d/_ddoc002",
+      "name": "Team Meeting Notes",
+      "owner": "jane.doe@acme-corp.example.com",
+      "createdAt": "2024-01-16T09:15:00.000Z",
+      "updatedAt": "2024-01-18T11:45:00.000Z"
+    }
+  ],
+  "href": "https://coda.io/apis/v1/docs",
+  "nextPageToken": null
+}

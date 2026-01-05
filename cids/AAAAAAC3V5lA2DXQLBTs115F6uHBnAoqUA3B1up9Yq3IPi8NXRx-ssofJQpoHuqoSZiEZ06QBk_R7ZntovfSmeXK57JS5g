@@ -1,0 +1,8 @@
+{
+  "kind": "calendar#events",
+  "etag": "\"abc123\"",
+  "summary": "jane.doe@example.com",
+  "updated": "2024-01-22T10:00:00.000Z",
+  "timeZone": "America/New_York",
+  "items": []
+}

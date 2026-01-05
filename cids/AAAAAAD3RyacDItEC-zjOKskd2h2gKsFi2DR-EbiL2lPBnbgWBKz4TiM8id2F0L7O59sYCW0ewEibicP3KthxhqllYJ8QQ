@@ -1,0 +1,6 @@
+{
+  "tickets": [
+    {"id": 12345, "subject": "Cannot log in", "status": "open", "priority": "high", "requester_id": 678901},
+    {"id": 12346, "subject": "Feature request", "status": "pending", "priority": "normal", "requester_id": 678902}
+  ]
+}

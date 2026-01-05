@@ -1,0 +1,14 @@
+[
+  {
+    "id": "proj001",
+    "name": "Widget Development",
+    "color": "blue",
+    "is_favorite": true
+  },
+  {
+    "id": "proj002",
+    "name": "Documentation",
+    "color": "green",
+    "is_favorite": false
+  }
+]

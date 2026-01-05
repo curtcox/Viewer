@@ -1,0 +1,16 @@
+{
+  "value": [
+    {
+      "id": "19:general@thread.tacv2",
+      "displayName": "General",
+      "description": "General team discussion",
+      "membershipType": "standard"
+    },
+    {
+      "id": "19:hexwidgets@thread.tacv2",
+      "displayName": "Hexagonal Widgets",
+      "description": "Hexagonal widget development channel",
+      "membershipType": "standard"
+    }
+  ]
+}

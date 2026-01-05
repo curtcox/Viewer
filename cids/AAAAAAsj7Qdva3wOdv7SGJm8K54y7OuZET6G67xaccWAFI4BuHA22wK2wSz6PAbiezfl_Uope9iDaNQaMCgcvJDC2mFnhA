@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "node_id": "I_kwDOABCDEF",
+    "number": 1,
+    "title": "Widget fails to spin on Tuesdays",
+    "user": {
+      "login": "janedoe",
+      "id": 12345,
+      "avatar_url": "https://avatars.githubusercontent.com/u/12345",
+      "type": "User"
+    },
+    "labels": [
+      {
+        "id": 1001,
+        "name": "bug",
+        "color": "d73a4a"
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "milestone": null,
+    "comments": 3,
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-20T14:22:00Z",
+    "closed_at": null,
+    "body": "When attempting to spin the widget on Tuesday mornings, it fails with error code 42. Works fine on other days of the week.",
+    "html_url": "https://github.com/acme-corp/widgets/issues/1",
+    "repository_url": "https://api.github.com/repos/acme-corp/widgets"
+  },
+  {
+    "id": 2,
+    "node_id": "I_kwDOABCDEG",
+    "number": 2,
+    "title": "Add support for hexagonal widgets",
+    "user": {
+      "login": "johnsmith",
+      "id": 67890,
+      "avatar_url": "https://avatars.githubusercontent.com/u/67890",
+      "type": "User"
+    },
+    "labels": [
+      {
+        "id": 1002,
+        "name": "enhancement",
+        "color": "a2eeef"
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": {
+      "login": "janedoe",
+      "id": 12345
+    },
+    "assignees": [
+      {
+        "login": "janedoe",
+        "id": 12345
+      }
+    ],
+    "milestone": {
+      "id": 2001,
+      "number": 1,
+      "title": "v2.0"
+    },
+    "comments": 7,
+    "created_at": "2024-01-16T09:15:00Z",
+    "updated_at": "2024-01-22T11:45:00Z",
+    "closed_at": null,
+    "body": "We need to support hexagonal widgets in addition to the current square and circular shapes. This would enable better tessellation patterns.",
+    "html_url": "https://github.com/acme-corp/widgets/issues/2",
+    "repository_url": "https://api.github.com/repos/acme-corp/widgets"
+  },
+  {
+    "id": 3,
+    "node_id": "I_kwDOABCDEH",
+    "number": 3,
+    "title": "Documentation: Getting started guide",
+    "user": {
+      "login": "bogusmcfakester",
+      "id": 11111,
+      "avatar_url": "https://avatars.githubusercontent.com/u/11111",
+      "type": "User"
+    },
+    "labels": [
+      {
+        "id": 1003,
+        "name": "documentation",
+        "color": "0075ca"
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "milestone": null,
+    "comments": 1,
+    "created_at": "2024-01-17T16:00:00Z",
+    "updated_at": "2024-01-17T16:30:00Z",
+    "closed_at": null,
+    "body": "Need a comprehensive getting started guide for new widget developers.",
+    "html_url": "https://github.com/acme-corp/widgets/issues/3",
+    "repository_url": "https://api.github.com/repos/acme-corp/widgets"
+  }
+]

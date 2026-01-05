@@ -1,0 +1,72 @@
+[
+  {
+    "id": 501,
+    "parent_id": 0,
+    "status": "completed",
+    "currency": "USD",
+    "total": "119.97",
+    "total_tax": "0.00",
+    "date_created": "2024-01-22T10:30:00",
+    "date_modified": "2024-01-22T11:00:00",
+    "customer_id": 3,
+    "billing": {
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "email": "jane.doe@example.com",
+      "phone": "555-0100"
+    },
+    "shipping": {
+      "first_name": "Jane",
+      "last_name": "Doe"
+    },
+    "payment_method": "stripe",
+    "payment_method_title": "Credit Card",
+    "line_items": [
+      {
+        "id": 1001,
+        "name": "Acme Widget Pro",
+        "product_id": 101,
+        "quantity": 3,
+        "subtotal": "119.97",
+        "total": "119.97",
+        "sku": "WC-WIDGET-PRO",
+        "price": 39.99
+      }
+    ]
+  },
+  {
+    "id": 502,
+    "parent_id": 0,
+    "status": "processing",
+    "currency": "USD",
+    "total": "69.99",
+    "total_tax": "0.00",
+    "date_created": "2024-01-23T14:15:00",
+    "date_modified": "2024-01-23T14:15:00",
+    "customer_id": 4,
+    "billing": {
+      "first_name": "John",
+      "last_name": "Smith",
+      "email": "john.smith@example.com",
+      "phone": "555-0101"
+    },
+    "shipping": {
+      "first_name": "John",
+      "last_name": "Smith"
+    },
+    "payment_method": "paypal",
+    "payment_method_title": "PayPal",
+    "line_items": [
+      {
+        "id": 1002,
+        "name": "Globex Gadget Deluxe",
+        "product_id": 102,
+        "quantity": 1,
+        "subtotal": "69.99",
+        "total": "69.99",
+        "sku": "WC-GADGET-DLX",
+        "price": 69.99
+      }
+    ]
+  }
+]
