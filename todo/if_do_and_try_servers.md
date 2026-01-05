@@ -421,6 +421,18 @@ Add same entries as default.
 | CS-05 | `test_try_inside_do` | `/do/try/echo/ok/catch/echo/err/while/echo/false` | Returns "ok" |
 | CS-06 | `test_all_three_nested` | `/try/if/echo/1/then/do/echo/x/while/echo/false/catch/echo/err` | Returns "x" |
 
+### Integration Tests: Cost Estimate Server
+
+| Test ID | Test Name | URL | Expected Behavior |
+|---------|-----------|-----|-------------------|
+| CE-01 | `test_cost_estimate_basic` | `/cost_estimate/echo` | Returns numeric cost string |
+| CE-02 | `test_cost_estimate_with_input_size` | `/cost_estimate/echo?input_size=1000` | Higher cost than CE-01 |
+| CE-03 | `test_cost_estimate_with_output_size` | `/cost_estimate/echo?output_size=1000` | Higher cost than CE-01 |
+| CE-04 | `test_cost_estimate_with_execution_time` | `/cost_estimate/echo?execution_time=100` | Higher cost than CE-01 |
+| CE-05 | `test_cost_estimate_combined` | `/cost_estimate/echo?input_size=500&output_size=500&execution_time=50` | Cumulative cost |
+| CE-06 | `test_cost_estimate_returns_text` | `/cost_estimate/echo` | content_type is text/plain |
+| CE-07 | `test_cost_estimate_parseable_float` | `/cost_estimate/echo` | Output parses as float |
+
 ### Integration Tests: Boot Image Verification
 
 | Test ID | Test Name | Description | Expected Result |
@@ -431,8 +443,10 @@ Add same entries as default.
 | BI-04 | `test_if_in_readonly_boot` | Parse readonly.boot.source.json | if server present |
 | BI-05 | `test_do_in_readonly_boot` | Parse readonly.boot.source.json | do server present |
 | BI-06 | `test_try_in_readonly_boot` | Parse readonly.boot.source.json | try server present |
-| BI-07 | `test_servers_enabled` | All three enabled | `enabled == true` |
-| BI-08 | `test_definitions_exist` | Definition files exist | Files found |
+| BI-07 | `test_cost_estimate_in_default_boot` | Parse default.boot.source.json | cost_estimate server present |
+| BI-08 | `test_cost_estimate_in_readonly_boot` | Parse readonly.boot.source.json | cost_estimate server present |
+| BI-09 | `test_servers_enabled` | All four enabled | `enabled == true` |
+| BI-10 | `test_definitions_exist` | Definition files exist | All 4 files found |
 
 ### Edge Case Tests
 
@@ -621,29 +635,89 @@ The content-type from whichever branch was actually executed is used:
 
 ---
 
-## Followup Questions
+### D11: Cost Tracking Mechanism
 
-### FQ1: Cost Tracking Mechanism
+**Decision**: Create a `/cost_estimate` server with placeholder estimation function
 
-D7 specifies a cost limit of 0.5 cents. This requires a cost tracking mechanism.
+A new `cost_estimate` server will be added to the boot images:
 
-**Questions**:
-1. Is there an existing cost tracking system in the codebase that should be integrated?
-2. How is "cost" defined? (e.g., API calls, compute time, specific server invocations?)
-3. Should cost be tracked per-request, per-session, or per-loop?
-4. What happens when the cost limit is reached mid-iteration? (Complete current iteration or abort immediately?)
+**Route**: `/cost_estimate/{path}?input_size={}&output_size={}&execution_time={}`
+
+**Parameters**:
+- `path`: The server/path being estimated
+- `input_size`: Size of input data in bytes (optional)
+- `output_size`: Size of output data in bytes (optional)
+- `execution_time`: Execution time in milliseconds (optional)
+
+**Initial Implementation**:
+```python
+def main(path="", input_size=0, output_size=0, execution_time=0, *, context=None):
+    """
+    Placeholder cost estimation server.
+    Returns estimated cost in cents for executing the given path.
+
+    Initial implementation uses simple heuristics:
+    - Base cost per invocation
+    - Additional cost based on data size
+    - Additional cost based on execution time
+
+    This is a placeholder for future refinement with actual cost data.
+    """
+    # Placeholder estimation - to be refined
+    base_cost = 0.0001  # 0.01 cents per invocation
+    size_cost = (input_size + output_size) * 0.000001  # per byte
+    time_cost = execution_time * 0.00001  # per millisecond
+
+    total_cents = base_cost + size_cost + time_cost
+    return {"output": str(total_cents), "content_type": "text/plain"}
+```
+
+**Usage by do server**:
+- After each iteration, call `/cost_estimate` with accumulated metrics
+- Compare returned value against 0.5 cent limit
+- Terminate loop if limit exceeded
+
+**Rationale**: Provides a pluggable cost estimation system that can be refined over time. The placeholder implementation ensures the infrastructure exists while allowing future improvements without changing the control flow servers.
 
 ---
 
-### FQ2: Balanced Parsing Algorithm Details
+### D12: Cross-Server Keyword Handling
 
-D1 specifies balanced parsing for nested conditionals. Need to clarify the exact algorithm:
+**Decision**: Each server only handles its own keywords and delegates paths to other servers
 
-**Questions**:
-1. Should `do` and `try` also track nesting for their keywords (`while`, `catch`)?
-   - Example: `/if/a/then/do/b/while/c/else/d` - is the `else` matched to the outer `if` or considered part of the `do` path?
-2. For triple-nesting across different control flow types, what's the precedence?
-   - Example: `/if/a/then/try/b/catch/if/c/then/d/else/e/else/f`
+Each control flow server:
+- Only recognizes and parses its own keywords
+- Treats other control flow keywords as regular path segments
+- Delegates execution of nested paths to the appropriate servers
+
+**Keyword ownership**:
+- `if` server: `then`, `else`
+- `do` server: `while`
+- `try` server: `catch`
+
+**Example**: `/if/a/then/do/b/while/c/else/d`
+
+Parsing by `if` server:
+1. Scan for `then` and `else` (ignoring `while` - not our keyword)
+2. test = `["a"]`
+3. true-path = `["do", "b", "while", "c"]` (entire path including `while`)
+4. false-path = `["d"]`
+
+When true-path is executed:
+- The `if` server calls `/do/b/while/c`
+- The `do` server then parses its own `while` keyword
+
+**Example**: `/if/a/then/try/b/catch/if/c/then/d/else/e/else/f`
+
+Parsing by outer `if` server:
+1. Scan for `then` and `else` (its keywords only)
+2. test = `["a"]`
+3. true-path = `["try", "b", "catch", "if", "c", "then", "d", "else", "e"]`
+4. false-path = `["f"]`
+
+The inner `if` keywords (`then`, `else`) are part of the true-path and will be parsed when that nested `if` executes.
+
+**Rationale**: Clean separation of concerns. Each server is responsible only for its own control flow. This avoids complex cross-server parsing logic and makes behavior predictable.
 
 ---
 
@@ -661,28 +735,30 @@ D1 specifies balanced parsing for nested conditionals. Need to clarify the exact
 2. `reference/templates/servers/definitions/if.py` - If server definition
 3. `reference/templates/servers/definitions/do.py` - Do server definition
 4. `reference/templates/servers/definitions/try.py` - Try server definition
-5. `tests/test_conditional_execution.py` - Unit tests
-6. `tests/test_conditional_servers_integration.py` - Integration tests
+5. `reference/templates/servers/definitions/cost_estimate.py` - Cost estimation server
+6. `tests/test_conditional_execution.py` - Unit tests
+7. `tests/test_conditional_servers_integration.py` - Integration tests
+8. `tests/test_cost_estimate_server.py` - Cost estimation tests
 
 ## Files to Modify
 
-1. `reference/templates/boot.source.json` - Add if, do, try servers
-2. `reference/templates/readonly.boot.source.json` - Add if, do, try servers
+1. `reference/templates/boot.source.json` - Add if, do, try, cost_estimate servers
+2. `reference/templates/readonly.boot.source.json` - Add if, do, try, cost_estimate servers
 
 ## Implementation Order
 
 1. Create shared conditional execution module with path parsing
 2. Implement truthiness evaluation and error detection
-3. Create if server with identity behavior
-4. Add if/then/else logic
-5. Create do server with identity behavior
-6. Add do/while logic with iteration limits
-7. Create try server with identity behavior
-8. Add try/catch logic
-9. Add to boot images
-10. Write unit tests (ongoing)
-11. Write integration tests
-12. Resolve open questions through iteration
+3. Create cost_estimate server with placeholder implementation
+4. Create if server with identity behavior
+5. Add if/then/else logic with balanced parsing
+6. Create do server with identity behavior
+7. Add do/while logic with triple limits (cost, time, iterations)
+8. Create try server with identity behavior
+9. Add try/catch logic with error headers
+10. Add all servers to boot images
+11. Write unit tests (ongoing)
+12. Write integration tests
 
 ---
 
@@ -692,6 +768,7 @@ D1 specifies balanced parsing for nested conditionals. Need to clarify the exact
 |-----------|--------|
 | Path parsing utilities | Medium |
 | Truthiness evaluation | Low |
+| Cost estimate server | Low |
 | If server implementation | Medium |
 | Do server implementation | Medium-High |
 | Try server implementation | Medium |
