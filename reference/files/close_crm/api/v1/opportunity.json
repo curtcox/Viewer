@@ -1,0 +1,23 @@
+{
+  "has_more": false,
+  "data": [
+    {
+      "id": "oppo_111",
+      "lead_id": "lead_ABC123",
+      "lead_name": "Acme Corporation",
+      "status_id": "stat_active",
+      "status_label": "Active",
+      "status_type": "active",
+      "value": 75000,
+      "value_currency": "USD",
+      "value_period": "one_time",
+      "confidence": 60,
+      "date_won": null,
+      "note": "Widget supply agreement - Q1 2024",
+      "user_id": "user_001",
+      "user_name": "Sales Rep",
+      "date_created": "2024-01-15T10:00:00.000000+00:00",
+      "date_updated": "2024-01-25T14:30:00.000000+00:00"
+    }
+  ]
+}

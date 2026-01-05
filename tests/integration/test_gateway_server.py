@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def gateway_server(integration_app):
     """Create the gateway server."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")

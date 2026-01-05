@@ -54,7 +54,11 @@ def try_server_execution_with_partial(
         return None
 
     history = history_fetcher(server_name)
-    matches = [h for h in history if h.get("definition_cid", "").startswith(partial)]
+    matches = [
+        h
+        for h in history
+        if str(h.get("definition_cid") or "").startswith(partial)
+    ]
 
     if not matches:
         return render_template("404.html", path=path), 404
@@ -149,8 +153,6 @@ def try_server_execution(path: str) -> Optional[Response]:
             if _auto_main_accepts_additional_path(server):
                 return execute_server_code(server, server_name)
 
-            # Preserve existing behavior for "normal" servers: when a helper
-            # is requested but missing, allow a 404 rather than running main.
             return None
 
         result = execute_server_function(server, server_name, function_name)
@@ -188,6 +190,18 @@ def try_server_execution(path: str) -> Optional[Response]:
         definition_text, function_name
     )
     if helper_details is None:
+        # CID literal URLs may include an extra path segment (e.g. /{cid}.py/next)
+        # even when the code only defines main(). Treat this as an invocation of
+        # main() rather than returning a 404.
+        if len(parts) == 2:
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
         main_details = _analyze_server_definition_for_function(definition_text, "main")
         if main_details is None:
             return _execute_server_code_common(

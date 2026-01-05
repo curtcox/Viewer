@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 import requests
-from reference_templates.servers.definitions import google_analytics
+from reference.templates.servers.definitions import google_analytics
 
 
 def test_missing_credentials_returns_auth_error():

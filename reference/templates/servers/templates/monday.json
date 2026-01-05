@@ -1,0 +1,17 @@
+{
+  "id": "monday",
+  "name": "Monday.com",
+  "description": "Manage Monday.com boards and items with API key.",
+  "definition_cid": "reference/templates/servers/definitions/monday.py",
+  "operations": [
+    "list_boards",
+    "get_board",
+    "list_items",
+    "get_item",
+    "create_item"
+  ],
+  "secrets": [
+    "MONDAY_API_KEY"
+  ],
+  "notes": "Supports dry-run previews by default. Uses GraphQL API for all operations."
+}

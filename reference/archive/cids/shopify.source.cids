@@ -1,0 +1,6 @@
+/admin/api/2024-01/products.json ../../files/shopify/admin/api/2024-01/products.json
+/admin/api/2024-01/products.json?limit=0 ../../files/shopify/admin/api/2024-01/products_limit_0.json
+/admin/api/2024-01/products/7654321.json ../../files/shopify/admin/api/2024-01/products/7654321.json
+/admin/api/2024-01/orders.json ../../files/shopify/admin/api/2024-01/orders.json
+/admin/api/2024-01/customers.json ../../files/shopify/admin/api/2024-01/customers.json
+/errors/401 ../../files/shopify/admin/api/2024-01/errors/401_unauthorized.json

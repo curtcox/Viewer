@@ -1,0 +1,6 @@
+/3.0/lists ../../files/mailchimp/3.0/lists.json
+/3.0/lists/abc123def ../../files/mailchimp/3.0/lists/abc123def.json
+/3.0/lists/abc123def/members ../../files/mailchimp/3.0/lists/abc123def/members.json
+/3.0/lists/abc123def/members?count=0 ../../files/mailchimp/3.0/lists/abc123def/members_count_0.json
+/3.0/campaigns ../../files/mailchimp/3.0/campaigns.json
+/errors/401 ../../files/mailchimp/errors/401_api_key_invalid.json

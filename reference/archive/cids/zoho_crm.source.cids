@@ -1,0 +1,9 @@
+/crm/v3/Accounts ../../files/zoho_crm/crm/v3/Accounts.json
+/crm/v3/Accounts?page=1&per_page=0 ../../files/zoho_crm/crm/v3/Accounts_page_1_per_page_0.json
+/crm/v3/Accounts/4000000012345 ../../files/zoho_crm/crm/v3/Accounts/4000000012345.json
+/crm/v3/Contacts ../../files/zoho_crm/crm/v3/Contacts.json
+/crm/v3/Contacts/4000000023456 ../../files/zoho_crm/crm/v3/Contacts/4000000023456.json
+/crm/v3/Leads ../../files/zoho_crm/crm/v3/Leads.json
+/crm/v3/Deals ../../files/zoho_crm/crm/v3/Deals.json
+/crm/v3/Deals/4000000045678 ../../files/zoho_crm/crm/v3/Deals/4000000045678.json
+/errors/401 ../../files/zoho_crm/errors/401_invalid_token.json

@@ -10,12 +10,12 @@ class TestGetDefaultBootCid(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures - verify boot.cid exists before running tests."""
         project_root = Path(__file__).parent.parent
-        self.boot_cid_file = project_root / "reference_templates" / "boot.cid"
+        self.boot_cid_file = project_root / "reference/templates" / "boot.cid"
 
         # Fail fast if boot.cid doesn't exist - don't silently pass
         self.assertTrue(
             self.boot_cid_file.exists(),
-            "boot.cid must exist in reference_templates directory. "
+            "boot.cid must exist in reference/templates directory. "
             "Run generate_boot_image.py to create it.",
         )
 

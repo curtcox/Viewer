@@ -1,0 +1,3 @@
+/meetings ../../files/zoom/v2/meetings.json
+/meetings?limit=0 ../../files/zoom/v2/meetings_limit_0.json
+/errors/401 ../../files/zoom/v2/errors/401_unauthorized.json

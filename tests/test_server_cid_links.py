@@ -36,7 +36,7 @@ def _get_cid_links_definition():
     """Load the cid_links server definition."""
     from pathlib import Path
 
-    definition_path = Path("reference_templates/servers/definitions/cid_links.py")
+    definition_path = Path("reference/templates/servers/definitions/cid_links.py")
     return definition_path.read_text(encoding="utf-8")
 
 

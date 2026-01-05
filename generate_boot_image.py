@@ -2,7 +2,7 @@
 """Generate boot image from reference templates.
 
 This script:
-1. Reads all files in /reference_templates
+1. Reads all files in /reference/templates
 2. Generates CIDs for all referenced files
 3. Stores CIDs in /cids directory
 4. Converts templates.source.json to templates.json (filenames -> CIDs)
@@ -30,7 +30,9 @@ class BootImageGenerator:
         if base_dir is None:
             base_dir = Path(__file__).parent
         self.base_dir = base_dir
-        self.reference_templates_dir = base_dir / "reference_templates"
+        self.reference_templates_dir = base_dir / "reference" / "templates"
+        self.reference_files_dir = base_dir / "reference" / "files"
+        self.reference_archive_cids_dir = base_dir / "reference" / "archive" / "cids"
         self.cids_dir = base_dir / "cids"
         self.processed_files: Set[str] = set()
         self.file_to_cid: Dict[str, str] = {}
@@ -38,6 +40,77 @@ class BootImageGenerator:
     def ensure_cids_directory(self):
         """Ensure the cids directory exists."""
         self.cids_dir.mkdir(exist_ok=True)
+
+    def process_reference_files(self) -> None:
+        """Process all files under reference/files.
+
+        Any file that is too large to be a CID literal (i.e., generates a non-literal
+        CID) will be stored in /cids under its CID filename.
+        """
+        if not self.reference_files_dir.exists():
+            return
+
+        for file_path in self.reference_files_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+            relative_path = str(file_path.relative_to(self.base_dir)).replace("\\", "/")
+            self.generate_and_store_cid(file_path, relative_path)
+
+    def process_reference_source_cids_archives(self) -> None:
+        """Convert reference/archive/cids/*.source.cids into reference/files/*.cids.
+
+        Source archives list response payload files by a path that is relative to the
+        .source.cids file itself. The generated .cids archive will reference the
+        response payloads by CID (with request path extension preserved).
+        """
+        if not self.reference_archive_cids_dir.exists():
+            return
+
+        self.reference_files_dir.mkdir(parents=True, exist_ok=True)
+
+        for source_path in sorted(self.reference_archive_cids_dir.glob("*.source.cids")):
+            target_path = self.reference_files_dir / source_path.name.replace(
+                ".source.cids", ".cids"
+            )
+
+            lines = source_path.read_text(encoding="utf-8").splitlines()
+            processed_lines: list[str] = []
+
+            for line_num, raw_line in enumerate(lines, 1):
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                parts = line.split(None, 1)
+                if len(parts) != 2:
+                    print(f"    WARNING: Line {line_num} invalid format: {raw_line}")
+                    continue
+
+                request_path, response_ref = parts
+                response_ref = response_ref.strip()
+
+                response_file = (source_path.parent / response_ref).resolve()
+                if not response_file.exists() or not response_file.is_file():
+                    print(
+                        f"    WARNING: Referenced file not found: {response_ref} (from {source_path})"
+                    )
+                    continue
+
+                relative_response_path = str(
+                    response_file.relative_to(self.base_dir)
+                ).replace("\\", "/")
+                response_cid = self.generate_and_store_cid(
+                    response_file, relative_response_path
+                )
+
+                request_ext = Path(request_path).suffix
+                if request_ext:
+                    response_cid = f"{response_cid}{request_ext}"
+
+                processed_lines.append(f"{request_path} {response_cid}")
+
+            target_path.write_text("\n".join(processed_lines) + "\n", encoding="utf-8")
+            print(f"Generated: {target_path}")
 
     def read_file_content(self, file_path: Path) -> bytes:
         """Read file content as bytes.
@@ -65,6 +138,10 @@ class BootImageGenerator:
         if relative_path in self.file_to_cid:
             return self.file_to_cid[relative_path]
 
+        # Special handling for .cids archive files
+        if file_path.suffix == '.cids':
+            return self.process_cids_archive_file(file_path, relative_path)
+
         # Read content and generate CID
         content = self.read_file_content(file_path)
         cid = generate_cid(content)
@@ -87,6 +164,89 @@ class BootImageGenerator:
 
         return cid
 
+    def process_cids_archive_file(self, file_path: Path, relative_path: str) -> str:
+        """Process a CIDS archive file by replacing file paths with actual CIDs.
+        
+        A CIDS archive has lines in format: <request_path> <response_content>
+        where <response_content> can be a file path or a CID.
+        This method replaces file paths with their corresponding CIDs.
+        
+        Args:
+            file_path: Absolute path to the .cids file
+            relative_path: Relative path (used for tracking)
+            
+        Returns:
+            The CID of the processed CIDS archive
+        """
+        print(f"  Processing CIDS archive: {relative_path}")
+        
+        # Read the CIDS archive
+        content = self.read_file_content(file_path).decode('utf-8')
+        lines = content.strip().split('\n')
+        
+        processed_lines = []
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line:
+                continue
+                
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                print(f"    WARNING: Line {line_num} invalid format: {line}")
+                processed_lines.append(line)
+                continue
+                
+            request_path, response_ref = parts
+            
+            # Check if response_ref is a file path
+            if response_ref.startswith('reference/templates/'):
+                # It's a file path, need to generate CID for it
+                ref_file_path = self.base_dir / response_ref
+                if ref_file_path.exists():
+                    # Determine extension from request_path
+                    request_ext = Path(request_path).suffix
+                    
+                    # Generate CID for the referenced file
+                    response_cid = self.generate_and_store_cid(ref_file_path, response_ref)
+                    
+                    # Add extension to CID if present in request path
+                    if request_ext:
+                        response_cid_with_ext = f"{response_cid}{request_ext}"
+                    else:
+                        response_cid_with_ext = response_cid
+                    
+                    processed_lines.append(f"{request_path} {response_cid_with_ext}")
+                    print(f"    {request_path} -> {response_cid_with_ext}")
+                else:
+                    print(f"    WARNING: Referenced file not found: {response_ref}")
+                    processed_lines.append(line)
+            else:
+                # It's already a CID or something else, keep it as is
+                processed_lines.append(line)
+        
+        # Create the processed CIDS archive content
+        processed_content = '\n'.join(processed_lines) + '\n'
+        processed_bytes = processed_content.encode('utf-8')
+        
+        # Generate CID for the processed CIDS archive
+        cid = generate_cid(processed_bytes)
+        
+        # Store the processed CIDS archive
+        if not is_literal_cid(cid):
+            cid_file_path = self.cids_dir / cid
+            if not cid_file_path.exists():
+                with open(cid_file_path, "wb") as f:
+                    f.write(processed_bytes)
+                print(f"  Stored processed CIDS archive: {relative_path} -> {cid}")
+            else:
+                print(f"  Already exists: {relative_path} -> {cid}")
+        
+        # Track the mapping
+        self.file_to_cid[relative_path] = cid
+        self.processed_files.add(relative_path)
+        
+        return cid
+
     def process_referenced_files(self, data: Any, parent_path: str = "") -> None:
         """Recursively process all files referenced in JSON data.
 
@@ -99,7 +259,7 @@ class BootImageGenerator:
                 if key == "templates" and isinstance(value, dict):
                     for template_name, template_value in value.items():
                         if isinstance(template_value, str) and template_value.startswith(
-                            "reference_templates/"
+                            "reference/templates/"
                         ):
                             file_path = self.base_dir / template_value
                             if file_path.exists():
@@ -112,7 +272,7 @@ class BootImageGenerator:
                 if key.endswith("_cid") or key.endswith("_file"):
                     # This is a file reference
                     if isinstance(value, str) and value.startswith(
-                        "reference_templates/"
+                        "reference/templates/"
                     ):
                         file_path = self.base_dir / value
                         if file_path.exists():
@@ -129,7 +289,7 @@ class BootImageGenerator:
         """Process a server definition Python file to replace embedded filenames with CIDs.
 
         Args:
-            server_def_path: Path to the server definition file (e.g., "reference_templates/servers/definitions/urleditor.py")
+            server_def_path: Path to the server definition file (e.g., "reference/templates/servers/definitions/urleditor.py")
 
         Returns:
             CID of the processed server definition, or None if no changes needed
@@ -191,7 +351,7 @@ class BootImageGenerator:
         """
         # Handle CID or file keys
         if key.endswith("_cid") or key.endswith("_file"):
-            if isinstance(value, str) and value.startswith("reference_templates/"):
+            if isinstance(value, str) and value.startswith("reference/templates/"):
                 if value in self.file_to_cid:
                     return self.file_to_cid[value]
                 print(f"  WARNING: No CID found for {value}")
@@ -202,7 +362,7 @@ class BootImageGenerator:
             result: dict[str, Any] = {}
             for template_name, template_value in value.items():
                 if isinstance(template_value, str) and template_value.startswith(
-                    "reference_templates/"
+                    "reference/templates/"
                 ):
                     if template_value in self.file_to_cid:
                         result[template_name] = self.file_to_cid[template_value]
@@ -542,6 +702,12 @@ class BootImageGenerator:
 
         # Ensure cids directory exists
         self.ensure_cids_directory()
+
+        # Generate reference/files/*.cids from reference/archive/cids/*.source.cids
+        self.process_reference_source_cids_archives()
+
+        # Store any non-literal reference/files content into /cids.
+        self.process_reference_files()
 
         # Generate templates.json and get its CID
         templates_cid = self.generate_templates_json()

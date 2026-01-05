@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import amplitude
+from reference.templates.servers.definitions import amplitude
 
 
 def test_requires_api_key():

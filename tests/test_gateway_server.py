@@ -48,7 +48,7 @@ def patch_execution_environment(monkeypatch):
 
 def test_gateway_server_template_exists():
     """Verify that the gateway server template is registered."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_templates = [t for t in templates if t.get("id") == "gateway"]
@@ -60,7 +60,7 @@ def test_gateway_server_template_exists():
 
 def test_gateway_shows_instruction_page_with_gateways():
     """Gateway should show instruction page with configured gateways."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -77,7 +77,7 @@ def test_gateway_shows_instruction_page_with_gateways():
 
 def test_gateway_template_has_correct_metadata():
     """Gateway template should have proper id, name, and description."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_templates = [t for t in templates if t.get("id") == "gateway"]
@@ -92,7 +92,7 @@ def test_gateway_template_has_correct_metadata():
 
 def test_gateway_handles_missing_gateway_gracefully():
     """Gateway should handle requests to non-existent gateways gracefully."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -112,7 +112,7 @@ def test_gateway_handles_missing_gateway_gracefully():
 
 def test_gateway_internal_redirect_resolution_preserves_bytes():
     """Gateway should resolve internal redirects to CID content without corrupting raw bytes."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     raw_json = b"{\"ok\": true}"
 
@@ -140,7 +140,7 @@ def test_internal_jsonplaceholder_forces_identity_encoding(mock_request):
     mock_response.content = b"{}"
     mock_request.return_value = mock_response
 
-    from reference_templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
+    from reference.templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
 
     class _FakeReq:
         path = "/jsonplaceholder/posts/1"
@@ -171,7 +171,7 @@ def test_internal_jsonplaceholder_decompresses_gzip(mock_request):
     mock_response.content = gzip.compress(payload)
     mock_request.return_value = mock_response
 
-    from reference_templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
+    from reference.templates.servers.definitions import jsonplaceholder as jsonplaceholder_definition
 
     class _FakeReq:
         path = "/jsonplaceholder/posts/1"
@@ -190,7 +190,7 @@ def test_internal_jsonplaceholder_decompresses_gzip(mock_request):
 
 def test_gateway_request_route_accessible():
     """Gateway /request route should be accessible."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -208,7 +208,7 @@ def test_gateway_request_route_accessible():
 
 def test_gateway_response_route_accessible():
     """Gateway /response route should be accessible."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -227,7 +227,7 @@ def test_gateway_response_route_accessible():
 @patch("requests.request")
 def test_gateway_man_executes_internally_without_http(mock_request):
     """Gateway should execute internal targets (like man) without HTTP requests."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -249,7 +249,7 @@ def test_gateway_man_executes_internally_without_http(mock_request):
 
 def test_validate_direct_response_valid():
     """Test _validate_direct_response with valid direct response."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     valid_response = {
         "output": "<html>test</html>",
@@ -263,7 +263,7 @@ def test_validate_direct_response_valid():
 
 def test_validate_direct_response_missing_output():
     """Test _validate_direct_response with missing output key."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     invalid_response = {
         "content_type": "text/html",
@@ -275,7 +275,7 @@ def test_validate_direct_response_missing_output():
 
 def test_validate_direct_response_invalid_output_type():
     """Test _validate_direct_response with invalid output type."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     invalid_response = {
         "output": 123,  # Should be str or bytes
@@ -289,7 +289,7 @@ def test_validate_direct_response_invalid_output_type():
 
 def test_validate_direct_response_invalid_status_code():
     """Test _validate_direct_response with invalid status_code type."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     invalid_response = {
         "output": "test",
@@ -303,7 +303,7 @@ def test_validate_direct_response_invalid_status_code():
 
 def test_validate_direct_response_bytes_output():
     """Test _validate_direct_response accepts bytes output."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
 
     valid_response = {
         "output": b"<html>test</html>",
@@ -316,7 +316,7 @@ def test_validate_direct_response_bytes_output():
 
 def test_request_transform_direct_response_bypasses_server(monkeypatch):
     """Request transform returning response dict should bypass server execution."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Create a request transform that returns a direct response
     def mock_transform(request_details, context):
@@ -358,7 +358,7 @@ def test_request_transform_direct_response_bypasses_server(monkeypatch):
 
 def test_request_transform_direct_response_content_type():
     """Direct response from request transform should preserve content_type."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Create a request transform that returns a direct response with JSON
     def mock_transform(request_details, context):
@@ -388,7 +388,7 @@ def test_request_transform_direct_response_content_type():
 
 def test_request_transform_normal_dict_continues(monkeypatch):
     """Request transform returning normal dict should continue to server."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Create a request transform that returns a normal transformation
     def mock_transform(request_details, context):
@@ -431,7 +431,7 @@ def test_request_transform_normal_dict_continues(monkeypatch):
 
 def test_request_transform_response_key_precedence(monkeypatch):
     """If both 'response' and 'path' keys present, 'response' takes precedence."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Create a request transform that returns both response and path
     def mock_transform(request_details, context):
@@ -474,7 +474,7 @@ def test_request_transform_response_key_precedence(monkeypatch):
 
 def test_response_details_source_server(monkeypatch):
     """Response details from server should have source='server'."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Mock response transform to capture response_details
     captured_response_details = {"captured": None}
@@ -512,7 +512,7 @@ def test_response_details_source_server(monkeypatch):
 
 def test_response_details_source_request_transform(monkeypatch):
     """Response details from request transform should have source='request_transform'."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Mock request transform to return direct response
     def mock_request_transform(request_details, context):
@@ -562,7 +562,7 @@ def test_response_details_source_request_transform(monkeypatch):
 
 def test_template_resolver_creation():
     """Template resolver should be created from gateway config."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     config = {
         "templates": {
@@ -576,7 +576,7 @@ def test_template_resolver_creation():
 
 def test_template_resolver_unknown_template():
     """resolve_template should raise ValueError for unknown template name."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     config = {
         "templates": {
@@ -594,7 +594,7 @@ def test_template_resolver_unknown_template():
 
 def test_template_resolver_missing_cid():
     """resolve_template should raise LookupError if CID cannot be resolved."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     config = {
         "templates": {
@@ -612,7 +612,7 @@ def test_template_resolver_missing_cid():
 
 def test_empty_templates_config():
     """Gateway with no templates config should still work."""
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     config = {}
     
@@ -647,7 +647,7 @@ def test_man_transform_uses_external_template(monkeypatch):
             return content
         return None
     
-    from reference_templates.servers.definitions import gateway as gateway_definition
+    from reference.templates.servers.definitions import gateway as gateway_definition
     
     # Mock the CID resolution
     monkeypatch.setattr(gateway_definition, "_resolve_cid_content", mock_resolve_cid)

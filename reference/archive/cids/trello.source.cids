@@ -1,0 +1,5 @@
+/1/boards/abc123 ../../files/trello/1/boards/abc123.json
+/1/boards/abc123/lists ../../files/trello/1/boards/abc123/lists.json
+/1/boards/abc123/cards ../../files/trello/1/boards/abc123/cards.json
+/1/cards/xyz789 ../../files/trello/1/cards/xyz789.json
+/errors/401 ../../files/trello/errors/401_unauthorized.json

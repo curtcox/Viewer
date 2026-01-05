@@ -1,0 +1,17 @@
+{
+  "id": "smartsheet",
+  "name": "Smartsheet",
+  "description": "Manage Smartsheet sheets and rows with access token.",
+  "definition_cid": "reference/templates/servers/definitions/smartsheet.py",
+  "operations": [
+    "list_sheets",
+    "get_sheet",
+    "list_rows",
+    "get_row",
+    "add_rows"
+  ],
+  "secrets": [
+    "SMARTSHEET_ACCESS_TOKEN"
+  ],
+  "notes": "Supports dry-run previews by default and requires access token for API calls."
+}

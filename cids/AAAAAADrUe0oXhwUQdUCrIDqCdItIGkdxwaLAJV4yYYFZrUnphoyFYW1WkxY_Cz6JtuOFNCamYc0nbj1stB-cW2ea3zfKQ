@@ -1,0 +1,6 @@
+{
+  "_embedded": {"conversations": [
+    {"id": 11111, "subject": "Help needed", "status": "active", "type": "email"},
+    {"id": 11112, "subject": "Thank you", "status": "closed", "type": "email"}
+  ]}, "page": {"totalElements": 2}
+}

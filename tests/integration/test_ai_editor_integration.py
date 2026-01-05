@@ -17,7 +17,7 @@ class TestAiEditorIntegration:
 
             ai_editor_path = (
                 Path(__file__).parent.parent.parent
-                / "reference_templates"
+                / "reference/templates"
                 / "servers"
                 / "definitions"
                 / "ai_editor.py"

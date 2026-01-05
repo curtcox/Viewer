@@ -1,0 +1,3 @@
+/boards ../../files/miro/v2/boards.json
+/boards?limit=0 ../../files/miro/v2/boards_limit_0.json
+/errors/401 ../../files/miro/v2/errors/401_unauthorized.json

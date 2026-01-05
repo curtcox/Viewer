@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "result": [
+    {
+      "update_id": 123456789,
+      "message": {
+        "message_id": 1,
+        "from": {
+          "id": 100200300,
+          "is_bot": false,
+          "first_name": "Jane",
+          "last_name": "Doe",
+          "username": "janedoe"
+        },
+        "chat": {
+          "id": -1001234567890,
+          "title": "Widget Discussion",
+          "type": "group"
+        },
+        "date": 1706543210,
+        "text": "Check out our hexagonal widgets!"
+      }
+    }
+  ]
+}

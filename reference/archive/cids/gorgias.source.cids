@@ -1,0 +1,4 @@
+/api/tickets ../../files/gorgias/api/tickets.json
+/api/tickets?limit=0 ../../files/gorgias/api/tickets_limit_0.json
+/api/tickets/8001 ../../files/gorgias/api/tickets/8001.json
+/errors/401 ../../files/gorgias/api/errors/401_unauthorized.json

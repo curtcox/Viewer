@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "id": "table001",
+      "type": "table",
+      "href": "https://coda.io/apis/v1/docs/doc001/tables/table001",
+      "name": "Tasks",
+      "parent": {
+        "id": "doc001",
+        "type": "doc"
+      }
+    }
+  ]
+}

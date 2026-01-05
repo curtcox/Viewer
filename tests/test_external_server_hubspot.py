@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import hubspot
+from reference.templates.servers.definitions import hubspot
 
 
 def test_missing_token_returns_auth_error():

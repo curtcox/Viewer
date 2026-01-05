@@ -1,0 +1,3 @@
+/v1/track ../../files/segment/v1/track.json
+/v1/identify ../../files/segment/v1/identify.json
+/errors/401 ../../files/segment/errors/401_unauthorized.json

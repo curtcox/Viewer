@@ -1,0 +1,3 @@
+/youtube/v3/videos ../../files/youtube/youtube/v3/videos.json
+/youtube/v3/videos?maxResults=0 ../../files/youtube/youtube/v3/videos_maxResults_0.json
+/errors/401 ../../files/youtube/youtube/v3/errors/401_unauthorized.json

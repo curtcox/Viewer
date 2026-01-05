@@ -1,0 +1,55 @@
+{
+  "id": 2,
+  "node_id": "I_kwDOABCDEG",
+  "number": 2,
+  "title": "Add support for hexagonal widgets",
+  "user": {
+    "login": "johnsmith",
+    "id": 67890,
+    "avatar_url": "https://avatars.githubusercontent.com/u/67890",
+    "type": "User"
+  },
+  "labels": [
+    {
+      "id": 1002,
+      "name": "enhancement",
+      "color": "a2eeef",
+      "description": "New feature or request"
+    }
+  ],
+  "state": "open",
+  "locked": false,
+  "assignee": {
+    "login": "janedoe",
+    "id": 12345,
+    "avatar_url": "https://avatars.githubusercontent.com/u/12345",
+    "type": "User"
+  },
+  "assignees": [
+    {
+      "login": "janedoe",
+      "id": 12345,
+      "avatar_url": "https://avatars.githubusercontent.com/u/12345",
+      "type": "User"
+    }
+  ],
+  "milestone": {
+    "id": 2001,
+    "number": 1,
+    "title": "v2.0",
+    "description": "Second major release",
+    "state": "open",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-22T11:45:00Z",
+    "due_on": "2024-06-30T00:00:00Z"
+  },
+  "comments": 7,
+  "created_at": "2024-01-16T09:15:00Z",
+  "updated_at": "2024-01-22T11:45:00Z",
+  "closed_at": null,
+  "body": "We need to support hexagonal widgets in addition to the current square and circular shapes. This would enable better tessellation patterns.\n\nBenefits:\n- Better space utilization\n- More aesthetically pleasing arrangements\n- Industry standard for widget tessellation",
+  "html_url": "https://github.com/acme-corp/widgets/issues/2",
+  "repository_url": "https://api.github.com/repos/acme-corp/widgets",
+  "comments_url": "https://api.github.com/repos/acme-corp/widgets/issues/2/comments",
+  "events_url": "https://api.github.com/repos/acme-corp/widgets/issues/2/events"
+}

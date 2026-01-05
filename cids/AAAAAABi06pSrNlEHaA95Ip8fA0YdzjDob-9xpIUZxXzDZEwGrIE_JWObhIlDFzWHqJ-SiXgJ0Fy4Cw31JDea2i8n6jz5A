@@ -1,0 +1,4 @@
+{
+  "error": "Authentication credentials were not provided.",
+  "code": "authentication_failed"
+}

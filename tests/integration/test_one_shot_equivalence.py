@@ -213,7 +213,7 @@ class TestOneShotEquivalence:
         the response is identical.
         """
         # Get the default boot CID
-        boot_cid_file = self.CLI_ROOT / "reference_templates" / "boot.cid"
+        boot_cid_file = self.CLI_ROOT / "reference/templates" / "boot.cid"
         if not boot_cid_file.exists():
             pytest.skip("No default boot.cid file found")
 
@@ -865,7 +865,7 @@ class TestOneShotWithBootCID:
         """CLI one-shot mode should return QR code bytes for /qr paths."""
 
         default_boot_cid = (
-            self.CLI_ROOT / "reference_templates" / "default.boot.cid"
+            self.CLI_ROOT / "reference/templates" / "default.boot.cid"
         ).read_text(encoding="utf-8")
 
         env = os.environ.copy()

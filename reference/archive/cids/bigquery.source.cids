@@ -1,0 +1,3 @@
+/bigquery/v2/projects/my-project/datasets ../../files/bigquery/bigquery/v2/projects/my-project/datasets.json
+/bigquery/v2/projects/my-project/datasets?limit=0 ../../files/bigquery/bigquery/v2/projects/my-project/datasets_limit_0.json
+/errors/401 ../../files/bigquery/bigquery/v2/projects/my-project/errors/401_unauthorized.json

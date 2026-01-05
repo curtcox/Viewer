@@ -34,7 +34,7 @@ def setup_ai_assist_server(memory_db_app):
         ai_server = db.session.query(Server).filter_by(name="ai_assist").first()
         if not ai_server:
             # Read the server definition from file
-            definition_path = "reference_templates/servers/definitions/ai_assist.py"
+            definition_path = "reference/templates/servers/definitions/ai_assist.py"
             with open(definition_path, encoding="utf-8") as f:
                 definition = f.read()
 

@@ -1,0 +1,16 @@
+{
+  "id": "pymongo_pool",
+  "name": "PyMongo Pool",
+  "description": "Execute MongoDB operations using PyMongo connection pooling.",
+  "definition_cid": "reference/templates/servers/definitions/pymongo_pool.py",
+  "operations": [
+    "find",
+    "find_one",
+    "insert_one",
+    "count"
+  ],
+  "secrets": [
+    "MONGODB_URI"
+  ],
+  "notes": "Uses PyMongo with connection pooling. Configure pool size with max_pool_size and min_pool_size parameters. Dry-run enabled by default."
+}

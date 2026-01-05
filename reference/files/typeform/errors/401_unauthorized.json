@@ -1,0 +1,4 @@
+{
+  "code": "AUTHENTICATION_FAILED",
+  "description": "Authentication credentials were not provided or are invalid."
+}

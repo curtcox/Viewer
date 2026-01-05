@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from reference_templates.gateways.transforms.tldr_response import (
+from reference.templates.gateways.transforms.tldr_response import (
     _format_command,
     _normalize_tldr_terminal_output,
 )

@@ -810,5 +810,34 @@ def test_execute_bash_server_response_returns_non_200_success(monkeypatch):
     assert "body-text" in response.get_data(as_text=True)
 
 
+def test_hrx_archive_parameter_can_be_injected_from_path_without_executing_cid(
+    memory_db_app, memory_client
+):
+    hrx_definition = """\
+import json
+
+def main(archive=None, path=None, *, context=None):
+    return {
+        'output': json.dumps({'archive': archive, 'path': path}),
+        'content_type': 'application/json',
+    }
+"""
+
+    from database import db
+    from models import Server
+
+    with memory_db_app.app_context():
+        db.session.add(Server(name="hrx", definition=hrx_definition, enabled=True))
+        db.session.commit()
+
+    archive_cid = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A"
+
+    response = memory_client.get(f"/hrx/{archive_cid}/users/1", follow_redirects=True)
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["archive"] == archive_cid
+    assert payload["path"] == "users/1"
+
+
 if __name__ == "__main__":
     unittest.main()

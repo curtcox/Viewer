@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-8XYZ123ABC",
+  "object": "chat.completion",
+  "created": 1706543210,
+  "model": "gpt-4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hexagonal widgets provide superior tessellation capabilities compared to traditional square widgets. They offer approximately 13% better space utilization and create more aesthetically pleasing patterns. The hexagonal structure also distributes stress more evenly across the widget surface."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 25,
+    "completion_tokens": 48,
+    "total_tokens": 73
+  }
+}

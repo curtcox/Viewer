@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import snowflake
+from reference.templates.servers.definitions import snowflake
 
 
 def test_requires_account():

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "10001",
+    "key": "ACME",
+    "name": "Acme Widgets",
+    "projectTypeKey": "software",
+    "simplified": false,
+    "style": "classic",
+    "lead": {
+      "accountId": "5b10a2844c20165700ede21g",
+      "displayName": "Jane Doe"
+    }
+  },
+  {
+    "id": "10002",
+    "key": "GLOB",
+    "name": "Globex Gizmos",
+    "projectTypeKey": "software",
+    "simplified": false,
+    "style": "classic",
+    "lead": {
+      "accountId": "5b10a2844c20165700ede22h",
+      "displayName": "John Smith"
+    }
+  }
+]

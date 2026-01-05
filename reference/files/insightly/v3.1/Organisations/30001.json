@@ -1,0 +1,23 @@
+{
+  "organisation_id": 30001,
+  "organisation_name": "Global Tech Solutions",
+  "phone": "+1-555-0500",
+  "website": "https://globaltech.example.com",
+  "background": "Enterprise software company specializing in cloud solutions",
+  "addresses": [
+    {
+      "address_type": "WORK",
+      "street": "100 Enterprise Blvd",
+      "city": "San Francisco",
+      "state": "CA",
+      "postcode": "94105",
+      "country": "United States"
+    }
+  ],
+  "tags": [
+    {"tag_name": "Enterprise"},
+    {"tag_name": "High Value"}
+  ],
+  "date_created_utc": "2024-01-10T08:00:00Z",
+  "date_updated_utc": "2024-01-21T14:00:00Z"
+}

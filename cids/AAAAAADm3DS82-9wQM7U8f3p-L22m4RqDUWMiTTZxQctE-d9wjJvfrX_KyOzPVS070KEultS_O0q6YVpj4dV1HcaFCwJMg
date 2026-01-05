@@ -1,0 +1,14 @@
+{
+  "bases": [
+    {
+      "id": "appXYZ123",
+      "name": "Project Tracker",
+      "permissionLevel": "create"
+    },
+    {
+      "id": "appABC456",
+      "name": "Customer Database",
+      "permissionLevel": "edit"
+    }
+  ]
+}

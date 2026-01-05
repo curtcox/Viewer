@@ -11,7 +11,7 @@ def load_ai_editor_module():
 
     ai_editor_path = (
         Path(__file__).parent.parent
-        / "reference_templates"
+        / "reference/templates"
         / "servers"
         / "definitions"
         / "ai_editor.py"

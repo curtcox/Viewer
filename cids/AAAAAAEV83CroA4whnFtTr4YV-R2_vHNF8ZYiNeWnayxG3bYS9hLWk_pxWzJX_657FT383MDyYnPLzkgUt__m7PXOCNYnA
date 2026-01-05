@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "gid": "12345",
+      "name": "Complete widget design",
+      "completed": false,
+      "resource_type": "task"
+    },
+    {
+      "gid": "67890",
+      "name": "Write documentation",
+      "completed": true,
+      "resource_type": "task"
+    }
+  ]
+}

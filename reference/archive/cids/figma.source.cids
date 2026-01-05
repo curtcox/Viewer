@@ -1,0 +1,3 @@
+/files ../../files/figma/v1/files.json
+/files?limit=0 ../../files/figma/v1/files_limit_0.json
+/errors/401 ../../files/figma/v1/errors/401_unauthorized.json

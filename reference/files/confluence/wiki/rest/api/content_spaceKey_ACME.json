@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "id": "12345",
+      "type": "page",
+      "status": "current",
+      "title": "Widget Architecture Overview",
+      "space": {
+        "key": "ACME",
+        "name": "Acme Widgets"
+      },
+      "version": {
+        "number": 3,
+        "when": "2024-01-20T14:22:00.000Z"
+      },
+      "_links": {
+        "webui": "/spaces/ACME/pages/12345/Widget+Architecture+Overview"
+      }
+    }
+  ],
+  "start": 0,
+  "limit": 25,
+  "size": 1,
+  "_links": {}
+}

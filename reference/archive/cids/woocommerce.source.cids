@@ -1,0 +1,5 @@
+/wp-json/wc/v3/products ../../files/woocommerce/wp-json/wc/v3/products.json
+/wp-json/wc/v3/products?per_page=0 ../../files/woocommerce/wp-json/wc/v3/products_per_page_0.json
+/wp-json/wc/v3/orders ../../files/woocommerce/wp-json/wc/v3/orders.json
+/wp-json/wc/v3/customers ../../files/woocommerce/wp-json/wc/v3/customers.json
+/errors/401 ../../files/woocommerce/wp-json/wc/v3/errors/401_unauthorized.json

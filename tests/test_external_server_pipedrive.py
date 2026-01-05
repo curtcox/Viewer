@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import pipedrive
+from reference.templates.servers.definitions import pipedrive
 
 
 def test_missing_api_token_returns_auth_error():

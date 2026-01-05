@@ -1,0 +1,25 @@
+{
+  "id": "form123",
+  "title": "Customer Satisfaction Survey",
+  "created_at": "2024-01-10T08:00:00Z",
+  "last_updated_at": "2024-01-15T10:30:00Z",
+  "fields": [
+    {
+      "id": "field001",
+      "title": "How satisfied are you?",
+      "type": "opinion_scale",
+      "properties": {
+        "start_at_one": true,
+        "steps": 5
+      }
+    },
+    {
+      "id": "field002",
+      "title": "Any additional comments?",
+      "type": "long_text"
+    }
+  ],
+  "self": {
+    "href": "https://api.typeform.com/forms/form123"
+  }
+}

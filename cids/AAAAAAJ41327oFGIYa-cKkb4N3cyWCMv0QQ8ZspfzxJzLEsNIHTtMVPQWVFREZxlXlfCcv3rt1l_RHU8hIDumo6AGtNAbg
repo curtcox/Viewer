@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "data": {
+    "id": 2001,
+    "name": "Jane Doe",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "email": [{"value": "jane.doe@acme-corp.example.com", "primary": true, "label": "work"}],
+    "phone": [{"value": "+1-555-0101", "primary": true, "label": "work"}],
+    "org_id": 3001,
+    "org_name": "Acme Corporation",
+    "owner_id": 100,
+    "owner_name": "Sales Rep",
+    "visible_to": "3",
+    "label": 1,
+    "add_time": "2024-01-10T08:00:00Z",
+    "update_time": "2024-01-20T14:22:00Z",
+    "open_deals_count": 2,
+    "closed_deals_count": 1,
+    "activities_count": 8,
+    "notes_count": 5
+  }
+}

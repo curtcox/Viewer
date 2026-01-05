@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "id": "sub_001",
+      "email": "jane.doe@acme-corp.example.com",
+      "status": "active",
+      "fields": {
+        "name": "Jane Doe"
+      },
+      "subscribed_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-20T14:22:00Z"
+    },
+    {
+      "id": "sub_002",
+      "email": "john.smith@globex.example.com",
+      "status": "active",
+      "fields": {
+        "name": "John Smith"
+      },
+      "subscribed_at": "2024-01-16T09:15:00Z",
+      "updated_at": "2024-01-18T11:45:00Z"
+    }
+  ],
+  "links": {
+    "first": "https://connect.mailerlite.com/api/subscribers?page=1",
+    "last": "https://connect.mailerlite.com/api/subscribers?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "to": 2,
+    "total": 2
+  }
+}

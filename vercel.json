@@ -7,7 +7,7 @@
       "config": {
         "includeFiles": [
           "cids/**",
-          "reference_templates/readonly.boot.cid"
+          "reference/templates/readonly.boot.cid"
         ]
       }
     }

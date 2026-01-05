@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 import requests
 
-from reference_templates.servers.definitions import airtable, slack
+from reference.templates.servers.definitions import airtable, slack
 
 
 class FakeClient:

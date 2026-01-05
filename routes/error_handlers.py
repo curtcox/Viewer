@@ -17,7 +17,6 @@ from server_execution.pipeline_debug import format_debug_response
 from server_execution.pipeline_execution import execute_pipeline
 from routes.pipelines import (
     get_final_extension,
-    is_pipeline_request,
     should_return_debug_response,
 )
 
@@ -51,7 +50,7 @@ def not_found_error(error):  # pylint: disable=unused-argument  # Required by Fl
     path = request.path
     existing_routes = get_existing_routes()
 
-    if should_return_debug_response(request) and is_pipeline_request(path):
+    if should_return_debug_response(request):
         result = execute_pipeline(path, debug=True)
         extension = get_final_extension(request.full_path)
         return format_debug_response(result, extension)

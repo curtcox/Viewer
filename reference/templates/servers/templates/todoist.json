@@ -1,0 +1,18 @@
+{
+  "id": "todoist",
+  "name": "Todoist",
+  "description": "Manage Todoist projects and tasks with API token.",
+  "definition_cid": "reference/templates/servers/definitions/todoist.py",
+  "operations": [
+    "list_projects",
+    "get_project",
+    "list_tasks",
+    "get_task",
+    "create_task",
+    "close_task"
+  ],
+  "secrets": [
+    "TODOIST_API_TOKEN"
+  ],
+  "notes": "Supports dry-run previews by default and requires API token for API calls."
+}

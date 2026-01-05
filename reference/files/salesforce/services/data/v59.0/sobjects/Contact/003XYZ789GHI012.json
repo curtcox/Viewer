@@ -1,0 +1,22 @@
+{
+  "attributes": {
+    "type": "Contact",
+    "url": "/services/data/v59.0/sobjects/Contact/003XYZ789GHI012"
+  },
+  "Id": "003XYZ789GHI012",
+  "FirstName": "Jane",
+  "LastName": "Doe",
+  "Email": "jane.doe@acme-corp.example.com",
+  "Phone": "+1-555-0101",
+  "Title": "Senior Widget Engineer",
+  "Department": "Engineering",
+  "AccountId": "001ABC123DEF456",
+  "MailingStreet": "123 Widget Way",
+  "MailingCity": "Faketown",
+  "MailingState": "FS",
+  "MailingPostalCode": "12345",
+  "MailingCountry": "United States",
+  "OwnerId": "005ABC123DEF456",
+  "CreatedDate": "2024-01-15T10:30:00.000+0000",
+  "LastModifiedDate": "2024-01-20T14:22:00.000+0000"
+}

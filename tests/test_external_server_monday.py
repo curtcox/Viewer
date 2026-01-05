@@ -1,7 +1,7 @@
 import requests
 from typing import Any
 
-from reference_templates.servers.definitions import monday
+from reference.templates.servers.definitions import monday
 
 
 class DummyResponse:

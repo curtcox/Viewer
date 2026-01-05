@@ -1,0 +1,3 @@
+/domain-search ../../files/hunter/v2/domain-search.json
+/domain-search?limit=0 ../../files/hunter/v2/domain-search_limit_0.json
+/errors/401 ../../files/hunter/v2/errors/401_unauthorized.json

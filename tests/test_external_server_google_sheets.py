@@ -4,7 +4,7 @@ from typing import Any, Dict
 import pytest
 import requests
 
-from reference_templates.servers.definitions import google_sheets
+from reference.templates.servers.definitions import google_sheets
 
 
 class DummyResponse:

@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 import requests
-from reference_templates.servers.definitions import postmark
+from reference.templates.servers.definitions import postmark
 
 
 def test_missing_server_token_returns_auth_error():

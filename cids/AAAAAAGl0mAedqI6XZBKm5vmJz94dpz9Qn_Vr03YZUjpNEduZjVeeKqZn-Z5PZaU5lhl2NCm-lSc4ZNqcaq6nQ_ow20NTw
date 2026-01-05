@@ -1,0 +1,17 @@
+{
+  "value": [
+    {
+      "id": "01ABCDEFG",
+      "name": "Documents",
+      "folder": {"childCount": 12},
+      "lastModifiedDateTime": "2024-01-20T10:30:00Z"
+    },
+    {
+      "id": "01HIJKLMN",
+      "name": "Q1_Report.docx",
+      "size": 45678,
+      "file": {"mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+      "lastModifiedDateTime": "2024-01-22T14:15:00Z"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+/calendar/v3/calendars/primary/events ../../files/google_calendar/calendar/v3/events.json
+/calendar/v3/calendars/primary/events?maxResults=0 ../../files/google_calendar/calendar/v3/events_maxResults_0.json
+/errors/401 ../../files/google_calendar/calendar/v3/errors/401_unauthorized.json

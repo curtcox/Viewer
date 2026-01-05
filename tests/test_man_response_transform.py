@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from reference_templates.gateways.transforms.man_response import (
+from reference.templates.gateways.transforms.man_response import (
     _normalize_man_terminal_formatting,
 )
 

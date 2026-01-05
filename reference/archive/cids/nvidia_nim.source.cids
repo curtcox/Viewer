@@ -1,0 +1,2 @@
+/v1/chat/completions ../../files/nvidia_nim/v1/chat/completions.json
+/errors/401 ../../files/nvidia_nim/v1/errors/401_unauthorized.json

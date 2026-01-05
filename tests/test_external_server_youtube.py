@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import youtube
+from reference.templates.servers.definitions import youtube
 
 
 def test_missing_credentials_returns_auth_error():

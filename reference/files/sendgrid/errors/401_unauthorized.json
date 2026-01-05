@@ -1,0 +1,9 @@
+{
+  "errors": [
+    {
+      "message": "Authorization required",
+      "field": null,
+      "help": "http://sendgrid.com/docs/API_Reference/Web_API_v3/index.html"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ from common_commands import COMMON_COMMANDS, group_commands_for_readonly
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
-REFERENCE_TEMPLATES = PROJECT_ROOT / "reference_templates"
+REFERENCE_TEMPLATES = PROJECT_ROOT / "reference/templates"
 CIDS_DIR = PROJECT_ROOT / "cids"
 
 
@@ -30,6 +30,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "glom": "glom.py",
     "gmail": "gmail.py",
     "hrx": "hrx.py",
+    "cids": "cids.py",
     "gateway": "gateway.py",
     "mcp": "mcp.py",
     "io": "io.py",
@@ -145,9 +146,9 @@ NON_COMMAND_SERVER_DEFINITIONS = {
 def _expected_default_servers() -> dict[str, str]:
     expected: dict[str, str] = {}
     for name, filename in NON_COMMAND_SERVER_DEFINITIONS.items():
-        expected[name] = f"reference_templates/servers/definitions/{filename}"
+        expected[name] = f"reference/templates/servers/definitions/{filename}"
     for command in COMMON_COMMANDS:
-        expected[command.name] = f"reference_templates/servers/definitions/{command.name}.sh"
+        expected[command.name] = f"reference/templates/servers/definitions/{command.name}.sh"
     return expected
 
 
@@ -156,9 +157,9 @@ def _expected_readonly_servers() -> dict[str, str]:
     for name, filename in NON_COMMAND_SERVER_DEFINITIONS.items():
         if name == "shell":
             continue
-        expected[name] = f"reference_templates/servers/definitions/{filename}"
+        expected[name] = f"reference/templates/servers/definitions/{filename}"
     for command in group_commands_for_readonly(COMMON_COMMANDS):
-        expected[command.name] = f"reference_templates/servers/definitions/{command.name}.sh"
+        expected[command.name] = f"reference/templates/servers/definitions/{command.name}.sh"
     return expected
 
 
@@ -186,7 +187,7 @@ def _assert_all_server_definitions_are_reference_paths(payload: dict) -> None:
     servers = _servers_mapping_from_source(payload)
     for name, definition in servers.items():
         assert isinstance(definition, str)
-        assert definition.startswith("reference_templates/")
+        assert definition.startswith("reference/templates/")
         assert "/servers/definitions/" in definition
         assert definition.endswith((".py", ".sh"))
         assert "\\" not in definition
@@ -198,7 +199,7 @@ def _assert_all_server_definitions_are_cids(payload: dict) -> None:
     servers = _servers_mapping_from_source(payload)
     for definition in servers.values():
         assert isinstance(definition, str)
-        assert not definition.startswith("reference_templates/")
+        assert not definition.startswith("reference/templates/")
         assert is_normalized_cid(definition)
 
 
@@ -235,7 +236,7 @@ def _assert_expected_servers_in_generated(cid_file: str, expected: dict[str, str
 
     for definition in actual.values():
         assert isinstance(definition, str)
-        assert not definition.startswith("reference_templates/")
+        assert not definition.startswith("reference/templates/")
 
 
 @pytest.mark.parametrize(

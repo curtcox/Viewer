@@ -1,0 +1,59 @@
+{
+  "total": 2,
+  "limit": 50,
+  "offset": 0,
+  "itemSummaries": [
+    {
+      "itemId": "v1|123456789012|0",
+      "title": "Vintage Acme Widget Collection",
+      "price": {
+        "value": "125.00",
+        "currency": "USD"
+      },
+      "itemWebUrl": "https://www.ebay.example.com/itm/123456789012",
+      "condition": "Used",
+      "itemLocation": {
+        "city": "Springfield",
+        "stateOrProvince": "IL",
+        "country": "US"
+      },
+      "seller": {
+        "username": "widget_collector_42",
+        "feedbackPercentage": "99.2",
+        "feedbackScore": 1523
+      },
+      "categories": [
+        {
+          "categoryId": "1234",
+          "categoryName": "Collectibles"
+        }
+      ]
+    },
+    {
+      "itemId": "v1|987654321098|0",
+      "title": "Brand New Globex Gadget - Factory Sealed",
+      "price": {
+        "value": "89.99",
+        "currency": "USD"
+      },
+      "itemWebUrl": "https://www.ebay.example.com/itm/987654321098",
+      "condition": "New",
+      "itemLocation": {
+        "city": "Seattle",
+        "stateOrProvince": "WA",
+        "country": "US"
+      },
+      "seller": {
+        "username": "gadgets_unlimited",
+        "feedbackPercentage": "100.0",
+        "feedbackScore": 856
+      },
+      "categories": [
+        {
+          "categoryId": "5678",
+          "categoryName": "Electronics"
+        }
+      ]
+    }
+  ]
+}

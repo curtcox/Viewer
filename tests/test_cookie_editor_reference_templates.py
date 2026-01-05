@@ -8,7 +8,7 @@ from pathlib import Path
 from cid import CID
 
 REPO_ROOT = Path(__file__).parent.parent
-REF_TEMPLATES = REPO_ROOT / "reference_templates"
+REF_TEMPLATES = REPO_ROOT / "reference/templates"
 UPLOADS = REF_TEMPLATES / "uploads" / "contents"
 
 COOKIE_EDITOR_HTML_CID = CID.from_bytes(
@@ -42,25 +42,25 @@ def test_cookie_assets_registered_in_sources():
     uploads = templates_source["uploads"]
     assert (
         uploads["cookie-editor"]["content_cid"]
-        == "reference_templates/uploads/contents/cookie_editor.html"
+        == "reference/templates/uploads/contents/cookie_editor.html"
     )
     assert (
         uploads["cookie-editor-style"]["content_cid"]
-        == "reference_templates/uploads/contents/cookie_editor.css"
+        == "reference/templates/uploads/contents/cookie_editor.css"
     )
     assert (
         uploads["cookie-editor-script"]["content_cid"]
-        == "reference_templates/uploads/contents/cookie_editor.js"
+        == "reference/templates/uploads/contents/cookie_editor.js"
     )
     assert (
         uploads["cookie-editor-icon"]["content_cid"]
-        == "reference_templates/uploads/contents/cookie_editor_icon.svg"
+        == "reference/templates/uploads/contents/cookie_editor_icon.svg"
     )
 
     alias_templates = templates_source["aliases"]
     assert (
         alias_templates["cookie-editor"]["definition_cid"]
-        == "reference_templates/aliases/cookies.txt"
+        == "reference/templates/aliases/cookies.txt"
     )
 
     cookie_boot_alias = {
@@ -76,7 +76,7 @@ def test_cookie_assets_registered_in_sources():
         )["aliases"]
     }
 
-    expected_definition = "reference_templates/aliases/cookies.txt"
+    expected_definition = "reference/templates/aliases/cookies.txt"
     assert cookie_boot_alias["cookies"] == expected_definition
     assert readonly_cookie_alias["cookies"] == expected_definition
 

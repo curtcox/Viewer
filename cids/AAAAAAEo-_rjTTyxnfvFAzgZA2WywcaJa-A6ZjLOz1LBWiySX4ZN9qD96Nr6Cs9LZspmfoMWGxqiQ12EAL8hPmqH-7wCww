@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "channel": "C0123456789",
+  "ts": "1706543210.000100",
+  "message": {
+    "type": "message",
+    "subtype": null,
+    "text": "Hello from the widget team! Our hexagonal widgets are now available.",
+    "ts": "1706543210.000100",
+    "user": "U0ABCDEF",
+    "bot_id": null
+  }
+}

@@ -1,0 +1,9 @@
+/repos/acme-corp/widgets/issues ../../files/github/repos/acme-corp/widgets/issues.json
+/repos/acme-corp/widgets/issues?state=open ../../files/github/repos/acme-corp/widgets/issues_state_open.json
+/repos/acme-corp/widgets/issues?per_page=0 ../../files/github/repos/acme-corp/widgets/issues_limit_0.json
+/repos/acme-corp/widgets/issues/1 ../../files/github/repos/acme-corp/widgets/issues/1.json
+/repos/acme-corp/widgets/issues/2 ../../files/github/repos/acme-corp/widgets/issues/2.json
+/rate_limit ../../files/github/rate_limit.json
+/errors/401 ../../files/github/errors/401_bad_credentials.json
+/errors/403 ../../files/github/errors/403_rate_limited.json
+/errors/404 ../../files/github/errors/404_not_found.json

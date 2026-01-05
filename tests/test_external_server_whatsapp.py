@@ -1,7 +1,7 @@
 import requests
 from typing import Any
 
-from reference_templates.servers.definitions import whatsapp
+from reference.templates.servers.definitions import whatsapp
 
 
 class DummyResponse:

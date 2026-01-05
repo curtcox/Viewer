@@ -1,0 +1,3 @@
+/forms ../../files/jotform/forms.json
+/forms?limit=0 ../../files/jotform/forms_limit_0.json
+/errors/401 ../../files/jotform/errors/401_unauthorized.json

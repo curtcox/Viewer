@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import zoho_crm
+from reference.templates.servers.definitions import zoho_crm
 
 
 def test_missing_access_token_returns_auth_error():

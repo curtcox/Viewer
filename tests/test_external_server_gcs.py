@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import gcs
+from reference.templates.servers.definitions import gcs
 
 
 class DummyResponse:

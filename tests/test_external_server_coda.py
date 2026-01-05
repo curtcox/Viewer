@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import coda
+from reference.templates.servers.definitions import coda
 
 
 def test_missing_api_token_returns_auth_error():

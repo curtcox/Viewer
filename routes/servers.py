@@ -680,13 +680,10 @@ def _collect_named_value_candidates(
     Names include referenced variables/secrets and detected main() parameters.
     """
 
-    known_variables_set = {str(name) for name in (known_variables or []) if name}
-    known_secrets_set = {str(name) for name in (known_secrets or []) if name}
-
     dependencies = _extract_server_dependencies(
         getattr(server, "definition", ""),
-        known_variables=known_variables_set,
-        known_secrets=known_secrets_set,
+        known_variables=None,
+        known_secrets=None,
     )
 
     names = set(dependencies.get("variables", [])) | set(
@@ -697,7 +694,10 @@ def _collect_named_value_candidates(
     if description:
         for parameter in description.get("parameters", []):
             if isinstance(parameter, dict) and parameter.get("name"):
-                names.add(str(parameter.get("name")))
+                parameter_name = str(parameter.get("name"))
+                if parameter_name == "context":
+                    continue
+                names.add(parameter_name)
 
     return sorted(name for name in names if name)
 

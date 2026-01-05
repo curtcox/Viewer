@@ -1,0 +1,22 @@
+{
+  "id": "woocommerce",
+  "name": "WooCommerce",
+  "description": "List or create products, orders, and customers in WooCommerce",
+  "definition_cid": "reference/templates/servers/definitions/woocommerce.py",
+  "operations": [
+    "list_products",
+    "get_product",
+    "create_product",
+    "list_orders",
+    "get_order",
+    "list_customers",
+    "get_customer",
+    "create_customer"
+  ],
+  "secrets": [
+    "WOOCOMMERCE_CONSUMER_KEY",
+    "WOOCOMMERCE_CONSUMER_SECRET",
+    "WOOCOMMERCE_STORE_URL"
+  ],
+  "notes": "Uses WooCommerce REST API consumer key and secret with Basic Authentication. Requires store URL. Supports dry-run previews for all operations."
+}

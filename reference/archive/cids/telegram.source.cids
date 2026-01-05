@@ -1,0 +1,3 @@
+/getUpdates ../../files/telegram/getUpdates.json
+/sendMessage ../../files/telegram/sendMessage.json
+/errors/401 ../../files/telegram/errors/401_unauthorized.json

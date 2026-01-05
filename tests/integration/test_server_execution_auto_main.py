@@ -460,7 +460,7 @@ def test_default_markdown_consumes_cid_path_segment(client, integration_app):
     """Markdown server should render CID content supplied via chained path."""
 
     markdown_definition = Path(
-        "reference_templates/servers/definitions/markdown.py"
+        "reference/templates/servers/definitions/markdown.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "markdown", markdown_definition)
 
@@ -482,10 +482,10 @@ def test_default_markdown_renders_showcase_via_cid(client, integration_app):
     """The markdown server should render the showcase markdown file from a CID."""
 
     markdown_definition = Path(
-        "reference_templates/servers/definitions/markdown.py"
+        "reference/templates/servers/definitions/markdown.py"
     ).read_text(encoding="utf-8")
     markdown_sample = Path(
-        "reference_templates/uploads/contents/markdown_showcase.md"
+        "reference/templates/uploads/contents/markdown_showcase.md"
     ).read_text(encoding="utf-8")
     expected_html = _render_markdown_document(markdown_sample)
 
@@ -521,10 +521,10 @@ def test_default_markdown_renders_showcase_via_cid_with_extension(
     """Markdown server should resolve CID payloads even when an extension is present."""
 
     markdown_definition = Path(
-        "reference_templates/servers/definitions/markdown.py"
+        "reference/templates/servers/definitions/markdown.py"
     ).read_text(encoding="utf-8")
     markdown_sample = Path(
-        "reference_templates/uploads/contents/markdown_showcase.md"
+        "reference/templates/uploads/contents/markdown_showcase.md"
     ).read_text(encoding="utf-8")
     expected_html = _render_markdown_document(markdown_sample)
 
@@ -558,7 +558,7 @@ def test_default_markdown_output_chains_left(client, integration_app):
     """Markdown output should feed into the next server on the left."""
 
     markdown_definition = Path(
-        "reference_templates/servers/definitions/markdown.py"
+        "reference/templates/servers/definitions/markdown.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "markdown", markdown_definition)
 
@@ -588,7 +588,7 @@ def test_default_shell_consumes_cid_path_segment(client, integration_app):
     """Shell server should receive input from chained CID content."""
 
     shell_definition = Path(
-        "reference_templates/servers/definitions/shell.py"
+        "reference/templates/servers/definitions/shell.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "shell", shell_definition)
 
@@ -609,7 +609,7 @@ def test_default_shell_output_chains_left(client, integration_app):
     """Shell output should feed into the next chained server."""
 
     shell_definition = Path(
-        "reference_templates/servers/definitions/shell.py"
+        "reference/templates/servers/definitions/shell.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "shell", shell_definition)
 
@@ -639,7 +639,7 @@ def test_default_ai_stub_consumes_cid_path_segment(client, integration_app):
     """ai_stub should treat chained CID content as request_text input."""
 
     ai_stub_definition = Path(
-        "reference_templates/servers/definitions/ai_stub.py"
+        "reference/templates/servers/definitions/ai_stub.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "ai_stub", ai_stub_definition)
 
@@ -661,7 +661,7 @@ def test_default_ai_stub_output_chains_left(client, integration_app):
     """ai_stub output should flow into the next chained server."""
 
     ai_stub_definition = Path(
-        "reference_templates/servers/definitions/ai_stub.py"
+        "reference/templates/servers/definitions/ai_stub.py"
     ).read_text(encoding="utf-8")
     _store_server(integration_app, "ai_stub", ai_stub_definition)
 

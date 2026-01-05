@@ -1,0 +1,57 @@
+{
+  "product": {
+    "id": 7654321,
+    "title": "Acme Super Widget",
+    "body_html": "<strong>The best widget on the market!</strong>",
+    "vendor": "Acme Corp",
+    "product_type": "Widgets",
+    "created_at": "2024-01-15T10:30:00-05:00",
+    "updated_at": "2024-01-15T10:30:00-05:00",
+    "published_at": "2024-01-15T10:30:00-05:00",
+    "status": "active",
+    "tags": "widget, premium, bestseller",
+    "variants": [
+      {
+        "id": 43210,
+        "product_id": 7654321,
+        "title": "Default Title",
+        "price": "29.99",
+        "sku": "WIDGET-001",
+        "position": 1,
+        "inventory_policy": "deny",
+        "compare_at_price": "39.99",
+        "inventory_management": "shopify",
+        "inventory_quantity": 100,
+        "weight": 1.5,
+        "weight_unit": "lb"
+      }
+    ],
+    "options": [
+      {
+        "id": 12345,
+        "product_id": 7654321,
+        "name": "Title",
+        "position": 1,
+        "values": ["Default Title"]
+      }
+    ],
+    "images": [
+      {
+        "id": 987654,
+        "product_id": 7654321,
+        "position": 1,
+        "src": "https://cdn.shopify.example.com/widget-001.jpg",
+        "width": 800,
+        "height": 600
+      }
+    ],
+    "image": {
+      "id": 987654,
+      "product_id": 7654321,
+      "position": 1,
+      "src": "https://cdn.shopify.example.com/widget-001.jpg",
+      "width": 800,
+      "height": 600
+    }
+  }
+}

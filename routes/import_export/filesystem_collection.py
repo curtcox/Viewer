@@ -11,7 +11,7 @@ from flask import current_app
 # Template directories to include in exports
 APP_SOURCE_TEMPLATE_DIRECTORIES: tuple[str, ...] = (
     "templates",
-    "reference_templates",
+    "reference/templates",
 )
 
 # Static asset directories to include in exports

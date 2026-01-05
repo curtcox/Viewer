@@ -66,7 +66,7 @@ class TestBootImageDynamicContent:
     def _create_test_project_structure(self):
         """Create a minimal project structure for testing."""
         # Create directories
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
         ref_templates.mkdir(parents=True)
         (ref_templates / "aliases").mkdir()
         (ref_templates / "variables").mkdir()
@@ -129,12 +129,12 @@ class TestBootImageDynamicContent:
 
     def _add_alias_to_boot_source(self, name: str, definition_content: str) -> str:
         """Add an alias to boot.source.json."""
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create alias definition file
         alias_file = ref_templates / "aliases" / f"{name}.txt"
         alias_file.write_text(definition_content)
-        rel_path = f"reference_templates/aliases/{name}.txt"
+        rel_path = f"reference/templates/aliases/{name}.txt"
 
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
@@ -156,12 +156,12 @@ class TestBootImageDynamicContent:
         Returns:
             The relative path to the definition file
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create server definition file
         server_file = ref_templates / "servers" / "definitions" / f"{name}.py"
         server_file.write_text(definition_content)
-        rel_path = f"reference_templates/servers/definitions/{name}.py"
+        rel_path = f"reference/templates/servers/definitions/{name}.py"
 
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
@@ -180,7 +180,7 @@ class TestBootImageDynamicContent:
             name: Variable name
             definition: Variable definition value
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
@@ -204,12 +204,12 @@ class TestBootImageDynamicContent:
         Returns:
             The relative path to the definition file
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create alias definition file
         alias_file = ref_templates / "aliases" / f"template_{key}.txt"
         alias_file.write_text(definition_content)
-        rel_path = f"reference_templates/aliases/template_{key}.txt"
+        rel_path = f"reference/templates/aliases/template_{key}.txt"
 
         # Update templates.source.json
         templates_source_file = ref_templates / "templates.source.json"
@@ -237,12 +237,12 @@ class TestBootImageDynamicContent:
         Returns:
             The relative path to the definition file
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create server definition file
         server_file = ref_templates / "servers" / "definitions" / f"template_{key}.py"
         server_file.write_text(definition_content)
-        rel_path = f"reference_templates/servers/definitions/template_{key}.py"
+        rel_path = f"reference/templates/servers/definitions/template_{key}.py"
 
         # Update templates.source.json
         templates_source_file = ref_templates / "templates.source.json"
@@ -270,12 +270,12 @@ class TestBootImageDynamicContent:
         Returns:
             The relative path to the definition file
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create variable definition file
         var_file = ref_templates / "variables" / f"template_{key}.txt"
         var_file.write_text(definition_content)
-        rel_path = f"reference_templates/variables/template_{key}.txt"
+        rel_path = f"reference/templates/variables/template_{key}.txt"
 
         # Update templates.source.json
         templates_source_file = ref_templates / "templates.source.json"
@@ -303,12 +303,12 @@ class TestBootImageDynamicContent:
         Returns:
             The relative path to the content file
         """
-        ref_templates = self.project_dir / "reference_templates"
+        ref_templates = self.project_dir / "reference/templates"
 
         # Create upload content file
         upload_file = ref_templates / "uploads" / "contents" / f"template_{key}.html"
         upload_file.write_text(content)
-        rel_path = f"reference_templates/uploads/contents/template_{key}.html"
+        rel_path = f"reference/templates/uploads/contents/template_{key}.html"
 
         # Update templates.source.json
         templates_source_file = ref_templates / "templates.source.json"
@@ -370,7 +370,7 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated boot.json
-        boot_json_path = self.project_dir / "reference_templates" / "boot.json"
+        boot_json_path = self.project_dir / "reference/templates" / "boot.json"
         boot_data = json.loads(boot_json_path.read_text())
 
         # Verify the alias is in the boot image
@@ -378,7 +378,7 @@ class TestBootImageDynamicContent:
         assert boot_data["aliases"][0]["name"] == "test-alias"
         # The definition_cid should now be a CID, not the file path
         assert not boot_data["aliases"][0]["definition_cid"].startswith(
-            "reference_templates/"
+            "reference/templates/"
         )
 
     def test_boot_cid_loads_added_alias(self):
@@ -428,7 +428,7 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated boot.json
-        boot_json_path = self.project_dir / "reference_templates" / "boot.json"
+        boot_json_path = self.project_dir / "reference/templates" / "boot.json"
         boot_data = json.loads(boot_json_path.read_text())
 
         # Verify the server is in the boot image
@@ -436,7 +436,7 @@ class TestBootImageDynamicContent:
         assert boot_data["servers"][0]["name"] == "test-server"
         # The definition_cid should now be a CID, not the file path
         assert not boot_data["servers"][0]["definition_cid"].startswith(
-            "reference_templates/"
+            "reference/templates/"
         )
 
     def test_boot_cid_loads_added_server(self):
@@ -484,7 +484,7 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated boot.json
-        boot_json_path = self.project_dir / "reference_templates" / "boot.json"
+        boot_json_path = self.project_dir / "reference/templates" / "boot.json"
         boot_data = json.loads(boot_json_path.read_text())
 
         # Verify the variable is in the boot image
@@ -540,7 +540,7 @@ class TestBootImageDynamicContent:
 
         # Read generated templates.json
         templates_json_path = (
-            self.project_dir / "reference_templates" / "templates.json"
+            self.project_dir / "reference/templates" / "templates.json"
         )
         templates_data = json.loads(templates_json_path.read_text())
 
@@ -641,7 +641,7 @@ class TestBootImageDynamicContent:
 
         # Read generated templates.json
         templates_json_path = (
-            self.project_dir / "reference_templates" / "templates.json"
+            self.project_dir / "reference/templates" / "templates.json"
         )
         templates_data = json.loads(templates_json_path.read_text())
 
@@ -744,7 +744,7 @@ class TestBootImageDynamicContent:
 
         # Read generated templates.json
         templates_json_path = (
-            self.project_dir / "reference_templates" / "templates.json"
+            self.project_dir / "reference/templates" / "templates.json"
         )
         templates_data = json.loads(templates_json_path.read_text())
 
@@ -847,7 +847,7 @@ class TestBootImageDynamicContent:
 
         # Read generated templates.json
         templates_json_path = (
-            self.project_dir / "reference_templates" / "templates.json"
+            self.project_dir / "reference/templates" / "templates.json"
         )
         templates_data = json.loads(templates_json_path.read_text())
 

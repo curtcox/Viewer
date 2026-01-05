@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": "4000000045678",
+      "Deal_Name": "Quantum Industries - Equipment Upgrade",
+      "Amount": 250000,
+      "Stage": "Negotiation",
+      "Probability": 70,
+      "Closing_Date": "2024-03-15",
+      "Account_Name": {
+        "id": "4000000012345",
+        "name": "Quantum Industries"
+      },
+      "Contact_Name": {
+        "id": "4000000023456",
+        "name": "Sarah Mitchell"
+      },
+      "Owner": {
+        "id": "4000000000123",
+        "name": "Sales Manager"
+      },
+      "Created_Time": "2024-01-15T09:30:00-08:00",
+      "Modified_Time": "2024-01-24T16:00:00-08:00"
+    }
+  ],
+  "info": {
+    "count": 1,
+    "more_records": false,
+    "page": 1,
+    "per_page": 200
+  }
+}

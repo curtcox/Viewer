@@ -1,0 +1,3 @@
+/v2/jobs ../../files/cloudconvert/v2/jobs.json
+/v2/jobs?per_page=0 ../../files/cloudconvert/v2/jobs_per_page_0.json
+/errors/401 ../../files/cloudconvert/v2/errors/401_unauthorized.json

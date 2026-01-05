@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import mixpanel
+from reference.templates.servers.definitions import mixpanel
 
 
 def test_requires_token():

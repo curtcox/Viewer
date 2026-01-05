@@ -33,7 +33,7 @@ pytest tests/ai_use_cases/ \
     --junit-xml=test-results/ai-eval-results.xml \
     --html=test-results/ai-eval-report.html \
     --self-contained-html \
-    --cov=reference_templates.servers.definitions.ai_assist \
+    --cov=reference/templates.servers.definitions.ai_assist \
     --cov-report=html:test-results/ai-eval-coverage \
     --cov-report=term-missing
 

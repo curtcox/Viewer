@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": "4000000023456",
+      "First_Name": "Sarah",
+      "Last_Name": "Mitchell",
+      "Full_Name": "Sarah Mitchell",
+      "Email": "sarah.mitchell@quantum-ind.example.com",
+      "Phone": "+1-555-0701",
+      "Mobile": "+1-555-0702",
+      "Title": "Procurement Manager",
+      "Department": "Operations",
+      "Account_Name": {
+        "id": "4000000012345",
+        "name": "Quantum Industries"
+      },
+      "Mailing_Street": "789 Industrial Parkway",
+      "Mailing_City": "Oakland",
+      "Mailing_State": "CA",
+      "Mailing_Zip": "94612",
+      "Mailing_Country": "United States",
+      "Description": "Primary contact for procurement decisions",
+      "Owner": {
+        "id": "4000000000123",
+        "name": "Sales Manager",
+        "email": "sales.manager@company.example.com"
+      },
+      "Created_Time": "2024-01-12T11:00:00-08:00",
+      "Modified_Time": "2024-01-21T15:45:00-08:00"
+    }
+  ]
+}

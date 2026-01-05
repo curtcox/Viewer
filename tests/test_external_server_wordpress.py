@@ -1,6 +1,6 @@
 """Tests for the WordPress server definition."""
 
-from reference_templates.servers.definitions import wordpress
+from reference.templates.servers.definitions import wordpress
 
 
 def test_missing_credentials_returns_auth_error():

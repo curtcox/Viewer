@@ -1,0 +1,35 @@
+{
+  "data": [
+    {
+      "id": "4000000045678",
+      "Deal_Name": "Quantum Industries - Equipment Upgrade",
+      "Amount": 250000,
+      "Stage": "Negotiation",
+      "Probability": 70,
+      "Closing_Date": "2024-03-15",
+      "Type": "New Business",
+      "Next_Step": "Final proposal review",
+      "Description": "Complete equipment modernization project for manufacturing floor",
+      "Account_Name": {
+        "id": "4000000012345",
+        "name": "Quantum Industries"
+      },
+      "Contact_Name": {
+        "id": "4000000023456",
+        "name": "Sarah Mitchell"
+      },
+      "Lead_Source": "Trade Show",
+      "Campaign_Source": {
+        "id": "4000000056789",
+        "name": "2024 Manufacturing Expo"
+      },
+      "Owner": {
+        "id": "4000000000123",
+        "name": "Sales Manager",
+        "email": "sales.manager@company.example.com"
+      },
+      "Created_Time": "2024-01-15T09:30:00-08:00",
+      "Modified_Time": "2024-01-24T16:00:00-08:00"
+    }
+  ]
+}

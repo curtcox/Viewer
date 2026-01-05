@@ -1,0 +1,3 @@
+/gmail/v1/users/me/messages ../../files/gmail/gmail/v1/messages.json
+/gmail/v1/users/me/messages?maxResults=0 ../../files/gmail/gmail/v1/messages_maxResults_0.json
+/errors/401 ../../files/gmail/gmail/v1/errors/401_unauthorized.json

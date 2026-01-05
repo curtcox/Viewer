@@ -9,7 +9,7 @@ import pytest
 import server_execution
 from app import app
 from cid_utils import MermaidRenderLocation, _render_markdown_document
-from reference_templates.servers.definitions import markdown as markdown_server
+from reference.templates.servers.definitions import markdown as markdown_server
 from text_function_runner import run_text_function
 
 
@@ -84,7 +84,7 @@ def patched_server_execution(monkeypatch):
 
 def test_markdown_runs_through_text_function_runner():
     definition = """
-from reference_templates.servers.definitions import markdown as markdown_server
+from reference.templates.servers.definitions import markdown as markdown_server
 
 return markdown_server.main(markdown=markdown)
 """.strip()
@@ -97,7 +97,7 @@ return markdown_server.main(markdown=markdown)
 
 
 def test_markdown_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/markdown.py").read_text(
+    definition = Path("reference/templates/servers/definitions/markdown.py").read_text(
         encoding="utf-8"
     )
 
@@ -118,7 +118,7 @@ def test_markdown_matches_markdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     markdown_sample = (
         repo_root
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "markdown_showcase.md"
@@ -135,7 +135,7 @@ def test_markdown_matches_formdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     formdown_sample = (
         repo_root
-        / "reference_templates"
+        / "reference/templates"
         / "uploads"
         / "contents"
         / "formdown_showcase.formdown"

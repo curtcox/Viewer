@@ -1,0 +1,3 @@
+/api/data/v9.2/accounts ../../files/dynamics365/api/data/v9.2/accounts.json
+/api/data/v9.2/accounts?$top=0 ../../files/dynamics365/api/data/v9.2/accounts_top_0.json
+/errors/401 ../../files/dynamics365/api/data/v9.2/errors/401_unauthorized.json

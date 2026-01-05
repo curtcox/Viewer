@@ -1,0 +1,21 @@
+{
+  "id": "twilio",
+  "name": "Twilio",
+  "description": "Send SMS, make calls, and manage phone numbers with Twilio API.",
+  "definition_cid": "reference/templates/servers/definitions/twilio.py",
+  "operations": [
+    "send_sms",
+    "list_messages",
+    "get_message",
+    "make_call",
+    "list_calls",
+    "get_call",
+    "send_whatsapp",
+    "list_available_numbers"
+  ],
+  "secrets": [
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN"
+  ],
+  "notes": "Supports dry-run previews by default. Uses Basic Authentication with Account SID and Auth Token."
+}

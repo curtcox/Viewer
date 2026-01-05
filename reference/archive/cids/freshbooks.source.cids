@@ -1,0 +1,4 @@
+/clients ../../files/freshbooks/clients.json
+/invoices ../../files/freshbooks/invoices.json
+/expenses ../../files/freshbooks/expenses.json
+/errors/401 ../../files/freshbooks/errors/401_unauthorized.json

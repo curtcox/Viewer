@@ -1,0 +1,47 @@
+{
+  "products": [
+    {
+      "id": "wix_prod_001",
+      "name": "Acme Widget Standard",
+      "slug": "acme-widget-standard",
+      "visible": true,
+      "productType": "physical",
+      "description": "Standard widget for everyday use",
+      "stock": {
+        "trackInventory": true,
+        "quantity": 75,
+        "inStock": true
+      },
+      "price": {
+        "currency": "USD",
+        "price": 29.99,
+        "discountedPrice": 29.99
+      },
+      "sku": "WIX-ACM-001"
+    },
+    {
+      "id": "wix_prod_002",
+      "name": "Globex Gadget Premium",
+      "slug": "globex-gadget-premium",
+      "visible": true,
+      "productType": "physical",
+      "description": "Premium gadget with advanced features",
+      "stock": {
+        "trackInventory": true,
+        "quantity": 40,
+        "inStock": true
+      },
+      "price": {
+        "currency": "USD",
+        "price": 79.99,
+        "discountedPrice": 69.99
+      },
+      "sku": "WIX-GLB-002"
+    }
+  ],
+  "metadata": {
+    "count": 2,
+    "offset": 0,
+    "total": 2
+  }
+}

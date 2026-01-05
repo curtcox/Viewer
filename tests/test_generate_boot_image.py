@@ -15,8 +15,8 @@ class TestBootImageGenerator:
     def temp_project(self, tmp_path):
         """Create a temporary project structure for testing."""
         # Create directories
-        ref_templates = tmp_path / "reference_templates"
-        ref_templates.mkdir()
+        ref_templates = tmp_path / "reference" / "templates"
+        ref_templates.mkdir(parents=True)
         (ref_templates / "aliases").mkdir()
         (ref_templates / "variables").mkdir()
         (ref_templates / "servers").mkdir()
@@ -51,14 +51,14 @@ class TestBootImageGenerator:
         gateways_source = {
             "test-gateway": {
                 "target_url": "https://test.example.com",
-                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
-                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "request_transform_cid": "reference/templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference/templates/gateways/transforms/test_response.py",
                 "description": "Test gateway",
             },
             "another-gateway": {
                 "target_url": "https://another.example.com",
-                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
-                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "request_transform_cid": "reference/templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference/templates/gateways/transforms/test_response.py",
                 "description": "Another gateway",
             },
         }
@@ -72,21 +72,21 @@ class TestBootImageGenerator:
                 "test-alias": {
                     "name": "Test Alias",
                     "description": "Test alias description",
-                    "definition_cid": "reference_templates/aliases/test.txt",
+                    "definition_cid": "reference/templates/aliases/test.txt",
                 }
             },
             "servers": {
                 "test-server": {
                     "name": "Test Server",
                     "description": "Test server description",
-                    "definition_cid": "reference_templates/servers/definitions/test_server.py",
+                    "definition_cid": "reference/templates/servers/definitions/test_server.py",
                 }
             },
             "variables": {
                 "test-variable": {
                     "name": "Test Variable",
                     "description": "Test variable description",
-                    "definition_cid": "reference_templates/variables/test_var.txt",
+                    "definition_cid": "reference/templates/variables/test_var.txt",
                 }
             },
             "secrets": {},
@@ -94,7 +94,7 @@ class TestBootImageGenerator:
                 "test-upload": {
                     "name": "Test Upload",
                     "description": "Test upload description",
-                    "content_cid": "reference_templates/uploads/contents/test.html",
+                    "content_cid": "reference/templates/uploads/contents/test.html",
                 }
             },
         }
@@ -114,14 +114,14 @@ class TestBootImageGenerator:
             "aliases": [
                 {
                     "name": "test",
-                    "definition_cid": "reference_templates/aliases/test.txt",
+                    "definition_cid": "reference/templates/aliases/test.txt",
                     "enabled": True,
                 }
             ],
             "servers": [
                 {
                     "name": "test_server",
-                    "definition_cid": "reference_templates/servers/definitions/test_server.py",
+                    "definition_cid": "reference/templates/servers/definitions/test_server.py",
                     "enabled": True,
                 }
             ],
@@ -162,7 +162,7 @@ class TestBootImageGenerator:
         """Test BootImageGenerator initialization."""
         generator = BootImageGenerator(temp_project)
         assert generator.base_dir == temp_project
-        assert generator.reference_templates_dir == temp_project / "reference_templates"
+        assert generator.reference_templates_dir == temp_project / "reference" / "templates"
         assert generator.cids_dir == temp_project / "cids"
         assert generator.processed_files == set()
         assert not generator.file_to_cid
@@ -266,14 +266,14 @@ class TestBootImageGenerator:
         generator.ensure_cids_directory()
 
         # Create a test file
-        test_file = temp_project / "reference_templates" / "test.txt"
+        test_file = temp_project / "reference" / "templates" / "test.txt"
         test_file.write_text("content")
 
         data = {
             "aliases": {
                 "test": {
                     "name": "Test",
-                    "definition_cid": "reference_templates/test.txt",
+                    "definition_cid": "reference/templates/test.txt",
                 }
             }
         }
@@ -281,21 +281,21 @@ class TestBootImageGenerator:
         generator.process_referenced_files(data)
 
         # Verify the file was processed
-        assert "reference_templates/test.txt" in generator.processed_files
-        assert "reference_templates/test.txt" in generator.file_to_cid
+        assert "reference/templates/test.txt" in generator.processed_files
+        assert "reference/templates/test.txt" in generator.file_to_cid
 
     def test_replace_filenames_with_cids(self, temp_project):
         """Test replacing filenames with CIDs."""
         generator = BootImageGenerator(temp_project)
 
         # Mock the file_to_cid mapping
-        generator.file_to_cid = {"reference_templates/test.txt": "TESTCID123"}
+        generator.file_to_cid = {"reference/templates/test.txt": "TESTCID123"}
 
         data = {
             "aliases": {
                 "test": {
                     "name": "Test",
-                    "definition_cid": "reference_templates/test.txt",
+                    "definition_cid": "reference/templates/test.txt",
                 }
             }
         }
@@ -312,7 +312,7 @@ class TestBootImageGenerator:
         templates_cid = generator.generate_templates_json()
 
         # Verify templates.json was created
-        templates_json_path = temp_project / "reference_templates" / "templates.json"
+        templates_json_path = temp_project / "reference" / "templates" / "templates.json"
         assert templates_json_path.exists()
 
         # Verify templates.json has correct structure
@@ -349,7 +349,7 @@ class TestBootImageGenerator:
         boot_cid = generator.generate_boot_json(templates_cid)
 
         # Verify boot.json was created
-        boot_json_path = temp_project / "reference_templates" / "boot.json"
+        boot_json_path = temp_project / "reference" / "templates" / "boot.json"
         assert boot_json_path.exists()
 
         # Verify boot.json has correct structure
@@ -414,11 +414,11 @@ class TestBootImageGenerator:
         assert re.match(r"^[A-Za-z0-9_-]+$", result["readonly_boot_cid"])
 
         # Verify files were created
-        assert (temp_project / "reference_templates" / "templates.json").exists()
-        assert (temp_project / "reference_templates" / "boot.json").exists()
-        assert (temp_project / "reference_templates" / "minimal.boot.json").exists()
-        assert (temp_project / "reference_templates" / "default.boot.json").exists()
-        assert (temp_project / "reference_templates" / "readonly.boot.json").exists()
+        assert (temp_project / "reference" / "templates" / "templates.json").exists()
+        assert (temp_project / "reference" / "templates" / "boot.json").exists()
+        assert (temp_project / "reference" / "templates" / "minimal.boot.json").exists()
+        assert (temp_project / "reference" / "templates" / "default.boot.json").exists()
+        assert (temp_project / "reference" / "templates" / "readonly.boot.json").exists()
 
         # Verify CID files were created only for hashed CIDs (>= 94 chars)
         # Literal CIDs (< 94 chars) are not stored in /cids
@@ -442,14 +442,14 @@ class TestBootImageGenerator:
 
         # Add a reference to a non-existent file in templates.source.json
         templates_source_file = (
-            temp_project / "reference_templates" / "templates.source.json"
+            temp_project / "reference" / "templates" / "templates.source.json"
         )
         with open(templates_source_file, "r", encoding="utf-8") as f:
             templates_data = json.load(f)
 
         templates_data["servers"]["missing"] = {
             "name": "Missing Server",
-            "definition_cid": "reference_templates/servers/definitions/missing.py",
+            "definition_cid": "reference/templates/servers/definitions/missing.py",
         }
 
         with open(templates_source_file, "w", encoding="utf-8") as f:
@@ -465,14 +465,14 @@ class TestBootImageGenerator:
         """Test that replacing filenames preserves other fields."""
         generator = BootImageGenerator(temp_project)
 
-        generator.file_to_cid = {"reference_templates/test.txt": "TESTCID123"}
+        generator.file_to_cid = {"reference/templates/test.txt": "TESTCID123"}
 
         data = {
             "aliases": {
                 "test": {
                     "name": "Test Name",
                     "description": "Test Description",
-                    "definition_cid": "reference_templates/test.txt",
+                    "definition_cid": "reference/templates/test.txt",
                     "metadata": {"key": "value"},
                 }
             }
@@ -491,20 +491,20 @@ class TestBootImageGenerator:
         generator.ensure_cids_directory()
 
         # Create test files
-        test_file1 = temp_project / "reference_templates" / "test1.txt"
+        test_file1 = temp_project / "reference" / "templates" / "test1.txt"
         test_file1.write_text("content1")
-        test_file2 = temp_project / "reference_templates" / "test2.txt"
+        test_file2 = temp_project / "reference" / "templates" / "test2.txt"
         test_file2.write_text("content2")
 
         data = [
-            {"name": "test1", "definition_cid": "reference_templates/test1.txt"},
-            {"name": "test2", "definition_cid": "reference_templates/test2.txt"},
+            {"name": "test1", "definition_cid": "reference/templates/test1.txt"},
+            {"name": "test2", "definition_cid": "reference/templates/test2.txt"},
         ]
 
         generator.process_referenced_files(data)
 
-        assert "reference_templates/test1.txt" in generator.processed_files
-        assert "reference_templates/test2.txt" in generator.processed_files
+        assert "reference/templates/test1.txt" in generator.processed_files
+        assert "reference/templates/test2.txt" in generator.processed_files
 
 
 class TestGatewaysInBootImage:
@@ -514,8 +514,8 @@ class TestGatewaysInBootImage:
     def temp_project_with_gateways(self, tmp_path):
         """Create a temporary project structure with gateways configuration."""
         # Create directories
-        ref_templates = tmp_path / "reference_templates"
-        ref_templates.mkdir()
+        ref_templates = tmp_path / "reference" / "templates"
+        ref_templates.mkdir(parents=True)
         (ref_templates / "aliases").mkdir()
         (ref_templates / "variables").mkdir()
         (ref_templates / "servers").mkdir()
@@ -573,18 +573,18 @@ class TestGatewaysInBootImage:
         gateways_source = {
             "test-gateway": {
                 "target_url": "https://test.example.com",
-                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
-                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "request_transform_cid": "reference/templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference/templates/gateways/transforms/test_response.py",
                 "description": "Test gateway for unit testing",
                 "templates": {
-                    "test_page.html": "reference_templates/gateways/templates/test_page.html",
-                    "test_error.html": "reference_templates/gateways/templates/test_error.html",
+                    "test_page.html": "reference/templates/gateways/templates/test_page.html",
+                    "test_error.html": "reference/templates/gateways/templates/test_error.html",
                 },
             },
             "another-gateway": {
                 "target_url": "https://another.example.com",
-                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
-                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "request_transform_cid": "reference/templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference/templates/gateways/transforms/test_response.py",
                 "description": "Another test gateway",
             },
         }
@@ -642,7 +642,7 @@ class TestGatewaysInBootImage:
         generator.generate_gateways_json()
 
         # Verify gateways.json was created
-        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        gateways_json_path = temp_project_with_gateways / "reference" / "templates" / "gateways.json"
         assert gateways_json_path.exists(), "gateways.json should be created"
 
         # Verify it contains the gateway configurations
@@ -661,7 +661,7 @@ class TestGatewaysInBootImage:
         generator.generate_gateways_json()
 
         # Verify gateways.json was created
-        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        gateways_json_path = temp_project_with_gateways / "reference" / "templates" / "gateways.json"
         with open(gateways_json_path, "r", encoding="utf-8") as f:
             gateways_data = json.load(f)
 
@@ -669,10 +669,10 @@ class TestGatewaysInBootImage:
         request_cid = gateways_data["test-gateway"]["request_transform_cid"]
         response_cid = gateways_data["test-gateway"]["response_transform_cid"]
 
-        assert not request_cid.startswith("reference_templates/"), (
+        assert not request_cid.startswith("reference/templates/"), (
             "Request transform CID should be replaced"
         )
-        assert not response_cid.startswith("reference_templates/"), (
+        assert not response_cid.startswith("reference/templates/"), (
             "Response transform CID should be replaced"
         )
 
@@ -684,7 +684,7 @@ class TestGatewaysInBootImage:
         gateways_cid = generator.generate_gateways_json()
         assert gateways_cid
 
-        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        gateways_json_path = temp_project_with_gateways / "reference" / "templates" / "gateways.json"
         assert gateways_json_path.exists()
 
         gateways_data = json.loads(gateways_json_path.read_text())
@@ -692,7 +692,7 @@ class TestGatewaysInBootImage:
         assert isinstance(templates, dict)
         assert set(templates.keys()) == {"test_page.html", "test_error.html"}
 
-        # Should be CIDs, not reference_templates paths
+        # Should be CIDs, not reference/templates paths
         assert templates["test_page.html"].startswith("AAAAA")
         assert templates["test_error.html"].startswith("AAAAA")
 
@@ -703,7 +703,7 @@ class TestGatewaysInBootImage:
         generator.generate()
 
         # Verify boot.json was created
-        boot_json_path = temp_project_with_gateways / "reference_templates" / "boot.json"
+        boot_json_path = temp_project_with_gateways / "reference" / "templates" / "boot.json"
         assert boot_json_path.exists()
 
         with open(boot_json_path, "r", encoding="utf-8") as f:
@@ -730,7 +730,7 @@ class TestGatewaysInBootImage:
         generator.generate()
 
         # Verify default.boot.json was created
-        default_boot_path = temp_project_with_gateways / "reference_templates" / "default.boot.json"
+        default_boot_path = temp_project_with_gateways / "reference" / "templates" / "default.boot.json"
         assert default_boot_path.exists()
 
         with open(default_boot_path, "r", encoding="utf-8") as f:
@@ -752,7 +752,7 @@ class TestGatewaysInBootImage:
         generator.generate()
 
         # Verify readonly.boot.json was created
-        readonly_boot_path = temp_project_with_gateways / "reference_templates" / "readonly.boot.json"
+        readonly_boot_path = temp_project_with_gateways / "reference" / "templates" / "readonly.boot.json"
         assert readonly_boot_path.exists()
 
         with open(readonly_boot_path, "r", encoding="utf-8") as f:
@@ -774,8 +774,8 @@ class TestGatewaysInBootImage:
         generator.generate()
 
         # Verify transform files were processed
-        assert "reference_templates/gateways/transforms/test_request.py" in generator.processed_files
-        assert "reference_templates/gateways/transforms/test_response.py" in generator.processed_files
+        assert "reference/templates/gateways/transforms/test_request.py" in generator.processed_files
+        assert "reference/templates/gateways/transforms/test_response.py" in generator.processed_files
 
     def test_gateways_cid_in_result(self, temp_project_with_gateways):
         """Test that generate() returns gateways_cid in result."""

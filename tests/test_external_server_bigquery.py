@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from reference_templates.servers.definitions import bigquery
+from reference.templates.servers.definitions import bigquery
 
 
 def test_requires_credentials():

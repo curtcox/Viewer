@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ file_path }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        .breadcrumb { color: #888; margin-bottom: 1rem; font-size: 0.9rem; }
+        .breadcrumb a { color: #4ec9b0; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .content { background: #252536; padding: 2rem; border-radius: 4px; }
+        h1, h2, h3, h4, h5, h6 { color: #4ec9b0; border-bottom: 1px solid #333; padding-bottom: 0.3rem; }
+        code { background: #1a1a2e; padding: 0.2rem 0.4rem; border-radius: 3px; color: #ce9178; }
+        pre { background: #1a1a2e; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+        pre code { background: none; padding: 0; }
+        a { color: #4ec9b0; }
+        blockquote { border-left: 3px solid #4ec9b0; padding-left: 1rem; color: #888; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #333; padding: 0.5rem; text-align: left; }
+        th { background: #1a1a2e; }
+    </style>
+</head>
+<body>
+    <div class="breadcrumb">{{ breadcrumb | safe }}</div>
+    <div class="content">
+        {{ html_content | safe }}
+    </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "status": "error",
+  "message": "Authentication credentials not found. This API supports OAuth 2.0 authentication.",
+  "correlationId": "abc12345-1234-5678-9abc-def012345678",
+  "category": "INVALID_AUTHENTICATION",
+  "errors": [
+    {
+      "message": "Authentication credentials not found",
+      "code": "AUTHENTICATION_REQUIRED",
+      "context": {}
+    }
+  ]
+}

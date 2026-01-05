@@ -1,0 +1,14 @@
+{
+  "value": [
+    {
+      "id": "abc-123",
+      "displayName": "Acme Widgets Team",
+      "description": "Team workspace for widget development"
+    },
+    {
+      "id": "def-456",
+      "displayName": "Widget Design",
+      "description": "Design and planning team"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "orders": [
+    {
+      "id": 9876543210,
+      "email": "jane.doe@example.com",
+      "created_at": "2024-01-20T09:15:00-05:00",
+      "updated_at": "2024-01-20T09:15:00-05:00",
+      "number": 1001,
+      "note": null,
+      "total_price": "79.98",
+      "subtotal_price": "79.98",
+      "total_tax": "0.00",
+      "currency": "USD",
+      "financial_status": "paid",
+      "fulfillment_status": "fulfilled",
+      "customer": {
+        "id": 5555555,
+        "email": "jane.doe@example.com",
+        "first_name": "Jane",
+        "last_name": "Doe"
+      },
+      "line_items": [
+        {
+          "id": 12345678,
+          "product_id": 7654321,
+          "title": "Acme Super Widget",
+          "quantity": 2,
+          "price": "29.99",
+          "sku": "WIDGET-001",
+          "variant_id": 43210
+        },
+        {
+          "id": 12345679,
+          "product_id": 7654322,
+          "title": "Globex Premium Gadget - Small",
+          "quantity": 1,
+          "price": "49.99",
+          "sku": "GADGET-S",
+          "variant_id": 43211
+        }
+      ]
+    },
+    {
+      "id": 9876543211,
+      "email": "john.smith@example.com",
+      "created_at": "2024-01-21T14:30:00-05:00",
+      "updated_at": "2024-01-21T14:30:00-05:00",
+      "number": 1002,
+      "note": "Please gift wrap",
+      "total_price": "59.99",
+      "subtotal_price": "59.99",
+      "total_tax": "0.00",
+      "currency": "USD",
+      "financial_status": "pending",
+      "fulfillment_status": null,
+      "customer": {
+        "id": 5555556,
+        "email": "john.smith@example.com",
+        "first_name": "John",
+        "last_name": "Smith"
+      },
+      "line_items": [
+        {
+          "id": 12345680,
+          "product_id": 7654322,
+          "title": "Globex Premium Gadget - Large",
+          "quantity": 1,
+          "price": "59.99",
+          "sku": "GADGET-L",
+          "variant_id": 43212
+        }
+      ]
+    }
+  ]
+}

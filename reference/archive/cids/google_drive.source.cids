@@ -1,0 +1,4 @@
+/drive/v3/files ../../files/google_drive/drive/v3/files.json
+/drive/v3/files?pageSize=0 ../../files/google_drive/drive/v3/files_pageSize_0.json
+/drive/v3/files/1abc2def3ghi ../../files/google_drive/drive/v3/files/1abc2def3ghi.json
+/errors/401 ../../files/google_drive/drive/v3/errors/401_unauthorized.json

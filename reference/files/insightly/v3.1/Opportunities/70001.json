@@ -1,0 +1,20 @@
+{
+  "opportunity_id": 70001,
+  "opportunity_name": "Global Tech - Enterprise License",
+  "opportunity_details": "Annual enterprise software license with premium support",
+  "opportunity_state": "OPEN",
+  "bid_currency": "USD",
+  "bid_amount": 150000,
+  "probability": 75,
+  "organisation_id": 30001,
+  "pipeline_id": 1,
+  "stage_id": 3,
+  "responsible_user_id": 1001,
+  "forecast_close_date": "2024-03-31T00:00:00Z",
+  "tags": [
+    {"tag_name": "Enterprise"},
+    {"tag_name": "Q1 Target"}
+  ],
+  "date_created_utc": "2024-01-15T10:00:00Z",
+  "date_updated_utc": "2024-01-25T16:00:00Z"
+}

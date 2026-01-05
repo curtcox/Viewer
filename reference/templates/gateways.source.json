@@ -1,0 +1,51 @@
+{
+  "jsonplaceholder": {
+    "request_transform_cid": "reference/templates/gateways/transforms/jsonplaceholder_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/jsonplaceholder_response.py",
+    "description": "JSONPlaceholder fake REST API for testing",
+    "templates": {
+      "jsonplaceholder_data.html": "reference/templates/gateways/templates/jsonplaceholder_data.html",
+      "jsonplaceholder_error.html": "reference/templates/gateways/templates/jsonplaceholder_error.html"
+    }
+  },
+  "man": {
+    "request_transform_cid": "reference/templates/gateways/transforms/man_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/man_response.py",
+    "description": "HTML formatted man pages with command links",
+    "templates": {
+      "man_page.html": "reference/templates/gateways/templates/man_page.html",
+      "man_error.html": "reference/templates/gateways/templates/man_error.html"
+    }
+  },
+  "tldr": {
+    "request_transform_cid": "reference/templates/gateways/transforms/tldr_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/tldr_response.py",
+    "description": "HTML formatted tldr pages with command links",
+    "templates": {
+      "tldr_page.html": "reference/templates/gateways/templates/tldr_page.html",
+      "tldr_error.html": "reference/templates/gateways/templates/tldr_error.html"
+    }
+  },
+  "hrx": {
+    "request_transform_cid": "reference/templates/gateways/transforms/hrx_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/hrx_response.py",
+    "description": "HRX archive viewer with markdown and code highlighting",
+    "templates": {
+      "hrx_error.html": "reference/templates/gateways/templates/hrx_error.html",
+      "hrx_directory.html": "reference/templates/gateways/templates/hrx_directory.html",
+      "hrx_markdown.html": "reference/templates/gateways/templates/hrx_markdown.html",
+      "hrx_text.html": "reference/templates/gateways/templates/hrx_text.html"
+    }
+  },
+  "cids": {
+    "request_transform_cid": "reference/templates/gateways/transforms/cids_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/cids_response.py",
+    "description": "CIDS archive viewer with markdown and code highlighting",
+    "templates": {
+      "cids_error.html": "reference/templates/gateways/templates/cids_error.html",
+      "cids_directory.html": "reference/templates/gateways/templates/cids_directory.html",
+      "cids_markdown.html": "reference/templates/gateways/templates/cids_markdown.html",
+      "cids_text.html": "reference/templates/gateways/templates/cids_text.html"
+    }
+  }
+}

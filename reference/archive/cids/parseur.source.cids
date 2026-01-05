@@ -1,0 +1,3 @@
+/mailboxes ../../files/parseur/v1/mailboxes.json
+/mailboxes?limit=0 ../../files/parseur/v1/mailboxes_limit_0.json
+/errors/401 ../../files/parseur/v1/errors/401_unauthorized.json

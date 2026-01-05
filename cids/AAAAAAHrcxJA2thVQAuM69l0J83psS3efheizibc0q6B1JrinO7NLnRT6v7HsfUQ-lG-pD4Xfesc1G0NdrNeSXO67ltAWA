@@ -1,0 +1,18 @@
+{
+  "value": [
+    {
+      "id": "AAMkAGI2",
+      "subject": "Q1 Budget Review",
+      "from": {"emailAddress": {"name": "Jane Doe", "address": "jane.doe@example.com"}},
+      "receivedDateTime": "2024-01-22T09:30:00Z",
+      "isRead": false
+    },
+    {
+      "id": "AAMkAGI3",
+      "subject": "Project Update",
+      "from": {"emailAddress": {"name": "John Smith", "address": "john.smith@example.com"}},
+      "receivedDateTime": "2024-01-21T14:20:00Z",
+      "isRead": true
+    }
+  ]
+}

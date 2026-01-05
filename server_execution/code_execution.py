@@ -105,17 +105,16 @@ def _generate_bash_command_template(command_name: str) -> str:
         "    arg_text=\"\"\n"
         "fi\n"
         "\n"
-        "args=()\n"
-        "if [[ -n \"$arg_text\" ]]; then\n"
-        "    read -r -a args <<< \"$arg_text\"\n"
-        "fi\n"
-        "\n"
         "if ! command -v \"$COMMAND_PATH\" >/dev/null 2>&1; then\n"
         "    echo \"Error: '$COMMAND' is not installed in this environment\" >&2\n"
         "    exit 127\n"
         "fi\n"
         "\n"
-        "command \"$COMMAND_PATH\" \"${args[@]}\"\n"
+        "if [[ -n \"$arg_text\" ]]; then\n"
+        "    command \"$COMMAND_PATH\" \"$arg_text\"\n"
+        "else\n"
+        "    command \"$COMMAND_PATH\"\n"
+        "fi\n"
     )
 
 
@@ -270,8 +269,15 @@ def _extract_chained_output(value: Any) -> Any:
         escaped newlines that can be decoded. Errors during JSON parsing or
         unicode unescaping fall back to returning the original value.
     """
+    def _strip_single_trailing_newline(candidate: Any) -> Any:
+        if not isinstance(candidate, str):
+            return candidate
+        if candidate.endswith("\n") and "\n" not in candidate[:-1]:
+            return candidate[:-1]
+        return candidate
+
     if isinstance(value, dict) and "output" in value:
-        return value.get("output")
+        return _strip_single_trailing_newline(value.get("output"))
 
     if isinstance(value, str):
         try:
@@ -279,16 +285,18 @@ def _extract_chained_output(value: Any) -> Any:
         except (TypeError, ValueError):
             if "\\n" in value:
                 try:
-                    return value.encode("utf-8").decode("unicode_escape")
+                    return _strip_single_trailing_newline(
+                        value.encode("utf-8").decode("unicode_escape")
+                    )
                 except (UnicodeDecodeError, AttributeError):
-                    return value
+                    return _strip_single_trailing_newline(value)
 
-            return value
+            return _strip_single_trailing_newline(value)
 
         if isinstance(parsed, dict) and "output" in parsed:
-            return parsed.get("output")
+            return _strip_single_trailing_newline(parsed.get("output"))
 
-    return value
+    return _strip_single_trailing_newline(value)
 
 
 def _split_path_segments(path: Optional[str]) -> List[str]:
@@ -852,6 +860,16 @@ def _inject_nested_parameter_value(
             available,
         )
 
+    if server_name == "hrx" and missing == ["archive"]:
+        remainder_segments = _remaining_path_segments(server_name)
+        if not remainder_segments:
+            return None
+
+        injected: Dict[str, Any] = {"archive": remainder_segments[0]}
+        if len(remainder_segments) > 1 and "path" not in resolved:
+            injected["path"] = "/".join(remainder_segments[1:])
+        return injected
+
     remainder_segments = _remaining_path_segments(server_name)
     if not remainder_segments:
         return None
@@ -885,6 +903,16 @@ def _inject_optional_parameter_from_path(
 
     if server_name == "gateway":
         return None, None
+
+    if server_name == "hrx" and "archive" in details.parameter_order and "archive" not in resolved:
+        remainder_segments = _remaining_path_segments(server_name)
+        if not remainder_segments:
+            return None, None
+
+        injected: Dict[str, Any] = {"archive": remainder_segments[0]}
+        if "path" in details.parameter_order and "path" not in resolved and len(remainder_segments) > 1:
+            injected["path"] = "/".join(remainder_segments[1:])
+        return injected, None
 
     for name in details.parameter_order:
         if name not in resolved:
@@ -949,7 +977,13 @@ def _resolve_chained_input_for_server(
 
     nested_value = _evaluate_nested_path_to_value(nested_path, visited)
     if isinstance(nested_value, Response):
-        return None, nested_value
+        status_code = getattr(nested_value, "status_code", 500)
+        if status_code >= 400:
+            return None, nested_value
+        try:
+            return nested_value.get_data(as_text=True).rstrip("\n"), None
+        except Exception:  # pylint: disable=broad-exception-caught
+            return None, None
     if nested_value is None:
         return None, None
     return str(_extract_chained_output(nested_value)), None
@@ -1394,11 +1428,16 @@ def _run_clojure_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
     stdin_payload = _build_bash_stdin_payload(chained_input)
+
+    stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+    if stubbed is not None:
+        replacement = (
+            chained_input.encode("utf-8") if chained_input is not None else b""
+        )
+        return stubbed.replace(b"$PAYLOAD", replacement), 200, b""
+
     runner = _select_clojure_command()
     if not runner:
-        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
-        if stubbed is not None:
-            return stubbed, 200, b""
         return (
             b"Clojure runtime is not available for this server",
             500,
@@ -1439,11 +1478,16 @@ def _run_clojurescript_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
     stdin_payload = _build_bash_stdin_payload(chained_input)
+
+    stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+    if stubbed is not None:
+        replacement = (
+            chained_input.encode("utf-8") if chained_input is not None else b""
+        )
+        return stubbed.replace(b"$PAYLOAD", replacement), 200, b""
+
     runner = _select_clojurescript_command()
     if not runner:
-        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
-        if stubbed is not None:
-            return stubbed, 200, b""
         return (
             b"ClojureScript runtime is not available for this server",
             500,
@@ -1484,11 +1528,16 @@ def _run_typescript_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
     stdin_payload = _build_bash_stdin_payload(chained_input)
+
+    stubbed = _extract_stubbed_output(code, ("// OUTPUT:", "//OUTPUT:"))
+    if stubbed is not None:
+        replacement = (
+            chained_input.encode("utf-8") if chained_input is not None else b""
+        )
+        return stubbed.replace(b"$PAYLOAD", replacement), 200, b""
+
     runner = _select_typescript_command()
     if not runner:
-        stubbed = _extract_stubbed_output(code, ("// OUTPUT:", "//OUTPUT:"))
-        if stubbed is not None:
-            return stubbed, 200, b""
         return (
             b"Deno runtime is not available for this server",
             500,

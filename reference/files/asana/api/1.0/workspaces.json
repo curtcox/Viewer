@@ -1,0 +1,9 @@
+{
+  "data": [
+    {
+      "gid": "ws001",
+      "name": "Acme Corp Workspace",
+      "resource_type": "workspace"
+    }
+  ]
+}

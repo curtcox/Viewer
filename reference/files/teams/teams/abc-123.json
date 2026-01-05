@@ -1,0 +1,9 @@
+{
+  "id": "abc-123",
+  "displayName": "Acme Widgets Team",
+  "description": "Team workspace for widget development",
+  "isArchived": false,
+  "memberSettings": {
+    "allowCreateUpdateChannels": true
+  }
+}

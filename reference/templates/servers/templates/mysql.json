@@ -1,0 +1,20 @@
+{
+  "id": "mysql",
+  "name": "MySQL",
+  "description": "Execute MySQL database queries with connection management.",
+  "definition_cid": "reference/templates/servers/definitions/mysql.py",
+  "operations": [
+    "query",
+    "execute",
+    "fetchone",
+    "fetchall"
+  ],
+  "secrets": [
+    "MYSQL_HOST",
+    "MYSQL_PORT",
+    "MYSQL_USER",
+    "MYSQL_PASSWORD",
+    "MYSQL_DATABASE"
+  ],
+  "notes": "Direct MySQL connection. Supports connection_timeout and query_timeout parameters. Dry-run enabled by default."
+}

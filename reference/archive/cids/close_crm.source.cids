@@ -1,0 +1,6 @@
+/api/v1/lead/ ../../files/close_crm/api/v1/lead.json
+/api/v1/lead/?_limit=0 ../../files/close_crm/api/v1/lead__limit_0.json
+/api/v1/lead/lead_ABC123 ../../files/close_crm/api/v1/lead/lead_ABC123.json
+/api/v1/contact/ ../../files/close_crm/api/v1/contact.json
+/api/v1/opportunity/ ../../files/close_crm/api/v1/opportunity.json
+/errors/401 ../../files/close_crm/errors/401_unauthorized.json

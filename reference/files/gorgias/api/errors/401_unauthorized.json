@@ -1,0 +1,5 @@
+{
+  "message": "Invalid or expired authentication credentials",
+  "type": "error",
+  "code": 401
+}

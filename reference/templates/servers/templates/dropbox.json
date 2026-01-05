@@ -1,0 +1,22 @@
+{
+  "id": "dropbox",
+  "name": "Dropbox",
+  "description": "Manage files and folders in Dropbox cloud storage.",
+  "definition_cid": "reference/templates/servers/definitions/dropbox.py",
+  "operations": [
+    "list_folder",
+    "get_metadata",
+    "download",
+    "upload",
+    "delete",
+    "create_folder",
+    "move",
+    "copy",
+    "search",
+    "get_account"
+  ],
+  "secrets": [
+    "DROPBOX_ACCESS_TOKEN"
+  ],
+  "notes": "Uses OAuth Bearer token authentication. Supports dry-run previews by default. Most operations use POST method per Dropbox API v2 specification."
+}

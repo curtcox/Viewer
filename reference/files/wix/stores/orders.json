@@ -1,0 +1,73 @@
+{
+  "orders": [
+    {
+      "id": "wix_ord_001",
+      "number": 1001,
+      "dateCreated": "2024-01-22T09:00:00.000Z",
+      "currency": "USD",
+      "buyerInfo": {
+        "email": "jane.doe@example.com",
+        "firstName": "Jane",
+        "lastName": "Doe"
+      },
+      "billingInfo": {
+        "address": {
+          "firstName": "Jane",
+          "lastName": "Doe"
+        }
+      },
+      "paymentStatus": "PAID",
+      "fulfillmentStatus": "FULFILLED",
+      "lineItems": [
+        {
+          "id": "li_001",
+          "productName": "Acme Widget Standard",
+          "quantity": 2,
+          "price": "29.99",
+          "totalPrice": "59.98"
+        }
+      ],
+      "totals": {
+        "subtotal": "59.98",
+        "total": "59.98"
+      }
+    },
+    {
+      "id": "wix_ord_002",
+      "number": 1002,
+      "dateCreated": "2024-01-23T14:30:00.000Z",
+      "currency": "USD",
+      "buyerInfo": {
+        "email": "john.smith@example.com",
+        "firstName": "John",
+        "lastName": "Smith"
+      },
+      "billingInfo": {
+        "address": {
+          "firstName": "John",
+          "lastName": "Smith"
+        }
+      },
+      "paymentStatus": "PENDING",
+      "fulfillmentStatus": "NOT_FULFILLED",
+      "lineItems": [
+        {
+          "id": "li_002",
+          "productName": "Globex Gadget Premium",
+          "quantity": 1,
+          "price": "69.99",
+          "totalPrice": "69.99"
+        }
+      ],
+      "totals": {
+        "subtotal": "69.99",
+        "total": "69.99"
+      }
+    }
+  ],
+  "metadata": {
+    "count": 2,
+    "offset": 0,
+    "total": 2
+  }
+}

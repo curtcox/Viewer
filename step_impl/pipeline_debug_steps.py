@@ -34,32 +34,96 @@ def _get_debug_response_json() -> Optional[Dict[str, Any]]:
         return None
 
 
+@step("And the response should be valid JSON")
+def and_response_should_be_valid_json() -> None:
+    """Assert the stored debug response body is valid JSON."""
+    parsed = _get_debug_response_json()
+    assert parsed is not None, "Response is not valid JSON"
+
+
 @step(
     [
         "When I request /<path>?debug=true",
-        "When I request /<path>?debug=1",
-        "When I request /<path>?debug=yes",
-        "When I request /<path>?debug=on",
-        "When I request /<path>?debug=TRUE",
-        "When I request /<path>?debug=random",
     ]
 )
-def when_request_with_debug(path: str) -> None:
-    """Request a path with debug query parameter."""
-    # Extract the debug param value from the step text
+def when_request_with_debug_true(path: str) -> None:
+    """Request a path with debug=true query parameter."""
     state = get_scenario_state()
 
-    # Replace {stored CID} with actual CID if present
     if "{stored CID}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
 
-    # Replace {echo server} with "echo"
     if "{echo server}" in path:
         path = path.replace("{echo server}", "echo")
 
-    _request_debug_path_and_store_response(f"/{path}")
+    _request_debug_path_and_store_response(f"/{path}?debug=true")
+
+
+@step("When I request /<path>?debug=1")
+def when_request_with_debug_1(path: str) -> None:
+    """Request a path with debug=1 query parameter."""
+    state = get_scenario_state()
+    if "{stored CID}" in path:
+        cid = state.get("last_cid")
+        assert cid, "No CID stored. Use 'And a CID containing' first."
+        path = path.replace("{stored CID}", cid)
+    if "{echo server}" in path:
+        path = path.replace("{echo server}", "echo")
+    _request_debug_path_and_store_response(f"/{path}?debug=1")
+
+
+@step("When I request /<path>?debug=yes")
+def when_request_with_debug_yes(path: str) -> None:
+    """Request a path with debug=yes query parameter."""
+    state = get_scenario_state()
+    if "{stored CID}" in path:
+        cid = state.get("last_cid")
+        assert cid, "No CID stored. Use 'And a CID containing' first."
+        path = path.replace("{stored CID}", cid)
+    if "{echo server}" in path:
+        path = path.replace("{echo server}", "echo")
+    _request_debug_path_and_store_response(f"/{path}?debug=yes")
+
+
+@step("When I request /<path>?debug=on")
+def when_request_with_debug_on(path: str) -> None:
+    """Request a path with debug=on query parameter."""
+    state = get_scenario_state()
+    if "{stored CID}" in path:
+        cid = state.get("last_cid")
+        assert cid, "No CID stored. Use 'And a CID containing' first."
+        path = path.replace("{stored CID}", cid)
+    if "{echo server}" in path:
+        path = path.replace("{echo server}", "echo")
+    _request_debug_path_and_store_response(f"/{path}?debug=on")
+
+
+@step("When I request /<path>?debug=TRUE")
+def when_request_with_debug_true_upper(path: str) -> None:
+    """Request a path with debug=TRUE query parameter."""
+    state = get_scenario_state()
+    if "{stored CID}" in path:
+        cid = state.get("last_cid")
+        assert cid, "No CID stored. Use 'And a CID containing' first."
+        path = path.replace("{stored CID}", cid)
+    if "{echo server}" in path:
+        path = path.replace("{echo server}", "echo")
+    _request_debug_path_and_store_response(f"/{path}?debug=TRUE")
+
+
+@step("When I request /<path>?debug=random")
+def when_request_with_debug_random(path: str) -> None:
+    """Request a path with debug=random query parameter."""
+    state = get_scenario_state()
+    if "{stored CID}" in path:
+        cid = state.get("last_cid")
+        assert cid, "No CID stored. Use 'And a CID containing' first."
+        path = path.replace("{stored CID}", cid)
+    if "{echo server}" in path:
+        path = path.replace("{echo server}", "echo")
+    _request_debug_path_and_store_response(f"/{path}?debug=random")
 
 
 @step("When I request /{echo server}/{stored CID}?debug=true")

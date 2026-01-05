@@ -1,0 +1,2 @@
+/api/v1/chat/completions ../../files/openrouter/api/v1/chat/completions.json
+/errors/401 ../../files/openrouter/api/v1/errors/401_unauthorized.json

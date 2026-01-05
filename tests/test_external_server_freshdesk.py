@@ -1,6 +1,6 @@
 import requests
 
-from reference_templates.servers.definitions import freshdesk
+from reference.templates.servers.definitions import freshdesk
 
 
 class DummyResponse:

@@ -1,0 +1,20 @@
+{
+  "id": "miro",
+  "name": "Miro",
+  "description": "Manage boards, items, and widgets in Miro collaboration platform.",
+  "definition_cid": "reference/templates/servers/definitions/miro.py",
+  "operations": [
+    "list_boards",
+    "get_board",
+    "list_items",
+    "get_item",
+    "create_item",
+    "list_widgets",
+    "get_widget",
+    "create_widget"
+  ],
+  "secrets": [
+    "MIRO_ACCESS_TOKEN"
+  ],
+  "notes": "Uses OAuth Bearer token authentication with boards:read or boards:write scope. Supports dry-run previews by default."
+}

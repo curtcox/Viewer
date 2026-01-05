@@ -1,0 +1,3 @@
+/public/v1/documents ../../files/pandadoc/public/v1/documents.json
+/public/v1/documents?count=0 ../../files/pandadoc/public/v1/documents_count_0.json
+/errors/401 ../../files/pandadoc/public/v1/errors/401_unauthorized.json

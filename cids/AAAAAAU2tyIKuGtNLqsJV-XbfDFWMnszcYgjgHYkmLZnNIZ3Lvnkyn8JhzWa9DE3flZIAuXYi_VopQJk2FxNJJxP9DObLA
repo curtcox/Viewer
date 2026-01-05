@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "id": 8001,
+      "uri": "/api/tickets/8001",
+      "external_id": null,
+      "subject": "Order #12345 not delivered",
+      "status": "open",
+      "priority": "high",
+      "channel": "email",
+      "via": "email",
+      "from_agent": false,
+      "customer": {
+        "id": 6001,
+        "email": "frustrated.customer@mail.example.com",
+        "name": "Chris Adams"
+      },
+      "assignee_user": null,
+      "assignee_team": null,
+      "created_datetime": "2024-01-20T14:30:00.000000Z",
+      "updated_datetime": "2024-01-21T09:15:00.000000Z"
+    },
+    {
+      "id": 8002,
+      "uri": "/api/tickets/8002",
+      "external_id": null,
+      "subject": "Return request for item #67890",
+      "status": "closed",
+      "priority": "normal",
+      "channel": "email",
+      "via": "email",
+      "from_agent": false,
+      "customer": {
+        "id": 6002,
+        "email": "happy.shopper@mail.example.com",
+        "name": "Dana Lee"
+      },
+      "assignee_user": {
+        "id": 101,
+        "email": "support@store.example.com",
+        "name": "Support Team"
+      },
+      "assignee_team": null,
+      "created_datetime": "2024-01-18T10:00:00.000000Z",
+      "updated_datetime": "2024-01-19T16:45:00.000000Z"
+    }
+  ],
+  "meta": {
+    "total_count": 2,
+    "page": 1,
+    "per_page": 30
+  }
+}

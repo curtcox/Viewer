@@ -1,0 +1,2 @@
+/v1beta/properties/123456:runReport ../../files/google_analytics/v1beta/reports.json
+/errors/401 ../../files/google_analytics/v1beta/errors/401_unauthorized.json

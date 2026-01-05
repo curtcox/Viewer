@@ -1,0 +1,43 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "date"
+    },
+    {
+      "name": "country"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "activeUsers",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "sessions",
+      "type": "TYPE_INTEGER"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {"value": "20240122"},
+        {"value": "US"}
+      ],
+      "metricValues": [
+        {"value": "1523"},
+        {"value": "2341"}
+      ]
+    },
+    {
+      "dimensionValues": [
+        {"value": "20240123"},
+        {"value": "US"}
+      ],
+      "metricValues": [
+        {"value": "1687"},
+        {"value": "2589"}
+      ]
+    }
+  ],
+  "rowCount": 2
+}

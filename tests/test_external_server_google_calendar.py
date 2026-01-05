@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import requests
 
-from reference_templates.servers.definitions import google_calendar
+from reference.templates.servers.definitions import google_calendar
 
 
 def test_missing_credentials_returns_auth_error():

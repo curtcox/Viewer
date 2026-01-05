@@ -24,7 +24,7 @@ class TestGlomServerTemplate(unittest.TestCase):
 
         template_path = (
             Path(self.app.root_path)
-            / "reference_templates"
+            / "reference/templates"
             / "servers"
             / "definitions"
             / "glom.py"

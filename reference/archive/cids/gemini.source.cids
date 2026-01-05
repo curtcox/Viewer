@@ -1,0 +1,2 @@
+/v1beta/models/gemini-1.5-flash-latest:generateContent ../../files/gemini/v1beta/models/gemini-1.5-flash-latest/generateContent.json
+/errors/400 ../../files/gemini/v1beta/errors/400_invalid_request.json

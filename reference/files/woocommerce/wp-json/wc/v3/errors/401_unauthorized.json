@@ -1,0 +1,7 @@
+{
+  "code": "rest_cannot_view",
+  "message": "Sorry, you are not allowed to list resources.",
+  "data": {
+    "status": 401
+  }
+}

@@ -11,7 +11,7 @@ from app import app, db
 from cid import CID
 from css_defaults import ensure_css_alias
 from db_access import create_cid_record, get_alias_by_name
-from reference_templates.uploads import get_upload_templates
+from reference.templates.uploads import get_upload_templates
 
 
 class TestCssAliasDefaults(unittest.TestCase):
@@ -157,7 +157,7 @@ class TestCssAliasDefaults(unittest.TestCase):
 
     def test_css_alias_light_mode_theme_content_changes(self):
         light_css = Path(
-            "reference_templates/uploads/contents/css_light_mode.css"
+            "reference/templates/uploads/contents/css_light_mode.css"
         ).read_text(encoding="utf-8")
         light_path = self._create_theme_cid("css/light-theme", light_css)
 
@@ -175,7 +175,7 @@ class TestCssAliasDefaults(unittest.TestCase):
 
     def test_css_alias_dark_mode_theme_content_changes(self):
         dark_css = Path(
-            "reference_templates/uploads/contents/css_dark_mode.css"
+            "reference/templates/uploads/contents/css_dark_mode.css"
         ).read_text(encoding="utf-8")
         dark_path = self._create_theme_cid("css/dark-theme", dark_css)
 

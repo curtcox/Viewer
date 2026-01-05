@@ -1,0 +1,41 @@
+{
+  "id": "lead_ABC123",
+  "display_name": "Acme Corporation",
+  "description": "Leading widget manufacturer - primary supplier for enterprise clients",
+  "status_id": "stat_qualified",
+  "status_label": "Qualified",
+  "url": "https://acme-corp.example.com",
+  "contacts": [
+    {
+      "id": "cont_XYZ789",
+      "name": "Jane Doe",
+      "title": "VP of Engineering",
+      "emails": [{"email": "jane.doe@acme-corp.example.com", "type": "office"}],
+      "phones": [{"phone": "+1-555-0101", "type": "office"}]
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "oppo_111",
+      "status_id": "stat_active",
+      "status_label": "Active",
+      "value": 75000,
+      "value_period": "one_time"
+    }
+  ],
+  "tasks": [],
+  "addresses": [
+    {
+      "address_1": "123 Widget Way",
+      "city": "Faketown",
+      "state": "FS",
+      "zipcode": "12345",
+      "country": "US"
+    }
+  ],
+  "custom": {},
+  "created_by": "user_001",
+  "created_by_name": "Sales Rep",
+  "date_created": "2024-01-10T08:00:00.000000+00:00",
+  "date_updated": "2024-01-22T10:30:00.000000+00:00"
+}

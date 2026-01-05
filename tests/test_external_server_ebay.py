@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import requests
 
-from reference_templates.servers.definitions import ebay
+from reference.templates.servers.definitions import ebay
 
 
 class DummyResponse:
