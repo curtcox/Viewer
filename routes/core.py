@@ -138,6 +138,12 @@ def help_markdown(doc_path: str):
     )
 
 
+@main_bp.route("/gateways")
+def gateways():
+    """Redirect to the gateway instruction page."""
+    return redirect("/gateway")
+
+
 def _list_markdown_docs(docs_dir: Path) -> list[str]:
     """Return sorted markdown filenames from docs directory."""
 
@@ -188,6 +194,7 @@ def get_settings_counts():
 
 __all__ = [
     "dashboard",
+    "gateways",
     "get_existing_routes",
     "get_settings_counts",
     "help_markdown",

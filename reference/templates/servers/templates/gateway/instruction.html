@@ -69,60 +69,76 @@
         </div>
     </div>
 
-    <h2>API Examples</h2>
-
-    <div class="card">
-        <h3>GitHub API</h3>
-        <p><strong>No Auth</strong></p>
-        <p><a href="/gateway?target_server=https://api.github.com">/gateway?target_server=https://api.github.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>OpenAI API</h3>
-        <p><strong>API Key Required</strong></p>
-        <p><a href="/gateway?target_server=https://api.openai.com">/gateway?target_server=https://api.openai.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>Anthropic API</h3>
-        <p><strong>API Key Required</strong></p>
-        <p><a href="/gateway?target_server=https://api.anthropic.com">/gateway?target_server=https://api.anthropic.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>Google</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>OpenRouter</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>Eleven Labs</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>Vercel</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
     <h2>Configured Gateways</h2>
 
-    <ul class="gateway-list">
-        {% for name, config in gateways.items() %}
-        <li>
-            <div class="gateway-name"><a href="/gateway/{{ name }}">{{ name }}</a></div>
-            <div class="gateway-desc">{{ config.description }}</div>
-            <div><a href="/gateway/meta/{{ name }}">View Meta</a></div>
-        </li>
-        {% else %}
-        <li>
-            <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
-        </li>
-        {% endfor %}
-    </ul>
+    {% set mock_server_cid = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A" %}
+
+    <div class="card">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Name</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Server</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Gateway</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Meta</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Test</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">External API</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, config in gateways.items() %}
+                <tr>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                        <span class="gateway-name">{{ name }}</span>
+                        {% if config.description %}
+                        <div class="gateway-desc">{{ config.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/servers/{{ name }}">Server</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ name }}">Gateway</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ name }}">Meta</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ name }}">Test</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                        {% if config.external_api %}
+                            {{ config.external_api }}
+                        {% elif name == "jsonplaceholder" %}
+                            https://jsonplaceholder.typicode.com
+                        {% elif name == "json_api" %}
+                            Configurable JSON API
+                        {% elif name in ["man", "tldr"] %}
+                            Local command
+                        {% elif name in ["hrx", "cids"] %}
+                            Local archive
+                        {% else %}
+
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding: 0.75rem;">
+                        <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% for server in external_servers or [] %}
+                    {% if server.name and server.name not in gateways %}
+                    <tr>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                            <span class="gateway-name">{{ server.name }}</span>
+                            <div class="gateway-desc">External service</div>
+                        </td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/servers/{{ server.name }}">Server</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ server.name }}">Gateway</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ server.name }}">Meta</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ server.name }}">Test</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;">{{ server.external_api or "" }}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
