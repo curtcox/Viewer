@@ -1,0 +1,69 @@
+{
+  "pagination": {
+    "nextPageUrl": null,
+    "nextPageCursor": null,
+    "hasNextPage": false
+  },
+  "result": [
+    {
+      "id": "ord_abc123",
+      "orderNumber": "1001",
+      "createdOn": "2024-01-20T15:30:00.000Z",
+      "modifiedOn": "2024-01-20T15:30:00.000Z",
+      "channel": "WEBSITE",
+      "testmode": false,
+      "customerEmail": "jane.doe@example.com",
+      "billingAddress": {
+        "firstName": "Jane",
+        "lastName": "Doe",
+        "address1": "123 Main St"
+      },
+      "fulfillmentStatus": "FULFILLED",
+      "lineItems": [
+        {
+          "id": "li_123",
+          "productName": "Acme Widget",
+          "quantity": "2",
+          "unitPricePaid": {
+            "value": "29.99",
+            "currency": "USD"
+          }
+        }
+      ],
+      "grandTotal": {
+        "value": "59.98",
+        "currency": "USD"
+      }
+    },
+    {
+      "id": "ord_def456",
+      "orderNumber": "1002",
+      "createdOn": "2024-01-21T10:15:00.000Z",
+      "modifiedOn": "2024-01-21T10:15:00.000Z",
+      "channel": "WEBSITE",
+      "testmode": false,
+      "customerEmail": "john.smith@example.com",
+      "billingAddress": {
+        "firstName": "John",
+        "lastName": "Smith",
+        "address1": "456 Oak Ave"
+      },
+      "fulfillmentStatus": "PENDING",
+      "lineItems": [
+        {
+          "id": "li_456",
+          "productName": "Globex Gadget",
+          "quantity": "1",
+          "unitPricePaid": {
+            "value": "49.99",
+            "currency": "USD"
+          }
+        }
+      ],
+      "grandTotal": {
+        "value": "49.99",
+        "currency": "USD"
+      }
+    }
+  ]
+}

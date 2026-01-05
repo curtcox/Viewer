@@ -1,0 +1,9 @@
+{
+  "message": "Unauthorized",
+  "details": {
+    "applicationError": {
+      "code": "UNAUTHORIZED",
+      "description": "Missing or invalid authentication token"
+    }
+  }
+}

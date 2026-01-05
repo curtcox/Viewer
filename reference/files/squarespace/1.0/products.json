@@ -1,0 +1,61 @@
+{
+  "products": [
+    {
+      "id": "prod_123",
+      "type": "PHYSICAL",
+      "storePageId": "page_abc",
+      "name": "Acme Widget",
+      "description": "High-quality widget",
+      "url": "https://shop.example.com/acme-widget",
+      "tags": ["widget", "acme"],
+      "isVisible": true,
+      "variants": [
+        {
+          "id": "var_123",
+          "sku": "ACM-WDG-001",
+          "pricing": {
+            "basePrice": {
+              "value": "29.99",
+              "currency": "USD"
+            }
+          },
+          "stock": {
+            "quantity": 100,
+            "unlimited": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_456",
+      "type": "PHYSICAL",
+      "storePageId": "page_abc",
+      "name": "Globex Gadget",
+      "description": "Premium gadget",
+      "url": "https://shop.example.com/globex-gadget",
+      "tags": ["gadget", "globex"],
+      "isVisible": true,
+      "variants": [
+        {
+          "id": "var_456",
+          "sku": "GLB-GDG-001",
+          "pricing": {
+            "basePrice": {
+              "value": "49.99",
+              "currency": "USD"
+            }
+          },
+          "stock": {
+            "quantity": 50,
+            "unlimited": false
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "nextPageUrl": null,
+    "nextPageCursor": null,
+    "hasNextPage": false
+  }
+}

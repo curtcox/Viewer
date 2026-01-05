@@ -1,0 +1,4 @@
+/v3/application/listings/active ../../files/etsy/v3/listings.json
+/v3/application/listings/active?limit=0 ../../files/etsy/v3/listings_limit_0.json
+/v3/application/shops ../../files/etsy/v3/shops.json
+/errors/401 ../../files/etsy/v3/errors/401_unauthorized.json

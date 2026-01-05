@@ -1,0 +1,3 @@
+/browse/search ../../files/ebay/browse/search.json
+/browse/search?limit=0 ../../files/ebay/browse/search_limit_0.json
+/errors/401 ../../files/ebay/errors/401_unauthorized.json
