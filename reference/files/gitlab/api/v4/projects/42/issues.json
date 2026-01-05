@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1001,
+    "iid": 7,
+    "project_id": 42,
+    "title": "Widget spin failure on Tuesdays",
+    "description": "Widgets fail to spin properly on Tuesday mornings. Error code 42 displayed.",
+    "state": "opened",
+    "created_at": "2024-01-15T10:30:00.000Z",
+    "updated_at": "2024-01-20T14:22:00.000Z",
+    "closed_at": null,
+    "labels": ["bug", "priority::high"],
+    "author": {
+      "id": 100,
+      "username": "janedoe",
+      "name": "Jane Doe"
+    },
+    "assignee": null,
+    "web_url": "https://gitlab.com/acme-corp/widgets/-/issues/7"
+  },
+  {
+    "id": 1002,
+    "iid": 8,
+    "project_id": 42,
+    "title": "Add hexagonal widget support",
+    "description": "Need support for hexagonal widgets to enable better tessellation patterns.",
+    "state": "opened",
+    "created_at": "2024-01-16T09:15:00.000Z",
+    "updated_at": "2024-01-22T11:45:00.000Z",
+    "closed_at": null,
+    "labels": ["enhancement", "feature::widgets"],
+    "author": {
+      "id": 101,
+      "username": "johnsmith",
+      "name": "John Smith"
+    },
+    "assignee": {
+      "id": 100,
+      "username": "janedoe",
+      "name": "Jane Doe"
+    },
+    "web_url": "https://gitlab.com/acme-corp/widgets/-/issues/8"
+  }
+]

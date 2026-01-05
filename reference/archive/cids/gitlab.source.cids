@@ -1,0 +1,8 @@
+/api/v4/projects ../../files/gitlab/api/v4/projects.json
+/api/v4/projects?per_page=1 ../../files/gitlab/api/v4/projects_per_page_1.json
+/api/v4/projects/42 ../../files/gitlab/api/v4/projects/42.json
+/api/v4/projects/42/issues ../../files/gitlab/api/v4/projects/42/issues.json
+/api/v4/projects/42/issues/7 ../../files/gitlab/api/v4/projects/42/issues/7.json
+/api/v4/projects/42/merge_requests ../../files/gitlab/api/v4/projects/42/merge_requests.json
+/errors/401 ../../files/gitlab/api/v4/errors/401_unauthorized.json
+/errors/404 ../../files/gitlab/api/v4/errors/404_not_found.json

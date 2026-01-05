@@ -1,0 +1,17 @@
+[
+  {
+    "id": 42,
+    "name": "widgets",
+    "name_with_namespace": "Acme Corp / widgets",
+    "path": "widgets",
+    "path_with_namespace": "acme-corp/widgets",
+    "description": "Revolutionary widget management system",
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "default_branch": "main",
+    "web_url": "https://gitlab.com/acme-corp/widgets",
+    "avatar_url": null,
+    "star_count": 42,
+    "forks_count": 7,
+    "last_activity_at": "2024-01-22T11:45:00.000Z"
+  }
+]
