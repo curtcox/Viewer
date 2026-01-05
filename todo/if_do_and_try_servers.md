@@ -29,12 +29,17 @@ These servers enable declarative control flow within the URL path structure, all
 | `/if/{test}/then/{true-path}` | Execute `/{true-path}` if `{test}` is truthy, else return `/{test}` result |
 | `/if/{path}` | Simply execute and return `/{path}` (identity) |
 
-#### Path Segment Parsing
+#### Path Segment Parsing (Balanced Parsing)
 
-Segments are parsed by looking for the keywords `then` and `else`:
-- `{test}`: All segments between `/if/` and `/then/`
-- `{true-path}`: All segments between `/then/` and `/else/` (or end if no else)
-- `{false-path}`: All segments after `/else/`
+Segments are parsed using **balanced parsing** that tracks nesting level for nested if statements:
+- Track depth by counting `if` keywords (increment) and matching `else` keywords (decrement at same level)
+- `{test}`: All segments between `/if/` and the matching `/then/` at the same nesting level
+- `{true-path}`: All segments between `/then/` and the matching `/else/` at the same nesting level (or end if no else)
+- `{false-path}`: All segments after the matching `/else/`
+
+**Example**:
+- `/if/a/then/b/else/c` → test=a, true=b, false=c
+- `/if/x/then/if/y/then/z/else/w/else/v` → test=x, true=if/y/then/z/else/w, false=v (nested if is preserved in true-path)
 
 #### Truthiness Definition
 
@@ -77,14 +82,19 @@ Segments are parsed by looking for the keyword `while`:
 - Each iteration executes `/{path}` and collects the output
 - After each iteration, `/{test}` is evaluated for truthiness
 - Loop continues while test is truthy
-- Returns the accumulated output from all iterations (concatenated)
-- Maximum iteration limit enforced via `/variable/max_do_iterations` (default: 100)
+- Returns the accumulated output from all iterations (string concatenation)
+- Loop terminates when ANY of these limits is reached (whichever comes first):
+  - **Cost limit**: 0.5 cents of execution cost
+  - **Time limit**: 500 seconds of execution time
+  - **Iteration limit**: 500 iterations
 
 #### Default While Variable
 
 When using `/do/{path}/while` (no test path):
-- The variable `max_do_while` controls the loop
-- This variable should be decremented or set to falsy by `/{path}` to terminate the loop
+- The variable `max_do_while` is fetched via `/variable/max_do_while` and evaluated for truthiness
+- The variable contents are NOT modified by the do server - only read and evaluated
+- The loop body `/{path}` should modify `max_do_while` (or other state) to eventually terminate the loop
+- Truthiness evaluation follows the same rules as other conditions (empty, "false", "0", "null", "none" are falsy)
 
 ---
 
@@ -111,10 +121,12 @@ An error is detected if:
 
 #### Error Context
 
-When `/{catch-path}` is executed, the following context is available:
-- The original exception message (if any)
-- The status code from `/{try-path}`
-- The error output from `/{try-path}`
+When `/{catch-path}` is executed, error information is passed via HTTP headers:
+- `X-Error-Message`: The exception message or error description
+- `X-Error-Status`: The HTTP status code from `/{try-path}` (e.g., "404", "500")
+- `X-Error-Type`: The type of error ("exception" or "status")
+
+The catch path is executed normally with these headers added to the request context.
 
 ---
 
@@ -273,6 +285,10 @@ Add same entries as default.
 | IP-06 | `test_if_multi_segment_false_path` | `/if/t/then/a/else/x/y/z` | test=["t"], true=["a"], false=["x","y","z"] |
 | IP-07 | `test_if_empty_segments_filtered` | `/if//test//then//a/` | test=["test"], true=["a"] |
 | IP-08 | `test_if_case_sensitive_keywords` | `/if/Then/then/ELSE/else/x` | test=["Then"], true=["ELSE"], false=["x"] |
+| IP-09 | `test_if_nested_in_true_path` | `/if/a/then/if/b/then/c/else/d/else/e` | test=["a"], true=["if","b","then","c","else","d"], false=["e"] |
+| IP-10 | `test_if_nested_in_false_path` | `/if/a/then/b/else/if/c/then/d/else/e` | test=["a"], true=["b"], false=["if","c","then","d","else","e"] |
+| IP-11 | `test_if_double_nested` | `/if/a/then/if/b/then/if/c/then/d/else/e` | Correctly balanced at each level |
+| IP-12 | `test_if_nested_in_test` | `/if/if/a/then/b/else/c/then/d/else/e` | test=["if","a","then","b","else","c"], true=["d"], false=["e"] |
 
 #### Do Path Parsing
 
@@ -356,13 +372,16 @@ Add same entries as default.
 | DO-01 | `test_do_while_false_immediate` | `/do/echo/x/while/echo/false` | Returns "x" (one iteration) |
 | DO-02 | `test_do_identity` | `/do/echo/hello` | Returns "hello" |
 | DO-03 | `test_do_while_variable` | `/do/echo/x/while` | Loops based on max_do_while variable |
-| DO-04 | `test_do_max_iterations_limit` | `/do/echo/x/while/echo/true` | Stops at max_do_iterations (100) |
+| DO-04 | `test_do_max_iterations_limit` | `/do/echo/x/while/echo/true` | Stops at 500 iterations |
 | DO-05 | `test_do_accumulates_output` | `/do/echo/x/while/...` | Output is concatenated from all iterations |
 | DO-06 | `test_do_server_chain_in_body` | `/do/upper/echo/hi/while/echo/false` | Returns "HI" |
 | DO-07 | `test_do_server_chain_in_test` | `/do/echo/x/while/upper/echo/false` | Test evaluates upper(echo(false)) |
 | DO-08 | `test_do_nested` | `/do/do/echo/y/while/echo/false/while/echo/false` | Nested loops work |
 | DO-09 | `test_do_with_query_params` | `/do/echo/x/while/echo/false?debug=true` | Query params passed through |
 | DO-10 | `test_do_body_can_modify_variable` | (variable-based test) | Body execution can change loop variable |
+| DO-11 | `test_do_time_limit` | Long-running loop | Stops at 500 seconds |
+| DO-12 | `test_do_cost_limit` | Expensive loop | Stops at 0.5 cents |
+| DO-13 | `test_do_termination_header` | Loop hits limit | `X-Loop-Terminated` header present |
 
 ### Integration Tests: Try Server
 
@@ -422,7 +441,7 @@ Add same entries as default.
 | EC-01 | `test_if_empty_test_path` | `/if//then/a/else/b` | Error or empty is falsy |
 | EC-02 | `test_if_empty_true_path` | `/if/test/then//else/b` | Returns empty or error |
 | EC-03 | `test_do_zero_iterations` | Test immediately false | Returns empty or single iteration |
-| EC-04 | `test_do_exceeds_max_iterations` | Infinite loop attempt | Stops at max, returns accumulated |
+| EC-04 | `test_do_exceeds_max_iterations` | Infinite loop attempt | Stops at 500 iterations, returns accumulated |
 | EC-05 | `test_try_catch_also_throws` | `/try/throw/catch/throw` | Error bubbles up |
 | EC-06 | `test_url_encoded_keywords` | `/if/%74%68%65%6e/then/a` | Keywords not decoded from URL |
 | EC-07 | `test_literal_then_in_path` | `/if/test/then/echo/then` | `then` after first is part of path |
@@ -437,147 +456,194 @@ Add same entries as default.
 
 ---
 
-## Open Questions
+## Resolved Design Decisions
 
-### Q1: How should the `then` and `else` keywords be parsed?
+### D1: Keyword Parsing Strategy
 
-**Options**:
-1. **First occurrence** - Parse left-to-right, first `then` splits test from true-path
-2. **Greedy test** - Longest possible test path (last `then` before first `else`)
-3. **Balanced parsing** - Track nesting level for nested if statements
+**Decision**: Balanced parsing - Track nesting level for nested if statements
 
-**Current Assumption**: First occurrence (Option 1). The first `then` encountered after `/if/` marks the end of the test path. Nested `if` statements would need the outer `then` to come first.
+The parser tracks nesting depth by counting control flow keywords:
+- When `if` is encountered, increment depth
+- When the matching `then`/`else` at the current depth is found, that's the boundary
+- This allows nested conditionals to be properly parsed without ambiguity
 
 **Example**:
-- `/if/a/then/b/else/c` → test=a, true=b, false=c (clear)
-- `/if/a/b/then/c/then/d/else/e` → test=a/b, true=c/then/d, false=e
-- For nested: `/if/x/then/if/y/then/z/else/w/else/v` → test=x, true=if/y/then/z/else/w, false=v
+```
+/if/x/then/if/y/then/z/else/w/else/v
+         ^depth 1 then     ^depth 1 else
 
-**Question**: Is first-occurrence parsing correct, or do we need more sophisticated parsing for deeply nested conditionals?
+Parses as: test=x, true=if/y/then/z/else/w, false=v
+```
 
----
-
-### Q2: What should `/do/{path}/while` (implicit while) use as its condition?
-
-**Current Assumption**: Uses the variable `max_do_while` from context.
-
-**Options**:
-1. **Named variable**: Use `/variable/max_do_while` as the test
-2. **Counter variable**: Auto-decrementing counter variable
-3. **Remove implicit while**: Require explicit test path always
-
-**Question**: Is the `max_do_while` variable approach correct? How should it be initialized and modified?
+**Rationale**: Enables arbitrarily nested conditionals without requiring escape mechanisms.
 
 ---
 
-### Q3: How should the do server accumulate output from multiple iterations?
+### D2: Implicit While Condition
 
-**Options**:
-1. **String concatenation**: `output += iteration_result`
-2. **Newline-separated**: `output += iteration_result + "\n"`
-3. **JSON array**: `[result1, result2, ...]`
-4. **Last iteration only**: Only return final iteration's output
+**Decision**: Use `/variable/max_do_while` as the test, evaluated for truthiness (not modified)
 
-**Question**: Which accumulation strategy is most useful?
+When `/do/{path}/while` is used (no explicit test path):
+- The value of the `max_do_while` variable is fetched and evaluated for truthiness
+- The do server does NOT modify this variable
+- The loop body is responsible for updating `max_do_while` to terminate the loop
+- Evaluation uses the same truthiness rules as explicit tests
 
----
-
-### Q4: What information should be passed to the catch path?
-
-**Options**:
-1. **Nothing extra**: Just execute catch path normally
-2. **Error message in header**: `X-Error-Message` header
-3. **Error as input**: Exception/error message as body input to catch path
-4. **Context variables**: Set error variables (error_message, error_code, etc.)
-
-**Question**: How should error context be communicated to the catch handler?
+**Rationale**: Consistent with the pattern of evaluating conditions without side effects. The loop body has full control over termination.
 
 ---
 
-### Q5: Should keywords be case-sensitive?
+### D3: Loop Output Accumulation
 
-**Current Assumption**: Yes, keywords (`then`, `else`, `while`, `catch`) are case-sensitive and must be lowercase.
+**Decision**: String concatenation
 
-**Options**:
-1. **Case-sensitive lowercase only**: `then`, `else`, `while`, `catch`
-2. **Case-insensitive**: `THEN`, `Then`, `then` all work
-3. **Case-insensitive with canonical form**: Accept any case, normalize internally
+Output from each iteration is concatenated directly:
+```python
+accumulated_output = ""
+for iteration in range(max_iterations):
+    result = execute(body_path)
+    accumulated_output += result.output
+    if not is_truthy(evaluate(test_path)):
+        break
+return accumulated_output
+```
 
-**Question**: Should we accept `THEN`, `Else`, `WHILE`, `Catch`?
-
----
-
-### Q6: How should keyword conflicts with server names be handled?
-
-What if a server is named `then`, `else`, `while`, or `catch`?
-
-**Options**:
-1. **Keywords take precedence**: `then` is always a keyword in if paths
-2. **Escape mechanism**: `\then` or `%then` to use as path segment
-3. **Context-aware**: Only treat as keyword if in correct position
-4. **Prohibit conflicting names**: Don't allow servers with these names
-
-**Current Assumption**: Keywords take precedence. If you have a server named `then`, it cannot be used in if paths.
-
-**Question**: Is keyword precedence acceptable, or do we need an escape mechanism?
+**Rationale**: Simple and predictable. Users can format output (newlines, JSON, etc.) within the loop body if needed.
 
 ---
 
-### Q7: What is the maximum iteration limit for do loops?
+### D4: Error Context for Catch Path
 
-**Current Assumption**: 100 iterations, configurable via `/variable/max_do_iterations`.
+**Decision**: Error message in headers
 
-**Options**:
-1. **Fixed limit**: Hard-coded maximum (e.g., 100)
-2. **Configurable via variable**: Use `max_do_iterations` variable
-3. **No limit**: Trust the user (risky)
-4. **Timeout-based**: Time limit instead of iteration count
+When the catch path is executed, error information is passed via HTTP headers:
+- `X-Error-Message`: The exception message or error description
+- `X-Error-Status`: The HTTP status code from the try path (e.g., "404", "500")
+- `X-Error-Type`: The type of error ("exception" or "status")
 
-**Question**: What should the default and maximum limits be?
-
----
-
-### Q8: How should the test path result be used in `/if/{test}/then/{true-path}`?
-
-When there's no else clause and the test is falsy, what should be returned?
-
-**Current Assumption**: Return the result of executing `/{test}`.
-
-**Options**:
-1. **Return test result**: Return whatever the test path returned
-2. **Return empty**: Return empty string/response
-3. **Return error**: Return 404 or similar error status
-4. **Return literal test path**: Return the path string itself
-
-**Question**: Which behavior is most useful for the no-else case?
+**Rationale**: Headers are accessible to all server types without changing function signatures. Clean separation of error context from request body.
 
 ---
 
-### Q9: Should path execution be internal or use HTTP?
+### D5: Keyword Case Sensitivity
 
-**Options**:
-1. **Internal execution**: Use `server_execution.try_server_execution()` directly
-2. **HTTP request**: Make HTTP request to own server (self-referential)
-3. **Hybrid**: Internal when possible, HTTP as fallback
+**Decision**: Case-sensitive lowercase only
 
-**Current Assumption**: Internal execution using existing server execution infrastructure.
+Keywords must be exactly: `then`, `else`, `while`, `catch`
 
-**Question**: Is internal execution sufficient, or are there cases where HTTP is needed?
+- `THEN`, `Then`, `WHILE`, `Catch` are NOT recognized as keywords
+- They are treated as regular path segments (server names or parameters)
+
+**Rationale**: Explicit and unambiguous. Consistent with URL path conventions which are typically case-sensitive.
 
 ---
 
-### Q10: How should content-type be handled through conditionals?
+### D6: Keyword vs Server Name Conflicts
 
-When different branches return different content types, which should be used?
+**Decision**: Keywords take precedence within their respective servers only
 
-**Options**:
-1. **From executed branch**: Use content-type from whichever path was executed
-2. **Force specific type**: Always return text/html or application/json
-3. **Inherit from outer context**: Use content-type from the overall request
+- In `/if/...` paths: `then` and `else` are always keywords
+- In `/do/...` paths: `while` is always a keyword
+- In `/try/...` paths: `catch` is always a keyword
+- **Other servers are NOT affected**: A server named `then` works normally in `/pipeline/then/data`
 
-**Current Assumption**: Use content-type from the executed branch (option 1).
+If a user has a server named `then`:
+- It cannot be used in `/if/...` paths (keyword takes precedence)
+- It works normally everywhere else (regular server execution)
 
-**Question**: Is pass-through of content-type correct?
+**Rationale**: Minimal impact on existing functionality. Keywords are scoped to their control flow servers only.
+
+---
+
+### D7: Loop Termination Limits
+
+**Decision**: Triple limit - whichever is reached first terminates the loop
+
+Loop terminates when ANY of these limits is reached:
+1. **Cost limit**: 0.5 cents of execution cost
+2. **Time limit**: 500 seconds of elapsed time
+3. **Iteration limit**: 500 iterations
+
+When a limit is reached:
+- The loop stops immediately
+- Accumulated output up to that point is returned
+- A warning header may be added: `X-Loop-Terminated: cost|time|iterations`
+
+**Rationale**: Defense in depth against runaway loops. Cost-based limiting prevents expensive infinite loops even with short iterations.
+
+---
+
+### D8: No-Else Case Return Value
+
+**Decision**: Return test result
+
+For `/if/{test}/then/{true-path}` when test is falsy:
+- Return the result of executing `/{test}` (output, content-type, status code)
+- The true-path is not executed
+
+**Example**:
+```
+/if/echo/0/then/echo/success
+→ Returns "0" (the test result, since 0 is falsy)
+
+/if/echo/hello/then/echo/success
+→ Returns "success" (test was truthy, true-path executed)
+```
+
+**Rationale**: Preserves test result information. Useful for debugging and for pipelines that consume the test output.
+
+---
+
+### D9: Path Execution Method
+
+**Decision**: Internal execution
+
+Use `server_execution.try_server_execution()` directly for all path execution:
+- No HTTP requests to self
+- Shared context and state
+- Lower overhead
+- Consistent with pipeline execution
+
+**Rationale**: Internal execution is simpler, faster, and maintains context properly. HTTP would add unnecessary complexity and latency.
+
+---
+
+### D10: Content-Type Handling
+
+**Decision**: From executed branch
+
+The content-type from whichever branch was actually executed is used:
+- For if: content-type from true-path or false-path (whichever ran)
+- For do: content-type from the final iteration (or last accumulated)
+- For try: content-type from try-path if successful, or catch-path if triggered
+
+**Rationale**: Predictable and transparent. The executed code determines its own content-type.
+
+---
+
+## Followup Questions
+
+### FQ1: Cost Tracking Mechanism
+
+D7 specifies a cost limit of 0.5 cents. This requires a cost tracking mechanism.
+
+**Questions**:
+1. Is there an existing cost tracking system in the codebase that should be integrated?
+2. How is "cost" defined? (e.g., API calls, compute time, specific server invocations?)
+3. Should cost be tracked per-request, per-session, or per-loop?
+4. What happens when the cost limit is reached mid-iteration? (Complete current iteration or abort immediately?)
+
+---
+
+### FQ2: Balanced Parsing Algorithm Details
+
+D1 specifies balanced parsing for nested conditionals. Need to clarify the exact algorithm:
+
+**Questions**:
+1. Should `do` and `try` also track nesting for their keywords (`while`, `catch`)?
+   - Example: `/if/a/then/do/b/while/c/else/d` - is the `else` matched to the outer `if` or considered part of the `do` path?
+2. For triple-nesting across different control flow types, what's the precedence?
+   - Example: `/if/a/then/try/b/catch/if/c/then/d/else/e/else/f`
 
 ---
 
