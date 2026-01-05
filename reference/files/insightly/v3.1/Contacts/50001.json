@@ -1,0 +1,33 @@
+{
+  "CONTACT_ID": 50001,
+  "FIRST_NAME": "Emily",
+  "LAST_NAME": "Carter",
+  "EMAIL_ADDRESS": "emily.carter@globaltech.example.com",
+  "PHONE": "+1-555-0401",
+  "TITLE": "Director of Operations",
+  "ORGANISATION_ID": 30001,
+  "BACKGROUND": "Key decision maker for technology purchases",
+  "ADDRESSES": [
+    {
+      "ADDRESS_TYPE": "WORK",
+      "STREET": "456 Innovation Drive",
+      "CITY": "Techville",
+      "STATE": "CA",
+      "POSTCODE": "90210",
+      "COUNTRY": "United States"
+    }
+  ],
+  "CONTACTINFOS": [
+    {
+      "TYPE": "EMAIL",
+      "SUBTYPE": "WORK",
+      "DETAIL": "emily.carter@globaltech.example.com"
+    }
+  ],
+  "TAGS": [
+    {"TAG_NAME": "VIP"},
+    {"TAG_NAME": "Decision Maker"}
+  ],
+  "DATE_CREATED_UTC": "2024-01-12T09:00:00Z",
+  "DATE_UPDATED_UTC": "2024-01-22T15:30:00Z"
+}

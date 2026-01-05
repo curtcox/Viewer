@@ -1,0 +1,18 @@
+[
+  {
+    "ORGANISATION_ID": 30001,
+    "ORGANISATION_NAME": "Global Tech Solutions",
+    "PHONE": "+1-555-0500",
+    "WEBSITE": "https://globaltech.example.com",
+    "DATE_CREATED_UTC": "2024-01-10T08:00:00Z",
+    "DATE_UPDATED_UTC": "2024-01-21T14:00:00Z"
+  },
+  {
+    "ORGANISATION_ID": 30002,
+    "ORGANISATION_NAME": "Innovate Partners",
+    "PHONE": "+1-555-0501",
+    "WEBSITE": "https://innovate.example.com",
+    "DATE_CREATED_UTC": "2024-01-11T09:30:00Z",
+    "DATE_UPDATED_UTC": "2024-01-19T10:15:00Z"
+  }
+]

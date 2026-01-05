@@ -1,0 +1,8 @@
+/api/3/contacts ../../files/activecampaign/api/3/contacts.json
+/api/3/contacts?limit=0 ../../files/activecampaign/api/3/contacts_limit_0.json
+/api/3/contacts/1001 ../../files/activecampaign/api/3/contacts/1001.json
+/api/3/lists ../../files/activecampaign/api/3/lists.json
+/api/3/lists/1 ../../files/activecampaign/api/3/lists/1.json
+/api/3/campaigns ../../files/activecampaign/api/3/campaigns.json
+/api/3/campaigns/101 ../../files/activecampaign/api/3/campaigns/101.json
+/errors/401 ../../files/activecampaign/errors/401_unauthorized.json

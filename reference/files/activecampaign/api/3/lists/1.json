@@ -1,0 +1,16 @@
+{
+  "list": {
+    "id": "1",
+    "name": "Newsletter Subscribers",
+    "stringid": "newsletter-subscribers",
+    "sender_url": "https://techstartup.example.com",
+    "sender_reminder": "You subscribed to our newsletter",
+    "cdate": "2024-01-01T08:00:00-06:00",
+    "udate": "2024-01-25T12:00:00-06:00",
+    "links": {
+      "contactGoalLists": "/api/3/lists/1/contactGoalLists",
+      "user": "/api/3/lists/1/user",
+      "addressLists": "/api/3/lists/1/addressLists"
+    }
+  }
+}
