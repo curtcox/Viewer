@@ -143,6 +143,37 @@ def test_json_api_gateway_partial_url_detection(client):
     assert "/gateway/stripe/v1/customers" not in result
 
 
+def test_json_api_gateway_composite_reference_detection(client):
+    """Test composite reference detection (context-aware) using request_path regex."""
+    from reference_templates.gateways.transforms.json_api_response import (
+        _format_json_with_links,
+    )
+
+    link_config = {
+        "full_url": {"enabled": False},
+        "partial_url": {"enabled": False},
+        "id_reference": {"enabled": False},
+        "composite_reference": {
+            "enabled": True,
+            "patterns": {
+                "number": [
+                    {
+                        "context_regex": r"^/repos/(?P<owner>[^/]+)/(?P<repo>[^/]+)",
+                        "url_template": "/gateway/github/repos/{owner}/{repo}/issues/{id}",
+                    }
+                ]
+            },
+        },
+    }
+
+    request_path = "/repos/octocat/Hello-World/issues"
+    test_json = {"number": 123}
+
+    result = _format_json_with_links(test_json, link_config, request_path, 0)
+    assert "/gateway/github/repos/octocat/Hello-World/issues/123" in result
+    assert "json-link" in result
+
+
 def test_json_api_gateway_array_handling(client):
     """Test that arrays are formatted correctly."""
     from reference_templates.gateways.transforms.json_api_response import (

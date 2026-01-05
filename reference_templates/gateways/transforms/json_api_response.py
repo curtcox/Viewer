@@ -6,11 +6,13 @@ Transforms JSON API responses into formatted HTML with syntax highlighting and c
 Supports configurable link detection strategies including:
 - Full URL detection (https://...)
 - ID reference detection (userId, postId, etc.)
- - Partial URL detection (path-only values starting with /)
+- Partial URL detection (path-only values starting with /)
+- Composite reference detection (context-aware ID linking)
 """
 
 from html import escape
 from fnmatch import fnmatch
+import re
 
 
 def transform_response(response_details: dict, context: dict) -> dict:
@@ -169,19 +171,30 @@ def _format_json_with_links(obj, link_config: dict, request_path: str = "", inde
                 value, link_config, request_path, indent + 1
             )
 
-            # Check for partial URL detection (path-only)
-            partial_url = _detect_partial_url_link(key, value, link_config)
-            if partial_url:
+            # Check for composite reference detection (context-aware)
+            composite_url = _detect_composite_reference_link(
+                key, value, link_config, request_path
+            )
+            if composite_url:
                 formatted_value = (
-                    f"<a href='{escape(partial_url)}' class='json-link'>{formatted_value}</a>"
+                    f"<a href='{escape(composite_url)}' class='json-link'>{formatted_value}</a>"
                 )
-
-            # Check for ID reference detection
-            link_url = _detect_id_reference_link(key, value, link_config, request_path)
-            if link_url:
-                formatted_value = (
-                    f"<a href='{escape(link_url)}' class='json-link'>{formatted_value}</a>"
-                )
+            else:
+                # Check for partial URL detection (path-only)
+                partial_url = _detect_partial_url_link(key, value, link_config)
+                if partial_url:
+                    formatted_value = (
+                        f"<a href='{escape(partial_url)}' class='json-link'>{formatted_value}</a>"
+                    )
+                else:
+                    # Check for ID reference detection
+                    link_url = _detect_id_reference_link(
+                        key, value, link_config, request_path
+                    )
+                    if link_url:
+                        formatted_value = (
+                            f"<a href='{escape(link_url)}' class='json-link'>{formatted_value}</a>"
+                        )
 
             items.append(
                 f"{indent_str}  <span class='json-key'>\"{escape(str(key))}\"</span>: {formatted_value}"
@@ -254,6 +267,63 @@ def _detect_partial_url_link(key: str, value, link_config: dict) -> str | None:
 
     gateway_prefix = partial_url_config.get("gateway_prefix", "")
     return f"{gateway_prefix}{value}"
+
+
+def _detect_composite_reference_link(
+    key: str, value, link_config: dict, request_path: str
+) -> str | None:
+    """Detect if a key-value pair should be linked using request-path context.
+
+    Configuration format (Option B):
+      link_detection:
+        composite_reference:
+          enabled: true
+          patterns:
+            number:
+              - context_regex: "^/repos/(?P<owner>[^/]+)/(?P<repo>[^/]+)"
+                url_template: "/gateway/github/repos/{owner}/{repo}/issues/{id}"
+
+    Template values support:
+    - Named capture groups from the regex (e.g. owner, repo)
+    - {id} and {value} from the JSON value
+    """
+    composite_config = link_config.get("composite_reference", {})
+    if not composite_config.get("enabled", False):
+        return None
+
+    patterns = composite_config.get("patterns", {})
+    key_patterns = patterns.get(key)
+    if not key_patterns:
+        return None
+
+    if not isinstance(key_patterns, list):
+        key_patterns = [key_patterns]
+
+    if not isinstance(value, (int, str)):
+        return None
+
+    for pattern in key_patterns:
+        if not isinstance(pattern, dict):
+            continue
+
+        context_regex = pattern.get("context_regex")
+        url_template = pattern.get("url_template")
+        if not context_regex or not url_template:
+            continue
+
+        match = re.search(context_regex, request_path or "")
+        if not match:
+            continue
+
+        context = match.groupdict()
+        context["id"] = str(value)
+        context["value"] = str(value)
+        try:
+            return url_template.format(**context)
+        except KeyError:
+            continue
+
+    return None
 
 
 def _detect_id_reference_link(key: str, value, link_config: dict, request_path: str) -> str | None:

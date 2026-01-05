@@ -948,11 +948,12 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 ### Phase 6: Testing ✅ MOSTLY COMPLETE
 
 **Completed:**
-- ✅ Unit tests: 8 comprehensive tests, all passing
+- ✅ Unit tests: 9 comprehensive tests, all passing
   - test_json_api_gateway_basic_json_rendering
   - test_json_api_gateway_id_reference_detection
   - test_json_api_gateway_full_url_detection
   - test_json_api_gateway_partial_url_detection
+  - test_json_api_gateway_composite_reference_detection
   - test_json_api_gateway_array_handling
   - test_json_api_gateway_nested_objects
   - test_json_api_gateway_breadcrumb_generation
@@ -977,13 +978,13 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 
 ---
 
-### Phase 8: Composite Reference Detection (Strategy 4) - NOT IMPLEMENTED
+### Phase 8: Composite Reference Detection (Strategy 4) ✅ COMPLETE
 
 **Tasks:**
-1. ❌ Parse request path to extract context variables
-2. ❌ Match context against configured regex patterns
-3. ❌ Combine context with response data to build URLs
-4. ❌ Handle issue/PR numbers in GitHub repo context
+1. ✅ Parse request path to extract context variables
+2. ✅ Match context against configured regex patterns
+3. ✅ Combine context with response data to build URLs
+4. ✅ Support Option B config: a list of pattern objects per key
 
 **Tests to pass:** GH-4, GH-5, GH-6, E-15, E-17
 
