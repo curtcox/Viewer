@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "data": {
+    "id": 1001,
+    "title": "Acme Corp - Widget Supply Agreement",
+    "value": 75000,
+    "currency": "USD",
+    "status": "open",
+    "stage_id": 3,
+    "stage_order_nr": 3,
+    "pipeline_id": 1,
+    "person_id": 2001,
+    "person_name": "Jane Doe",
+    "org_id": 3001,
+    "org_name": "Acme Corporation",
+    "owner_id": 100,
+    "owner_name": "Sales Rep",
+    "expected_close_date": "2024-03-15",
+    "probability": 60,
+    "lost_reason": null,
+    "visible_to": "3",
+    "add_time": "2024-01-10T08:00:00Z",
+    "update_time": "2024-01-25T14:30:00Z",
+    "next_activity_date": "2024-02-01",
+    "next_activity_subject": "Follow-up call",
+    "notes_count": 3,
+    "activities_count": 5,
+    "files_count": 2
+  }
+}

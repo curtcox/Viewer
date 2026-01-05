@@ -1,0 +1,42 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1001,
+      "title": "Acme Corp - Widget Supply Agreement",
+      "value": 75000,
+      "currency": "USD",
+      "status": "open",
+      "stage_id": 3,
+      "pipeline_id": 1,
+      "person_id": 2001,
+      "org_id": 3001,
+      "owner_id": 100,
+      "expected_close_date": "2024-03-15",
+      "add_time": "2024-01-10T08:00:00Z",
+      "update_time": "2024-01-25T14:30:00Z"
+    },
+    {
+      "id": 1002,
+      "title": "Globex - Annual Service Contract",
+      "value": 120000,
+      "currency": "USD",
+      "status": "open",
+      "stage_id": 2,
+      "pipeline_id": 1,
+      "person_id": 2002,
+      "org_id": 3002,
+      "owner_id": 100,
+      "expected_close_date": "2024-04-30",
+      "add_time": "2024-01-15T10:15:00Z",
+      "update_time": "2024-01-22T09:45:00Z"
+    }
+  ],
+  "additional_data": {
+    "pagination": {
+      "start": 0,
+      "limit": 100,
+      "more_items_in_collection": false
+    }
+  }
+}

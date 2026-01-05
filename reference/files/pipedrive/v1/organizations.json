@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3001,
+      "name": "Acme Corporation",
+      "owner_id": 100,
+      "address": "123 Widget Way, Faketown, FS 12345",
+      "cc_email": "acme@pipedrivemail.example.com",
+      "add_time": "2024-01-08T10:00:00Z",
+      "update_time": "2024-01-22T10:30:00Z"
+    },
+    {
+      "id": 3002,
+      "name": "Globex Corporation",
+      "owner_id": 100,
+      "address": "456 Corporate Blvd, Faketown, FS 12346",
+      "cc_email": "globex@pipedrivemail.example.com",
+      "add_time": "2024-01-09T11:30:00Z",
+      "update_time": "2024-01-19T15:45:00Z"
+    }
+  ],
+  "additional_data": {
+    "pagination": {
+      "start": 0,
+      "limit": 100,
+      "more_items_in_collection": false
+    }
+  }
+}
