@@ -1,0 +1,3 @@
+/v2/checkout/orders ../../files/paypal/v2/checkout/orders.json
+/v2/checkout/orders/5O190127TN364715T ../../files/paypal/v2/checkout/orders/5O190127TN364715T.json
+/errors/401 ../../files/paypal/errors/401_unauthorized.json

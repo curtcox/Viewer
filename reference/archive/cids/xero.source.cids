@@ -1,0 +1,4 @@
+/api.xro/2.0/Invoices ../../files/xero/api.xro/2.0/Invoices.json
+/api.xro/2.0/Contacts ../../files/xero/api.xro/2.0/Contacts.json
+/api.xro/2.0/Accounts ../../files/xero/api.xro/2.0/Accounts.json
+/errors/401 ../../files/xero/errors/401_unauthorized.json

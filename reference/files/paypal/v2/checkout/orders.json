@@ -1,0 +1,19 @@
+{
+  "orders": [
+    {
+      "id": "5O190127TN364715T",
+      "status": "COMPLETED",
+      "intent": "CAPTURE",
+      "purchase_units": [
+        {
+          "amount": {
+            "currency_code": "USD",
+            "value": "50.00"
+          },
+          "description": "Widget purchase"
+        }
+      ],
+      "create_time": "2024-01-20T14:22:00Z"
+    }
+  ]
+}
