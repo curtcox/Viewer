@@ -1,0 +1,3 @@
+/events ../../files/calendly/events.json
+/events?limit=0 ../../files/calendly/events_limit_0.json
+/errors/401 ../../files/calendly/errors/401_unauthorized.json

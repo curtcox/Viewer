@@ -1,0 +1,3 @@
+/adAccounts ../../files/linkedin_ads/v2/adAccounts.json
+/adAccounts?limit=0 ../../files/linkedin_ads/v2/adAccounts_limit_0.json
+/errors/401 ../../files/linkedin_ads/v2/errors/401_unauthorized.json

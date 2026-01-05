@@ -1,0 +1,3 @@
+/api/atlas/v1.0/groups/{groupId}/clusters ../../files/mongodb/api/atlas/v1.0/clusters.json
+/api/atlas/v1.0/groups/{groupId}/clusters?itemsPerPage=0 ../../files/mongodb/api/atlas/v1.0/clusters_limit_0.json
+/errors/401 ../../files/mongodb/api/atlas/v1.0/errors/401_unauthorized.json

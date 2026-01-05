@@ -1,0 +1,3 @@
+/v2/getMonitors ../../files/uptimerobot/v2/monitors.json
+/v2/getMonitors?limit=0 ../../files/uptimerobot/v2/monitors_limit_0.json
+/errors/401 ../../files/uptimerobot/v2/errors/401_unauthorized.json

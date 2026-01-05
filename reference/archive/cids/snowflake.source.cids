@@ -1,0 +1,3 @@
+/queries ../../files/snowflake/queries.json
+/queries?limit=0 ../../files/snowflake/queries_limit_0.json
+/errors/401 ../../files/snowflake/errors/401_unauthorized.json

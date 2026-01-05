@@ -1,0 +1,2 @@
+/health ../../files/proxy/health.json
+/errors/401 ../../files/proxy/errors/401_unauthorized.json

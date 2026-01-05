@@ -1,0 +1,3 @@
+/v1/pdf/info ../../files/pdfco/v1/pdf.json
+/v1/pdf/info?limit=0 ../../files/pdfco/v1/pdf_limit_0.json
+/errors/401 ../../files/pdfco/v1/errors/401_unauthorized.json

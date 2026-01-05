@@ -1,0 +1,3 @@
+/adaccounts ../../files/meta_ads/v18.0/adaccounts.json
+/adaccounts?limit=0 ../../files/meta_ads/v18.0/adaccounts_limit_0.json
+/errors/401 ../../files/meta_ads/v18.0/errors/401_unauthorized.json
