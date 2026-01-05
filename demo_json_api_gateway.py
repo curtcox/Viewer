@@ -18,7 +18,7 @@ def demo_basic_json_rendering():
     print("=" * 60)
     print("DEMO 1: Basic JSON Rendering")
     print("=" * 60)
-    
+
     test_json = {
         "id": 1,
         "name": "Test User",
@@ -26,12 +26,12 @@ def demo_basic_json_rendering():
         "active": True,
         "notes": None
     }
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {"enabled": False}
     }
-    
+
     formatted = _format_json_with_links(test_json, link_config, "", 0)
     print("\nInput JSON:")
     print(json.dumps(test_json, indent=2))
@@ -45,7 +45,7 @@ def demo_id_reference_detection():
     print("=" * 60)
     print("DEMO 2: ID Reference Detection")
     print("=" * 60)
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {
@@ -57,7 +57,7 @@ def demo_id_reference_detection():
             }
         }
     }
-    
+
     test_json = {
         "id": 1,
         "title": "My First Post",
@@ -65,8 +65,8 @@ def demo_id_reference_detection():
         "body": "This is a test post",
         "postId": 10
     }
-    
-    formatted = _format_json_with_links(test_json, link_config, "", 0)
+
+    _format_json_with_links(test_json, link_config, "", 0)
     print("\nInput JSON:")
     print(json.dumps(test_json, indent=2))
     print("\nDetected Links:")
@@ -80,7 +80,7 @@ def demo_full_url_detection():
     print("=" * 60)
     print("DEMO 3: Full URL Detection")
     print("=" * 60)
-    
+
     link_config = {
         "full_url": {
             "enabled": True,
@@ -89,15 +89,15 @@ def demo_full_url_detection():
         },
         "id_reference": {"enabled": False}
     }
-    
+
     test_json = {
         "id": 1,
         "name": "Test User",
         "profile_url": "https://jsonplaceholder.typicode.com/users/1/profile",
         "avatar_url": "https://example.com/avatars/user1.jpg"
     }
-    
-    formatted = _format_json_with_links(test_json, link_config, "", 0)
+
+    _format_json_with_links(test_json, link_config, "", 0)
     print("\nInput JSON:")
     print(json.dumps(test_json, indent=2))
     print("\nDetected Links:")
@@ -111,7 +111,7 @@ def demo_combined_detection():
     print("=" * 60)
     print("DEMO 4: Combined Detection (IDs + URLs)")
     print("=" * 60)
-    
+
     link_config = {
         "full_url": {
             "enabled": True,
@@ -126,7 +126,7 @@ def demo_combined_detection():
             }
         }
     }
-    
+
     test_json = {
         "id": 42,
         "title": "My Post",
@@ -134,8 +134,8 @@ def demo_combined_detection():
         "author_url": "https://api.example.com/users/7",
         "comments_url": "https://api.example.com/posts/42/comments"
     }
-    
-    formatted = _format_json_with_links(test_json, link_config, "", 0)
+
+    _format_json_with_links(test_json, link_config, "", 0)
     print("\nInput JSON:")
     print(json.dumps(test_json, indent=2))
     print("\nDetected Links:")
@@ -150,14 +150,14 @@ def demo_breadcrumb():
     print("=" * 60)
     print("DEMO 5: Breadcrumb Navigation")
     print("=" * 60)
-    
+
     examples = [
         ("", "Root path"),
         ("posts", "Single level"),
         ("posts/1", "Two levels"),
         ("users/1/posts/5", "Multiple levels"),
     ]
-    
+
     for path, description in examples:
         breadcrumb = _build_breadcrumb(path, "json_api")
         print(f"\nPath: /{path} ({description})")
@@ -172,13 +172,13 @@ def main():
     print("║         JSON API Gateway Demonstration                   ║")
     print("╚══════════════════════════════════════════════════════════╝")
     print()
-    
+
     demo_basic_json_rendering()
     demo_id_reference_detection()
     demo_full_url_detection()
     demo_combined_detection()
     demo_breadcrumb()
-    
+
     print("=" * 60)
     print("SUMMARY")
     print("=" * 60)

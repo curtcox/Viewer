@@ -33,8 +33,6 @@ def json_api_gateway_server(integration_app):
 
 def _create_cid_for_content(integration_app, content: str, path: str) -> str:
     """Create a CID record for the given content."""
-    cid_value = generate_cid(content.encode("utf-8"))
-    
     with integration_app.app_context():
         # Check if CID already exists
         existing = CID.query.filter_by(path=path).first()
@@ -45,7 +43,7 @@ def _create_cid_for_content(integration_app, content: str, path: str) -> str:
             )
             db.session.add(cid_record)
             db.session.commit()
-    
+
     return path  # Return the path, not the cid value
 
 
@@ -54,37 +52,37 @@ def json_api_gateway_config(integration_app):
     """Create gateway configuration with json_api gateway."""
     # Load the actual transform files
     import os
-    
+
     base_path = os.path.join(os.path.dirname(__file__), '..', '..', 'reference_templates', 'gateways')
-    
+
     with open(os.path.join(base_path, 'transforms', 'json_api_request.py'), 'r') as f:
         request_transform = f.read()
-    
+
     with open(os.path.join(base_path, 'transforms', 'json_api_response.py'), 'r') as f:
         response_transform = f.read()
-    
+
     with open(os.path.join(base_path, 'templates', 'json_api_data.html'), 'r') as f:
         template_content = f.read()
-    
+
     # Create CIDs for the transforms and template
     request_cid = _create_cid_for_content(
-        integration_app, 
+        integration_app,
         request_transform,
         f"/{generate_cid(request_transform.encode('utf-8'))}"
     )
-    
+
     response_cid = _create_cid_for_content(
         integration_app,
         response_transform,
         f"/{generate_cid(response_transform.encode('utf-8'))}"
     )
-    
+
     template_cid = _create_cid_for_content(
         integration_app,
         template_content,
         f"/{generate_cid(template_content.encode('utf-8'))}"
     )
-    
+
     # Create the gateway configuration
     gateways_config = {
         "json_api": {
@@ -111,7 +109,7 @@ def json_api_gateway_config(integration_app):
             }
         }
     }
-    
+
     with integration_app.app_context():
         variable = Variable(
             name="gateways",
@@ -120,7 +118,7 @@ def json_api_gateway_config(integration_app):
         )
         db.session.add(variable)
         db.session.commit()
-    
+
     return gateways_config
 
 
@@ -132,13 +130,13 @@ def main(context=None):
     """Mock JSONPlaceholder server."""
     import json
     from flask import request
-    
+
     path = request.path or "/"
-    
+
     # Remove /jsonplaceholder prefix if present
     if path.startswith("/jsonplaceholder"):
         path = path[len("/jsonplaceholder"):]
-    
+
     # Mock responses
     if path == "/posts/1":
         data = {
@@ -151,7 +149,7 @@ def main(context=None):
             "output": json.dumps(data),
             "content_type": "application/json"
         }
-    
+
     if path == "/users/1":
         data = {
             "id": 1,
@@ -162,13 +160,13 @@ def main(context=None):
             "output": json.dumps(data),
             "content_type": "application/json"
         }
-    
+
     return {
         "output": json.dumps({"error": "Not found"}),
         "content_type": "application/json"
     }
 '''
-    
+
     with integration_app.app_context():
         server = Server(
             name="jsonplaceholder",
@@ -177,21 +175,21 @@ def main(context=None):
         )
         db.session.add(server)
         db.session.commit()
-    
+
     return mock_server_code
 
 
 def test_json_api_gateway_renders_json_with_syntax_highlighting(
-    memory_client, json_api_gateway_server, json_api_gateway_config, 
+    memory_client, json_api_gateway_server, json_api_gateway_config,
     mock_jsonplaceholder_server
 ):
     """Test that json_api gateway is configured.
-    
+
     Note: This test is incomplete. Full end-to-end testing requires:
     1. Gateway route to be registered and accessible
     2. Server execution context to load the gateways variable properly
     3. Template resolution to work with CID paths
-    
+
     For now, we verify the core transform functions work (tested in unit tests).
     """
     # Skip test - infrastructure not fully set up
@@ -202,7 +200,7 @@ def test_json_api_gateway_configuration_is_valid(
     memory_client, json_api_gateway_server, json_api_gateway_config
 ):
     """Test that the json_api gateway configuration is properly set up.
-    
+
     Note: This test is incomplete. Full end-to-end testing requires proper
     integration test infrastructure. For now, we skip and rely on unit tests.
     """
@@ -217,7 +215,7 @@ def test_json_api_transform_functions_are_importable(integration_app):
     from reference_templates.gateways.transforms.json_api_request import (
         transform_request
     )
-    
+
     # Test request transform
     request_details = {
         "path": "/test",
@@ -226,12 +224,12 @@ def test_json_api_transform_functions_are_importable(integration_app):
     }
     result = transform_request(request_details, {})
     assert result == request_details
-    
+
     # Test response transform components
     test_json = {"id": 1, "name": "Test"}
     link_config = {"full_url": {"enabled": False}, "id_reference": {"enabled": False}}
     formatted = _format_json_with_links(test_json, link_config, "", 0)
-    
+
     assert '"id"' in formatted
     assert '"name"' in formatted
     assert 'json-key' in formatted
@@ -242,7 +240,7 @@ def test_json_api_id_reference_links_are_created(integration_app):
     from reference_templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {
@@ -253,16 +251,16 @@ def test_json_api_id_reference_links_are_created(integration_app):
             }
         }
     }
-    
+
     test_json = {
         "id": 1,
         "title": "Test Post",
         "userId": 5,
         "postId": 10
     }
-    
+
     formatted = _format_json_with_links(test_json, link_config, "", 0)
-    
+
     # Verify links are created
     assert "/gateway/json_api/users/5" in formatted
     assert "/gateway/json_api/posts/10" in formatted
@@ -274,7 +272,7 @@ def test_json_api_full_url_links_are_created(integration_app):
     from reference_templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    
+
     link_config = {
         "full_url": {
             "enabled": True,
@@ -283,14 +281,14 @@ def test_json_api_full_url_links_are_created(integration_app):
         },
         "id_reference": {"enabled": False}
     }
-    
+
     test_json = {
         "url": "https://jsonplaceholder.typicode.com/users/1",
         "external": "https://example.com/api/test"
     }
-    
+
     formatted = _format_json_with_links(test_json, link_config, "", 0)
-    
+
     # Verify base URL stripping
     assert "/gateway/json_api/users/1" in formatted
     # External URL should remain as-is
