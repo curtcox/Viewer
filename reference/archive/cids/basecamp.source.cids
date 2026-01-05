@@ -1,0 +1,4 @@
+/projects ../../files/basecamp/projects.json
+/todos ../../files/basecamp/todos.json
+/messages ../../files/basecamp/messages.json
+/errors/401 ../../files/basecamp/errors/401_unauthorized.json

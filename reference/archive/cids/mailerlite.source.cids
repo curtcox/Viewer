@@ -1,0 +1,4 @@
+/api/subscribers ../../files/mailerlite/api/subscribers.json
+/api/subscribers?limit=0 ../../files/mailerlite/api/subscribers_limit_0.json
+/api/campaigns ../../files/mailerlite/api/campaigns.json
+/errors/401 ../../files/mailerlite/errors/401_unauthorized.json

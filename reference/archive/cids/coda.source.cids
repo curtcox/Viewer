@@ -1,0 +1,3 @@
+/apis/v1/docs ../../files/coda/apis/v1/docs.json
+/apis/v1/docs/doc001/tables ../../files/coda/apis/v1/docs/doc001/tables.json
+/errors/401 ../../files/coda/errors/401_unauthorized.json

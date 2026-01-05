@@ -1,0 +1,5 @@
+/forms ../../files/typeform/forms.json
+/forms/form123 ../../files/typeform/forms/form123.json
+/forms/form123/responses ../../files/typeform/forms/form123/responses.json
+/forms/form123/responses?page_size=0 ../../files/typeform/forms/form123/responses_page_size_0.json
+/errors/401 ../../files/typeform/errors/401_unauthorized.json

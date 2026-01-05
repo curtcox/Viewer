@@ -1,0 +1,4 @@
+/v3/mail/send ../../files/sendgrid/v3/mail/send.json
+/v3/marketing/contacts ../../files/sendgrid/v3/marketing/contacts.json
+/v3/marketing/contacts?count=0 ../../files/sendgrid/v3/marketing/contacts_count_0.json
+/errors/401 ../../files/sendgrid/errors/401_unauthorized.json

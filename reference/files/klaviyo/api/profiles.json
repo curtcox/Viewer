@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "type": "profile",
+      "id": "prof_001",
+      "attributes": {
+        "email": "jane.doe@acme-corp.example.com",
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "created": "2024-01-15T10:30:00Z",
+        "updated": "2024-01-20T14:22:00Z"
+      }
+    },
+    {
+      "type": "profile",
+      "id": "prof_002",
+      "attributes": {
+        "email": "john.smith@globex.example.com",
+        "first_name": "John",
+        "last_name": "Smith",
+        "created": "2024-01-16T09:15:00Z",
+        "updated": "2024-01-18T11:45:00Z"
+      }
+    }
+  ],
+  "links": {
+    "self": "https://a.klaviyo.com/api/profiles",
+    "next": null,
+    "prev": null
+  }
+}

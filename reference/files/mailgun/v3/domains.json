@@ -1,0 +1,21 @@
+{
+  "total_count": 2,
+  "items": [
+    {
+      "name": "mail.acme-corp.example.com",
+      "state": "active",
+      "created_at": "Tue, 10 Jan 2024 08:00:00 GMT",
+      "smtp_login": "postmaster@mail.acme-corp.example.com",
+      "spam_action": "disabled",
+      "wildcard": false
+    },
+    {
+      "name": "alerts.globex.example.com",
+      "state": "active",
+      "created_at": "Wed, 12 Jan 2024 10:30:00 GMT",
+      "smtp_login": "postmaster@alerts.globex.example.com",
+      "spam_action": "tag",
+      "wildcard": false
+    }
+  ]
+}
