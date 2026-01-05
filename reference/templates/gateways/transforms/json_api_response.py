@@ -10,9 +10,9 @@ Supports configurable link detection strategies including:
 - Composite reference detection (context-aware ID linking)
 """
 
-from html import escape
-from fnmatch import fnmatch
 import re
+from fnmatch import fnmatch
+from html import escape
 
 
 def transform_response(response_details: dict, context: dict) -> dict:
@@ -26,7 +26,6 @@ def transform_response(response_details: dict, context: dict) -> dict:
         Dict with output (HTML) and content_type
     """
     request_path = response_details.get("request_path", "")
-    status_code = response_details.get("status_code", 200)
     json_data = response_details.get("json")
 
     # Get template resolver from context

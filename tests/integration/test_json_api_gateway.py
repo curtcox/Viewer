@@ -2,7 +2,6 @@
 
 import json
 import pytest
-from unittest.mock import Mock, patch
 
 from database import db
 from models import Server, Variable, CID
@@ -213,10 +212,7 @@ def test_json_api_gateway_configuration_is_valid(
 def test_json_api_transform_functions_are_importable(integration_app):
     """Test that the json_api transform functions can be imported and executed."""
     from reference_templates.gateways.transforms.json_api_response import (
-        transform_response,
-        _format_json_with_links,
-        _detect_id_reference_link,
-        _detect_full_url_link
+        _format_json_with_links
     )
     from reference_templates.gateways.transforms.json_api_request import (
         transform_request

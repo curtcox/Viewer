@@ -1,5 +1,4 @@
 """Tests for JSON API Gateway functionality."""
-import json
 import pytest
 
 from app import app
@@ -18,7 +17,6 @@ def test_json_api_gateway_basic_json_rendering(client):
     # This test will verify basic JSON rendering without needing a real server
     # We'll use the response transform directly
     from reference_templates.gateways.transforms.json_api_response import (
-        transform_response,
         _format_json_with_links
     )
 

@@ -9,8 +9,6 @@ into HTML with syntax highlighting and clickable links.
 import json
 from reference_templates.gateways.transforms.json_api_response import (
     _format_json_with_links,
-    _detect_id_reference_link,
-    _detect_full_url_link,
     _build_breadcrumb
 )
 
