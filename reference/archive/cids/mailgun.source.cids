@@ -1,0 +1,3 @@
+/v3/messages/send ../../files/mailgun/v3/messages/send.json
+/v3/domains ../../files/mailgun/v3/domains.json
+/errors/401 ../../files/mailgun/errors/401_unauthorized.json

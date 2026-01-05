@@ -1,0 +1,3 @@
+/2/httpapi ../../files/amplitude/2/httpapi.json
+/identify ../../files/amplitude/identify.json
+/errors/401 ../../files/amplitude/errors/401_unauthorized.json

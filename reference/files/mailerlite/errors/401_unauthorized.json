@@ -1,0 +1,6 @@
+{
+  "message": "Unauthenticated.",
+  "errors": {
+    "authentication": ["Invalid API token"]
+  }
+}

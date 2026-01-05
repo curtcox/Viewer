@@ -1,0 +1,3 @@
+/track ../../files/mixpanel/track.json
+/engage ../../files/mixpanel/engage.json
+/errors/401 ../../files/mixpanel/errors/401_unauthorized.json

@@ -1,0 +1,4 @@
+/api/profiles ../../files/klaviyo/api/profiles.json
+/api/lists ../../files/klaviyo/api/lists.json
+/api/campaigns ../../files/klaviyo/api/campaigns.json
+/errors/401 ../../files/klaviyo/errors/401_unauthorized.json
