@@ -1,0 +1,46 @@
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "abc123",
+  "pageInfo": {
+    "totalResults": 2,
+    "resultsPerPage": 2
+  },
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "def456",
+      "id": "dQw4w9WgXcQ",
+      "snippet": {
+        "publishedAt": "2024-01-15T10:00:00Z",
+        "channelId": "UC_abc123",
+        "title": "How to Use Acme Widgets - Tutorial",
+        "description": "Learn how to effectively use Acme widgets in your daily workflow.",
+        "channelTitle": "Acme Corp Official",
+        "categoryId": "22"
+      },
+      "statistics": {
+        "viewCount": "12345",
+        "likeCount": "987",
+        "commentCount": "42"
+      }
+    },
+    {
+      "kind": "youtube#video",
+      "etag": "ghi789",
+      "id": "xvFZjo5PgG0",
+      "snippet": {
+        "publishedAt": "2024-01-20T14:30:00Z",
+        "channelId": "UC_xyz789",
+        "title": "Globex Gadget Unboxing & Review",
+        "description": "First look at the new Globex Premium Gadget.",
+        "channelTitle": "Tech Reviews Daily",
+        "categoryId": "28"
+      },
+      "statistics": {
+        "viewCount": "54321",
+        "likeCount": "2345",
+        "commentCount": "156"
+      }
+    }
+  ]
+}

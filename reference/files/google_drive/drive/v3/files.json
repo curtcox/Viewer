@@ -1,0 +1,36 @@
+{
+  "kind": "drive#fileList",
+  "incompleteSearch": false,
+  "files": [
+    {
+      "kind": "drive#file",
+      "id": "1abc2def3ghi",
+      "name": "Acme Corp Project Plan",
+      "mimeType": "application/vnd.google-apps.document",
+      "createdTime": "2024-01-15T10:30:00.000Z",
+      "modifiedTime": "2024-01-20T14:25:00.000Z",
+      "owners": [
+        {
+          "displayName": "Jane Doe",
+          "emailAddress": "jane.doe@example.com"
+        }
+      ],
+      "size": "12345"
+    },
+    {
+      "kind": "drive#file",
+      "id": "4xyz5uvw6rst",
+      "name": "Q1 Budget.xlsx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "createdTime": "2024-01-18T09:00:00.000Z",
+      "modifiedTime": "2024-01-18T09:00:00.000Z",
+      "owners": [
+        {
+          "displayName": "John Smith",
+          "emailAddress": "john.smith@example.com"
+        }
+      ],
+      "size": "45678"
+    }
+  ]
+}

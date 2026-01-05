@@ -1,0 +1,42 @@
+{
+  "kind": "drive#file",
+  "id": "1abc2def3ghi",
+  "name": "Acme Corp Project Plan",
+  "mimeType": "application/vnd.google-apps.document",
+  "createdTime": "2024-01-15T10:30:00.000Z",
+  "modifiedTime": "2024-01-20T14:25:00.000Z",
+  "viewedByMeTime": "2024-01-22T10:00:00.000Z",
+  "owners": [
+    {
+      "kind": "drive#user",
+      "displayName": "Jane Doe",
+      "emailAddress": "jane.doe@example.com",
+      "me": false
+    }
+  ],
+  "lastModifyingUser": {
+    "kind": "drive#user",
+    "displayName": "Jane Doe",
+    "emailAddress": "jane.doe@example.com",
+    "me": false
+  },
+  "shared": true,
+  "ownedByMe": false,
+  "capabilities": {
+    "canEdit": true,
+    "canComment": true,
+    "canShare": true
+  },
+  "viewersCanCopyContent": true,
+  "writersCanShare": true,
+  "permissions": [
+    {
+      "id": "anyoneWithLink",
+      "type": "anyone",
+      "role": "reader"
+    }
+  ],
+  "webViewLink": "https://docs.google.example.com/document/d/1abc2def3ghi/edit",
+  "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.document",
+  "size": "12345"
+}

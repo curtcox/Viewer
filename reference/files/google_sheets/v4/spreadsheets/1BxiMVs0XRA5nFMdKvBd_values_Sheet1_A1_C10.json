@@ -1,0 +1,12 @@
+{
+  "range": "Sheet1!A1:C10",
+  "majorDimension": "ROWS",
+  "values": [
+    ["Name", "Email", "Phone"],
+    ["Jane Doe", "jane.doe@example.com", "555-0100"],
+    ["John Smith", "john.smith@example.com", "555-0101"],
+    ["Dr. Bogus McFakester", "bogus@fakester.example.com", "555-0102"],
+    ["Alice Johnson", "alice.johnson@example.com", "555-0103"],
+    ["Bob Williams", "bob.williams@example.com", "555-0104"]
+  ]
+}

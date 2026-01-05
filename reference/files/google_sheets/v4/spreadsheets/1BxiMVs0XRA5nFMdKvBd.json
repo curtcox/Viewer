@@ -1,0 +1,36 @@
+{
+  "spreadsheetId": "1BxiMVs0XRA5nFMdKvBd",
+  "properties": {
+    "title": "Acme Corp Sales Data",
+    "locale": "en_US",
+    "timeZone": "America/New_York",
+    "autoRecalc": "ON_CHANGE"
+  },
+  "sheets": [
+    {
+      "properties": {
+        "sheetId": 0,
+        "title": "Sheet1",
+        "index": 0,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1000,
+          "columnCount": 26
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1,
+        "title": "Q1 2024",
+        "index": 1,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 100,
+          "columnCount": 10
+        }
+      }
+    }
+  ],
+  "spreadsheetUrl": "https://docs.google.example.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBd/edit"
+}
