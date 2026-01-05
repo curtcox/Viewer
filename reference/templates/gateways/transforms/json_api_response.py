@@ -6,9 +6,11 @@ Transforms JSON API responses into formatted HTML with syntax highlighting and c
 Supports configurable link detection strategies including:
 - Full URL detection (https://...)
 - ID reference detection (userId, postId, etc.)
+ - Partial URL detection (path-only values starting with /)
 """
 
 from html import escape
+from fnmatch import fnmatch
 
 
 def transform_response(response_details: dict, context: dict) -> dict:
@@ -167,6 +169,13 @@ def _format_json_with_links(obj, link_config: dict, request_path: str = "", inde
                 value, link_config, request_path, indent + 1
             )
 
+            # Check for partial URL detection (path-only)
+            partial_url = _detect_partial_url_link(key, value, link_config)
+            if partial_url:
+                formatted_value = (
+                    f"<a href='{escape(partial_url)}' class='json-link'>{formatted_value}</a>"
+                )
+
             # Check for ID reference detection
             link_url = _detect_id_reference_link(key, value, link_config, request_path)
             if link_url:
@@ -215,6 +224,36 @@ def _detect_full_url_link(value: str, link_config: dict) -> str | None:
 
     # Return the URL as-is (external link)
     return value
+
+
+def _detect_partial_url_link(key: str, value, link_config: dict) -> str | None:
+    """Detect if a key-value pair is a partial URL (path-only) that should be linked.
+
+    Args:
+        key: JSON key name
+        value: JSON value
+        link_config: Link detection configuration
+
+    Returns:
+        Gateway link URL if this is a linkable path-only URL, None otherwise
+    """
+    partial_url_config = link_config.get("partial_url", {})
+    if not partial_url_config.get("enabled", False):
+        return None
+
+    if not isinstance(value, str):
+        return None
+
+    if not value.startswith("/"):
+        return None
+
+    key_patterns = partial_url_config.get("key_patterns", [])
+    if key_patterns:
+        if not any(fnmatch(key, pattern) for pattern in key_patterns):
+            return None
+
+    gateway_prefix = partial_url_config.get("gateway_prefix", "")
+    return f"{gateway_prefix}{value}"
 
 
 def _detect_id_reference_link(key: str, value, link_config: dict, request_path: str) -> str | None:

@@ -963,13 +963,13 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 
 ### Phases NOT Implemented (Future Work)
 
-### Phase 7: Partial URL Detection (Strategy 2) - NOT IMPLEMENTED
+### Phase 7: Partial URL Detection (Strategy 2) ✅ COMPLETE
 
 **Tasks:**
-1. ❌ Implement detection of path-like strings starting with `/`
-2. ❌ Match key patterns (`*_url`, `*_path`, `href`, `url`)
-3. ❌ Prepend gateway prefix to detected paths
-4. ❌ Handle partial URL in Stripe `url` field
+1. ✅ Implement detection of path-like strings starting with `/`
+2. ✅ Match key patterns (`*_url`, `*_path`, `href`, `url`)
+3. ✅ Prepend gateway prefix to detected paths
+4. ✅ Add unit test coverage for partial URL detection
 
 **Tests to pass:** ST-6, E-16
 
@@ -1006,16 +1006,21 @@ Add to `gateways.source.json`:
 ```json
 {
   "json_api": {
-    "request_transform_cid": "reference_templates/gateways/transforms/json_api_request.py",
-    "response_transform_cid": "reference_templates/gateways/transforms/json_api_response.py",
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
     "description": "JSON API Gateway with link detection",
     "templates": {
-      "json_api_data.html": "reference_templates/gateways/templates/json_api_data.html"
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
     },
     "link_detection": {
       "full_url": {
         "enabled": true,
         "base_url_strip": "https://api.example.com",
+        "gateway_prefix": "/gateway/json_api"
+      },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": ["url", "*_url", "*_path", "href"],
         "gateway_prefix": "/gateway/json_api"
       },
       "id_reference": {

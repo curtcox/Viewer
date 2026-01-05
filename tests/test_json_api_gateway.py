@@ -21,7 +21,7 @@ def test_json_api_gateway_basic_json_rendering(client):
         transform_response,
         _format_json_with_links
     )
-    
+
     # Test basic JSON formatting
     test_json = {
         "id": 1,
@@ -30,21 +30,21 @@ def test_json_api_gateway_basic_json_rendering(client):
         "active": True,
         "notes": None
     }
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {"enabled": False}
     }
-    
+
     result = _format_json_with_links(test_json, link_config, "", 0)
-    
+
     # Verify JSON structure is preserved
     assert '"id"' in result
     assert '"name"' in result
     assert '"value"' in result
     assert '"active"' in result
     assert '"notes"' in result
-    
+
     # Verify syntax highlighting classes
     assert 'json-key' in result
     assert 'json-string' in result
@@ -58,7 +58,7 @@ def test_json_api_gateway_id_reference_detection(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _detect_id_reference_link
     )
-    
+
     link_config = {
         "id_reference": {
             "enabled": True,
@@ -68,15 +68,15 @@ def test_json_api_gateway_id_reference_detection(client):
             }
         }
     }
-    
+
     # Test userId detection
     result = _detect_id_reference_link("userId", 1, link_config, "")
     assert result == "/gateway/json_api/users/1"
-    
+
     # Test postId detection
     result = _detect_id_reference_link("postId", 42, link_config, "")
     assert result == "/gateway/json_api/posts/42"
-    
+
     # Test non-matching key
     result = _detect_id_reference_link("otherId", 1, link_config, "")
     assert result is None
@@ -87,7 +87,7 @@ def test_json_api_gateway_full_url_detection(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _detect_full_url_link
     )
-    
+
     link_config = {
         "full_url": {
             "enabled": True,
@@ -95,24 +95,52 @@ def test_json_api_gateway_full_url_detection(client):
             "gateway_prefix": "/gateway/json_api"
         }
     }
-    
+
     # Test URL with base stripping
     result = _detect_full_url_link(
         "https://jsonplaceholder.typicode.com/users/1",
         link_config
     )
     assert result == "/gateway/json_api/users/1"
-    
+
     # Test external URL (no stripping)
     result = _detect_full_url_link(
         "https://example.com/api/test",
         link_config
     )
     assert result == "https://example.com/api/test"
-    
+
     # Test non-URL string
     result = _detect_full_url_link("not a url", link_config)
     assert result is None
+
+
+def test_json_api_gateway_partial_url_detection(client):
+    """Test that partial (path-only) URL detection works correctly."""
+    from reference_templates.gateways.transforms.json_api_response import (
+        _format_json_with_links
+    )
+
+    link_config = {
+        "full_url": {"enabled": False},
+        "id_reference": {"enabled": False},
+        "partial_url": {
+            "enabled": True,
+            "key_patterns": ["url", "*_url", "*_path", "href"],
+            "gateway_prefix": "/gateway/stripe",
+        },
+    }
+
+    # Key matches pattern and value is a path => linked
+    test_json = {"url": "/v1/customers"}
+    result = _format_json_with_links(test_json, link_config, "", 0)
+    assert "/gateway/stripe/v1/customers" in result
+    assert "json-link" in result
+
+    # Key does not match pattern => not linked
+    test_json = {"not_url": "/v1/customers"}
+    result = _format_json_with_links(test_json, link_config, "", 0)
+    assert "/gateway/stripe/v1/customers" not in result
 
 
 def test_json_api_gateway_array_handling(client):
@@ -120,21 +148,21 @@ def test_json_api_gateway_array_handling(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {"enabled": False}
     }
-    
+
     # Test empty array
     result = _format_json_with_links([], link_config, "", 0)
     assert result == "[]"
-    
+
     # Test array of primitives
     result = _format_json_with_links([1, 2, 3], link_config, "", 0)
     assert "json-number" in result
     assert "1" in result and "2" in result and "3" in result
-    
+
     # Test array of objects
     test_array = [
         {"id": 1, "name": "First"},
@@ -150,12 +178,12 @@ def test_json_api_gateway_nested_objects(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {"enabled": False}
     }
-    
+
     test_nested = {
         "user": {
             "id": 1,
@@ -165,7 +193,7 @@ def test_json_api_gateway_nested_objects(client):
             }
         }
     }
-    
+
     result = _format_json_with_links(test_nested, link_config, "", 0)
     assert '"user"' in result
     assert '"profile"' in result
@@ -178,12 +206,12 @@ def test_json_api_gateway_breadcrumb_generation(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _build_breadcrumb
     )
-    
+
     # Test root path
     result = _build_breadcrumb("", "json_api")
     assert "json_api" in result
     assert "/gateway/json_api" in result
-    
+
     # Test nested path
     result = _build_breadcrumb("users/1/posts", "json_api")
     assert "users" in result
@@ -196,7 +224,7 @@ def test_json_api_gateway_with_id_references_in_json(client):
     from reference_templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    
+
     link_config = {
         "full_url": {"enabled": False},
         "id_reference": {
@@ -207,21 +235,21 @@ def test_json_api_gateway_with_id_references_in_json(client):
             }
         }
     }
-    
+
     test_json = {
         "id": 1,
         "title": "Test Post",
         "userId": 5,
         "postId": 10
     }
-    
+
     result = _format_json_with_links(test_json, link_config, "", 0)
-    
+
     # Verify links are created
     assert "/gateway/json_api/users/5" in result
     assert "/gateway/json_api/posts/10" in result
     assert 'json-link' in result
-    
+
     # Verify non-linked fields are still present
     assert '"title"' in result
     assert '"id"' in result
