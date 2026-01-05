@@ -61,6 +61,16 @@
         "base_url_strip": "https://jsonplaceholder.typicode.com",
         "gateway_prefix": "/gateway/json_api"
       },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": [
+          "url",
+          "*_url",
+          "*_path",
+          "href"
+        ],
+        "gateway_prefix": "/gateway/json_api"
+      },
       "id_reference": {
         "enabled": true,
         "patterns": {

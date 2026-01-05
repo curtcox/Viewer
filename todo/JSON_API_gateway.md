@@ -973,6 +973,8 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 
 **Tests to pass:** ST-6, E-16
 
+**Note:** The default `json_api` configuration in `reference/templates/gateways.source.json` now enables `partial_url` detection.
+
 ---
 
 ### Phase 8: Composite Reference Detection (Strategy 4) - NOT IMPLEMENTED
