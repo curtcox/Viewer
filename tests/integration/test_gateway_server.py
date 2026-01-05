@@ -229,7 +229,8 @@ def test_gateway_instruction_page_includes_external_service_servers(
     assert "/servers/stripe" in page
 
     # External API labels should be present when the definition includes a URL
-    assert "https://api.github.com" in page
+    assert "GitHub API" in page
+    assert 'href="https://api.github.com"' in page
 
 
 def test_gateway_shows_instruction_page_without_gateways_variable(
