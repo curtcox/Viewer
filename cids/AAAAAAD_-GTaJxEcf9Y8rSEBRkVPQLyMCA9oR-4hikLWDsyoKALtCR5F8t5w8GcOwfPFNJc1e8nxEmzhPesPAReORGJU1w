@@ -1,0 +1,16 @@
+{
+  "data": {
+    "boards": [
+      {
+        "id": "board001",
+        "name": "Widget Development",
+        "state": "active"
+      },
+      {
+        "id": "board002",
+        "name": "Marketing Campaign",
+        "state": "active"
+      }
+    ]
+  }
+}

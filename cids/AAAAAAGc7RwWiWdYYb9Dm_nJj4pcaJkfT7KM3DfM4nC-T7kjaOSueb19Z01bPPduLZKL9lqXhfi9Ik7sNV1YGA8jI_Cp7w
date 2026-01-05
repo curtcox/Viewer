@@ -1,0 +1,20 @@
+{
+  "id": "abc123def",
+  "web_id": 12345,
+  "name": "Acme Corp Newsletter",
+  "contact": {
+    "company": "Acme Corporation",
+    "address1": "123 Main St",
+    "city": "Springfield",
+    "state": "IL",
+    "zip": "62701",
+    "country": "US"
+  },
+  "stats": {
+    "member_count": 150,
+    "unsubscribe_count": 5,
+    "open_rate": 24.5,
+    "click_rate": 3.2
+  },
+  "date_created": "2024-01-10T08:00:00+00:00"
+}

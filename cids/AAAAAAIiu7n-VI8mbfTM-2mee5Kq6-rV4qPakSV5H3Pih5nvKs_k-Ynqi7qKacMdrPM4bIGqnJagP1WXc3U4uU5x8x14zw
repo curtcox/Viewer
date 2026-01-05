@@ -1,0 +1,27 @@
+{
+  "id": "10001",
+  "key": "ACME",
+  "name": "Acme Widgets",
+  "projectTypeKey": "software",
+  "simplified": false,
+  "style": "classic",
+  "description": "Revolutionary widget management project",
+  "lead": {
+    "accountId": "5b10a2844c20165700ede21g",
+    "displayName": "Jane Doe",
+    "emailAddress": "jane.doe@acme-corp.example.com"
+  },
+  "components": [],
+  "issueTypes": [
+    {
+      "id": "10000",
+      "name": "Bug",
+      "subtask": false
+    },
+    {
+      "id": "10001",
+      "name": "Story",
+      "subtask": false
+    }
+  ]
+}

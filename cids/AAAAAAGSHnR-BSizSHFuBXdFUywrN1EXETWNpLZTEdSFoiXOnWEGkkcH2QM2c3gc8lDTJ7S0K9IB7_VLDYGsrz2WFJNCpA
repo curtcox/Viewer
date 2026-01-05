@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "result": {
+    "message_id": 2,
+    "from": {
+      "id": 987654321,
+      "is_bot": true,
+      "first_name": "Widget Bot",
+      "username": "widgetbot"
+    },
+    "chat": {
+      "id": 100200300,
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "username": "janedoe",
+      "type": "private"
+    },
+    "date": 1706543220,
+    "text": "Message sent successfully"
+  }
+}

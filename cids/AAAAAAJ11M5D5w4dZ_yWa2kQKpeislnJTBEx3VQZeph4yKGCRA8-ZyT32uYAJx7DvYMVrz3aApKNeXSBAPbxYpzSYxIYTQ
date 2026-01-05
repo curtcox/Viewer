@@ -1,0 +1,25 @@
+[
+  {
+    "id": 2001,
+    "iid": 10,
+    "project_id": 42,
+    "title": "Add hexagonal widget support",
+    "description": "Need support for hexagonal widgets",
+    "state": "opened",
+    "created_at": "2024-01-16T09:15:00.000Z",
+    "updated_at": "2024-01-22T11:45:00.000Z",
+    "source_branch": "feature/hexagonal-widgets",
+    "target_branch": "main",
+    "author": {
+      "id": 101,
+      "username": "johnsmith",
+      "name": "John Smith"
+    },
+    "assignee": {
+      "id": 100,
+      "username": "janedoe",
+      "name": "Jane Doe"
+    },
+    "web_url": "https://gitlab.com/acme-corp/widgets/-/merge_requests/10"
+  }
+]

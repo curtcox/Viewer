@@ -1,0 +1,3 @@
+/bigquery/v2/projects/my-project/datasets AAAAAAA9eyJkYXRhc2V0cyI6IFt7ImRhdGFzZXRSZWZlcmVuY2UiOiB7ImRhdGFzZXRJZCI6ICJkczAwMSJ9fV19Cg
+/bigquery/v2/projects/my-project/datasets?limit=0 AAAAAAAReyJkYXRhc2V0cyI6IFtdfQo
+/errors/401 AAAAAAAaeyJlcnJvciI6ICJVbmF1dGhvcml6ZWQifQo

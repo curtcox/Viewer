@@ -1,0 +1,52 @@
+{
+  "connections": [
+    {
+      "resourceName": "people/c123456789",
+      "etag": "abc123",
+      "names": [
+        {
+          "displayName": "Jane Doe",
+          "familyName": "Doe",
+          "givenName": "Jane"
+        }
+      ],
+      "emailAddresses": [
+        {
+          "value": "jane.doe@example.com",
+          "type": "work"
+        }
+      ],
+      "phoneNumbers": [
+        {
+          "value": "555-0100",
+          "type": "work"
+        }
+      ]
+    },
+    {
+      "resourceName": "people/c987654321",
+      "etag": "def456",
+      "names": [
+        {
+          "displayName": "John Smith",
+          "familyName": "Smith",
+          "givenName": "John"
+        }
+      ],
+      "emailAddresses": [
+        {
+          "value": "john.smith@example.com",
+          "type": "work"
+        }
+      ],
+      "phoneNumbers": [
+        {
+          "value": "555-0101",
+          "type": "mobile"
+        }
+      ]
+    }
+  ],
+  "totalPeople": 2,
+  "totalItems": 2
+}

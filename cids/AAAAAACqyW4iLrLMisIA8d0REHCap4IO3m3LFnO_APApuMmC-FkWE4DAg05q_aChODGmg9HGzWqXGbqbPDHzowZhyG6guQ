@@ -1,0 +1,8 @@
+{
+  "id": "xyz789",
+  "name": "Design hexagonal widget",
+  "desc": "Create specs for new widget shape",
+  "closed": false,
+  "idList": "list001",
+  "idBoard": "abc123"
+}

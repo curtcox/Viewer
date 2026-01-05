@@ -1,0 +1,21 @@
+{
+  "id": "assist-789XYZ123ABC",
+  "object": "chat.completion",
+  "created": 1706543210,
+  "model": "default",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "I can help you understand hexagonal widgets. They're excellent for tessellation because they tile perfectly without gaps. Each hexagon shares edges with six neighbors, creating stable and efficient patterns commonly used in structural design and data visualization."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 20,
+    "completion_tokens": 45,
+    "total_tokens": 65
+  }
+}

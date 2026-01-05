@@ -1,0 +1,23 @@
+[
+  {
+    "id": "999888777",
+    "type": 0,
+    "content": "Check out our new hexagonal widgets!",
+    "channel_id": "42",
+    "author": {
+      "id": "100200300",
+      "username": "janedoe",
+      "discriminator": "1234",
+      "avatar": "abc123"
+    },
+    "timestamp": "2024-01-20T14:22:00.000000+00:00",
+    "edited_timestamp": null,
+    "tts": false,
+    "mention_everyone": false,
+    "mentions": [],
+    "mention_roles": [],
+    "attachments": [],
+    "embeds": [],
+    "reactions": []
+  }
+]

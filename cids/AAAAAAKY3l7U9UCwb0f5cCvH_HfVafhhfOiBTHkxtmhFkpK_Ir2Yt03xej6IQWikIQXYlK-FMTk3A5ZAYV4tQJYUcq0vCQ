@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-NVIDIA123XYZ",
+  "object": "chat.completion",
+  "created": 1706543210,
+  "model": "meta/llama-3.1-8b-instruct",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hexagonal geometry is fundamental to efficient tessellation. The six-sided structure allows widgets to nest perfectly, maximizing coverage while minimizing wasted space. This principle is observed in nature with honeycomb structures and is widely applied in modern engineering."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 26,
+    "completion_tokens": 47,
+    "total_tokens": 73
+  }
+}

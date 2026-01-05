@@ -1,0 +1,17 @@
+{
+  "id": "8675309",
+  "name": "Acme Widgets Community",
+  "icon": "abc123def456",
+  "owner_id": "100200300",
+  "region": "us-east",
+  "afk_channel_id": null,
+  "afk_timeout": 300,
+  "verification_level": 1,
+  "default_message_notifications": 0,
+  "explicit_content_filter": 0,
+  "roles": [],
+  "emojis": [],
+  "features": ["COMMUNITY", "NEWS"],
+  "mfa_level": 0,
+  "system_channel_id": "42"
+}

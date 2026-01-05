@@ -1,0 +1,16 @@
+{
+  "Invoices": [
+    {
+      "InvoiceID": "abc-123-def-456",
+      "InvoiceNumber": "INV-1001",
+      "Type": "ACCREC",
+      "Status": "AUTHORISED",
+      "Total": 500.00,
+      "Contact": {
+        "ContactID": "xyz-789",
+        "Name": "Acme Corp"
+      },
+      "Date": "/Date(1705708800000)/"
+    }
+  ]
+}

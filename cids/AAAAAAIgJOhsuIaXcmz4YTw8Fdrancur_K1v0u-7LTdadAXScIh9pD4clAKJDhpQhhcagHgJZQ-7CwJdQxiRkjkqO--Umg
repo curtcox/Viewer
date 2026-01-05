@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "type": "list",
+      "id": "list_001",
+      "attributes": {
+        "name": "Newsletter Subscribers",
+        "created": "2024-01-10T08:00:00Z",
+        "updated": "2024-01-20T14:22:00Z"
+      }
+    },
+    {
+      "type": "list",
+      "id": "list_002",
+      "attributes": {
+        "name": "Product Updates",
+        "created": "2024-01-12T10:30:00Z",
+        "updated": "2024-01-18T11:45:00Z"
+      }
+    }
+  ],
+  "links": {
+    "self": "https://a.klaviyo.com/api/lists",
+    "next": null,
+    "prev": null
+  }
+}

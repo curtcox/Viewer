@@ -1,0 +1,21 @@
+{
+  "id": "gen-XYZ789ABC123",
+  "model": "openai/gpt-4",
+  "object": "chat.completion",
+  "created": 1706543210,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hexagonal widgets are particularly well-suited for tessellation due to their geometric properties. They fit together seamlessly, creating patterns without gaps or overlaps. This efficiency makes them popular in engineering and design applications."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 24,
+    "completion_tokens": 42,
+    "total_tokens": 66
+  }
+}

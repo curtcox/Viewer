@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "id": "12345",
+      "type": "page",
+      "status": "current",
+      "title": "Widget Architecture Overview",
+      "space": {
+        "key": "ACME",
+        "name": "Acme Widgets"
+      },
+      "version": {
+        "number": 3,
+        "when": "2024-01-20T14:22:00.000Z"
+      },
+      "metadata": {
+        "labels": {
+          "results": []
+        }
+      },
+      "_links": {
+        "webui": "/spaces/ACME/pages/12345/Widget+Architecture+Overview"
+      }
+    },
+    {
+      "id": "12346",
+      "type": "page",
+      "status": "current",
+      "title": "Getting Started Guide",
+      "space": {
+        "key": "ACME",
+        "name": "Acme Widgets"
+      },
+      "version": {
+        "number": 1,
+        "when": "2024-01-17T16:00:00.000Z"
+      },
+      "metadata": {
+        "labels": {
+          "results": []
+        }
+      },
+      "_links": {
+        "webui": "/spaces/ACME/pages/12346/Getting+Started+Guide"
+      }
+    }
+  ],
+  "start": 0,
+  "limit": 25,
+  "size": 2,
+  "_links": {}
+}

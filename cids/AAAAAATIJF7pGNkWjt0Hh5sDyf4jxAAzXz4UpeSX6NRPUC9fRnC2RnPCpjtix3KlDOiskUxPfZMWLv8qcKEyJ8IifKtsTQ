@@ -1,0 +1,49 @@
+{
+  "campaigns": [
+    {
+      "id": "camp_001",
+      "web_id": 11223,
+      "type": "regular",
+      "status": "sent",
+      "emails_sent": 150,
+      "send_time": "2024-01-21T10:00:00+00:00",
+      "settings": {
+        "subject_line": "January Newsletter - New Widget Launch!",
+        "title": "January 2024 Newsletter",
+        "from_name": "Acme Corp",
+        "reply_to": "hello@acme-corp.example.com"
+      },
+      "report_summary": {
+        "opens": 37,
+        "unique_opens": 35,
+        "open_rate": 24.5,
+        "clicks": 12,
+        "subscriber_clicks": 10,
+        "click_rate": 3.2
+      }
+    },
+    {
+      "id": "camp_002",
+      "web_id": 44556,
+      "type": "regular",
+      "status": "sent",
+      "emails_sent": 87,
+      "send_time": "2024-01-18T14:30:00+00:00",
+      "settings": {
+        "subject_line": "Widget Update 2.0 Released",
+        "title": "Product Update January",
+        "from_name": "Globex Team",
+        "reply_to": "updates@globex.example.com"
+      },
+      "report_summary": {
+        "opens": 28,
+        "unique_opens": 27,
+        "open_rate": 31.2,
+        "clicks": 5,
+        "subscriber_clicks": 5,
+        "click_rate": 5.8
+      }
+    }
+  ],
+  "total_items": 2
+}

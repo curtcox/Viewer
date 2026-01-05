@@ -1,0 +1,18 @@
+{
+  "QueryResponse": {
+    "Invoice": [
+      {
+        "Id": "123",
+        "DocNumber": "1001",
+        "TotalAmt": 500.00,
+        "Balance": 0.00,
+        "CustomerRef": {
+          "value": "456",
+          "name": "Acme Corp"
+        },
+        "TxnDate": "2024-01-20"
+      }
+    ],
+    "maxResults": 1
+  }
+}

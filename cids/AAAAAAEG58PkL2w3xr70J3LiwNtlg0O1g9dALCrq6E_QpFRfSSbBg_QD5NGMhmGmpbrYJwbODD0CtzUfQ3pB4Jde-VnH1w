@@ -1,0 +1,3 @@
+/api/atlas/v1.0/groups/{groupId}/clusters AAAAAAAyeyJyZXN1bHRzIjogW3siaWQiOiAiYzAwMSIsICJuYW1lIjogImNsdXN0ZXIxIn1dfQo
+/api/atlas/v1.0/groups/{groupId}/clusters?itemsPerPage=0 AAAAAAAQeyJyZXN1bHRzIjogW119Cg
+/errors/401 AAAAAAAaeyJlcnJvciI6ICJVbmF1dGhvcml6ZWQifQo

@@ -1,0 +1,15 @@
+{
+  "id": "ch_1234567890",
+  "object": "charge",
+  "amount": 5000,
+  "amount_captured": 5000,
+  "amount_refunded": 0,
+  "currency": "usd",
+  "customer": "cus_DrBogusMcFakester",
+  "description": "Widget purchase",
+  "paid": true,
+  "status": "succeeded",
+  "refunded": false,
+  "created": 1706543210,
+  "receipt_email": "bogus@fakester.example.com"
+}
