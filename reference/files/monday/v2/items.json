@@ -1,0 +1,20 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "item001",
+        "name": "Design hexagonal widget",
+        "board": {
+          "id": "board001"
+        }
+      },
+      {
+        "id": "item002",
+        "name": "Write documentation",
+        "board": {
+          "id": "board001"
+        }
+      }
+    ]
+  }
+}

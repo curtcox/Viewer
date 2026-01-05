@@ -1,0 +1,18 @@
+[
+  {
+    "id": "task001",
+    "content": "Complete widget design",
+    "description": "Finalize hexagonal widget specifications",
+    "project_id": "proj001",
+    "is_completed": false,
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  {
+    "id": "task002",
+    "content": "Write documentation",
+    "description": "Update API docs with new endpoints",
+    "project_id": "proj001",
+    "is_completed": true,
+    "created_at": "2024-01-16T09:15:00Z"
+  }
+]

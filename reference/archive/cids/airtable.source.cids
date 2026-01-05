@@ -1,0 +1,4 @@
+/v0/meta/bases ../../files/airtable/v0/meta/bases.json
+/v0/appXYZ123/Projects ../../files/airtable/v0/appXYZ123/Projects.json
+/v0/appXYZ123/Projects?maxRecords=0 ../../files/airtable/v0/appXYZ123/Projects_maxRecords_0.json
+/errors/401 ../../files/airtable/errors/401_unauthorized.json

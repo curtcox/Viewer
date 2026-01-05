@@ -1,0 +1,18 @@
+{
+  "lists": [
+    {
+      "id": "list001",
+      "name": "To Do",
+      "folder": {
+        "id": "folder001"
+      }
+    },
+    {
+      "id": "list002",
+      "name": "In Progress",
+      "folder": {
+        "id": "folder001"
+      }
+    }
+  ]
+}

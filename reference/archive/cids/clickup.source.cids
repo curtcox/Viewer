@@ -1,0 +1,4 @@
+/api/v2/tasks ../../files/clickup/api/v2/tasks.json
+/api/v2/lists ../../files/clickup/api/v2/lists.json
+/api/v2/spaces ../../files/clickup/api/v2/spaces.json
+/errors/401 ../../files/clickup/errors/401_unauthorized.json

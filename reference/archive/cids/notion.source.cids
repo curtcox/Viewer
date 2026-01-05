@@ -1,0 +1,4 @@
+/v1/search ../../files/notion/v1/search.json
+/v1/pages/abc123 ../../files/notion/v1/pages/abc123.json
+/v1/databases/def456/query ../../files/notion/v1/databases/def456/query.json
+/errors/401 ../../files/notion/errors/401_unauthorized.json

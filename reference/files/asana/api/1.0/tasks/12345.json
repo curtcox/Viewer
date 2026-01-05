@@ -1,0 +1,9 @@
+{
+  "data": {
+    "gid": "12345",
+    "name": "Complete widget design",
+    "completed": false,
+    "notes": "Need to finalize the hexagonal widget specs",
+    "resource_type": "task"
+  }
+}

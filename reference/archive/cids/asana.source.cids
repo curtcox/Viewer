@@ -1,0 +1,5 @@
+/api/1.0/tasks ../../files/asana/api/1.0/tasks.json
+/api/1.0/tasks/12345 ../../files/asana/api/1.0/tasks/12345.json
+/api/1.0/projects ../../files/asana/api/1.0/projects.json
+/api/1.0/workspaces ../../files/asana/api/1.0/workspaces.json
+/errors/401 ../../files/asana/errors/401_unauthorized.json

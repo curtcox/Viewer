@@ -1,0 +1,3 @@
+/rest/v2/tasks ../../files/todoist/rest/v2/tasks.json
+/rest/v2/projects ../../files/todoist/rest/v2/projects.json
+/errors/401 ../../files/todoist/errors/401_unauthorized.json

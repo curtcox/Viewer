@@ -1,0 +1,14 @@
+{
+  "data": [
+    {
+      "gid": "proj001",
+      "name": "Widget Development",
+      "resource_type": "project"
+    },
+    {
+      "gid": "proj002",
+      "name": "Documentation",
+      "resource_type": "project"
+    }
+  ]
+}
