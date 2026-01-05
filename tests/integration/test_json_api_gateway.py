@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def json_api_gateway_server(integration_app):
     """Create the gateway server for testing."""
-    from reference_templates.servers import get_server_templates
+    from reference.templates.servers import get_server_templates
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
@@ -53,7 +53,7 @@ def json_api_gateway_config(integration_app):
     # Load the actual transform files
     import os
 
-    base_path = os.path.join(os.path.dirname(__file__), '..', '..', 'reference_templates', 'gateways')
+    base_path = os.path.join(os.path.dirname(__file__), '..', '..', 'reference', 'templates', 'gateways')
 
     with open(os.path.join(base_path, 'transforms', 'json_api_request.py'), 'r') as f:
         request_transform = f.read()
@@ -209,10 +209,10 @@ def test_json_api_gateway_configuration_is_valid(
 
 def test_json_api_transform_functions_are_importable(integration_app):
     """Test that the json_api transform functions can be imported and executed."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
-    from reference_templates.gateways.transforms.json_api_request import (
+    from reference.templates.gateways.transforms.json_api_request import (
         transform_request
     )
 
@@ -237,7 +237,7 @@ def test_json_api_transform_functions_are_importable(integration_app):
 
 def test_json_api_id_reference_links_are_created(integration_app):
     """Test that ID reference links are properly created in formatted JSON."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 
@@ -269,7 +269,7 @@ def test_json_api_id_reference_links_are_created(integration_app):
 
 def test_json_api_full_url_links_are_created(integration_app):
     """Test that full URL links are properly detected and converted."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 

@@ -16,7 +16,7 @@ def test_json_api_gateway_basic_json_rendering(client):
     """Test that JSON API gateway renders JSON with syntax highlighting."""
     # This test will verify basic JSON rendering without needing a real server
     # We'll use the response transform directly
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 
@@ -53,7 +53,7 @@ def test_json_api_gateway_basic_json_rendering(client):
 
 def test_json_api_gateway_id_reference_detection(client):
     """Test that ID reference detection creates proper links."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _detect_id_reference_link
     )
 
@@ -82,7 +82,7 @@ def test_json_api_gateway_id_reference_detection(client):
 
 def test_json_api_gateway_full_url_detection(client):
     """Test that full URL detection works correctly."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _detect_full_url_link
     )
 
@@ -115,7 +115,7 @@ def test_json_api_gateway_full_url_detection(client):
 
 def test_json_api_gateway_partial_url_detection(client):
     """Test that partial (path-only) URL detection works correctly."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 
@@ -143,7 +143,7 @@ def test_json_api_gateway_partial_url_detection(client):
 
 def test_json_api_gateway_composite_reference_detection(client):
     """Test composite reference detection (context-aware) using request_path regex."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links,
     )
 
@@ -174,7 +174,7 @@ def test_json_api_gateway_composite_reference_detection(client):
 
 def test_json_api_gateway_array_handling(client):
     """Test that arrays are formatted correctly."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 
@@ -204,7 +204,7 @@ def test_json_api_gateway_array_handling(client):
 
 def test_json_api_gateway_nested_objects(client):
     """Test that nested objects are handled correctly."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 
@@ -232,7 +232,7 @@ def test_json_api_gateway_nested_objects(client):
 
 def test_json_api_gateway_breadcrumb_generation(client):
     """Test breadcrumb navigation generation."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _build_breadcrumb
     )
 
@@ -250,7 +250,7 @@ def test_json_api_gateway_breadcrumb_generation(client):
 
 def test_json_api_gateway_with_id_references_in_json(client):
     """Test complete JSON formatting with ID reference links."""
-    from reference_templates.gateways.transforms.json_api_response import (
+    from reference.templates.gateways.transforms.json_api_response import (
         _format_json_with_links
     )
 

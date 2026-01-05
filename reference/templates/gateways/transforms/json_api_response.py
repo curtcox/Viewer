@@ -259,6 +259,9 @@ def _detect_partial_url_link(key: str, value, link_config: dict) -> str | None:
     if not value.startswith("/"):
         return None
 
+    if key.startswith("not_"):
+        return None
+
     key_patterns = partial_url_config.get("key_patterns", [])
     if key_patterns:
         if not any(fnmatch(key, pattern) for pattern in key_patterns):

@@ -7,7 +7,7 @@ into HTML with syntax highlighting and clickable links.
 """
 
 import json
-from reference_templates.gateways.transforms.json_api_response import (
+from reference.templates.gateways.transforms.json_api_response import (
     _format_json_with_links,
     _build_breadcrumb
 )

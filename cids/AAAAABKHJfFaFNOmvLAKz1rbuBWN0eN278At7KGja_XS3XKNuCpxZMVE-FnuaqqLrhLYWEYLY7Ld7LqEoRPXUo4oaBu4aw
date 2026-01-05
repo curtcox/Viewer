@@ -50,7 +50,7 @@
   },
   "json_api": {
     "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
-    "response_transform_cid": "AAAAACyp9DQ8V1cv_x8F8Tpq8Zp4ELgV5s3LAkC-dl3T0WSewEMDvgBNlDwqS86Wg0ekYqMsEeRW3pS4yZpaoSosuzca8Q",
+    "response_transform_cid": "AAAAACx1WyTXyOZ1wzLp3DOARV0tHCOozWSKeNOgJ_JjcB79vcaaTyqo3JB9jRa2LpzzRSQJ_ywiO4jEhqDzmSmYfDTk0g",
     "description": "Generalized JSON API gateway with link detection",
     "templates": {
       "json_api_data.html": "AAAAAAT-fpAssDkHfoi51QNXIG3FT9wJS1Qy00u-lizm8Y97G60WA2jKUaZvple7pdDBafSopMzdwaTnVL-vxGBrr-79Hw"
