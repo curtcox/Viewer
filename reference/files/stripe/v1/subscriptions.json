@@ -1,0 +1,16 @@
+{
+  "object": "list",
+  "url": "/v1/subscriptions",
+  "has_more": false,
+  "data": [
+    {
+      "id": "sub_ABC123DEF",
+      "object": "subscription",
+      "customer": "cus_DrBogusMcFakester",
+      "status": "active",
+      "current_period_start": 1706400000,
+      "current_period_end": 1709078400,
+      "created": 1706400000
+    }
+  ]
+}

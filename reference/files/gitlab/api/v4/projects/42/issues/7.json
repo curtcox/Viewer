@@ -1,0 +1,25 @@
+{
+  "id": 1001,
+  "iid": 7,
+  "project_id": 42,
+  "title": "Widget spin failure on Tuesdays",
+  "description": "Widgets fail to spin properly on Tuesday mornings. Error code 42 displayed.\n\nSteps to reproduce:\n1. Start widget on Tuesday morning\n2. Attempt to spin\n3. Observe error",
+  "state": "opened",
+  "created_at": "2024-01-15T10:30:00.000Z",
+  "updated_at": "2024-01-20T14:22:00.000Z",
+  "closed_at": null,
+  "labels": ["bug", "priority::high"],
+  "author": {
+    "id": 100,
+    "username": "janedoe",
+    "name": "Jane Doe",
+    "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/100/avatar.png"
+  },
+  "assignee": null,
+  "assignees": [],
+  "milestone": null,
+  "web_url": "https://gitlab.com/acme-corp/widgets/-/issues/7",
+  "user_notes_count": 3,
+  "upvotes": 5,
+  "downvotes": 0
+}

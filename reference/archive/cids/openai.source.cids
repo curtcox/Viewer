@@ -1,0 +1,4 @@
+/v1/chat/completions ../../files/openai/v1/chat/completions.json
+/v1/models ../../files/openai/v1/models.json
+/errors/401 ../../files/openai/v1/errors/401_invalid_api_key.json
+/errors/429 ../../files/openai/v1/errors/429_rate_limited.json

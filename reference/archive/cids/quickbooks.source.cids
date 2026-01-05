@@ -1,0 +1,4 @@
+/v3/company/1234567890/query?query=select * from Invoice ../../files/quickbooks/v3/company/1234567890/query_select_from_Invoice.json
+/v3/company/1234567890/invoice/123 ../../files/quickbooks/v3/company/1234567890/invoice/123.json
+/v3/company/1234567890/customer/456 ../../files/quickbooks/v3/company/1234567890/customer/456.json
+/errors/401 ../../files/quickbooks/errors/401_unauthorized.json

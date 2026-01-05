@@ -1,0 +1,4 @@
+/wiki/rest/api/content ../../files/confluence/wiki/rest/api/content.json
+/wiki/rest/api/content/12345 ../../files/confluence/wiki/rest/api/content/12345.json
+/wiki/rest/api/content?spaceKey=ACME ../../files/confluence/wiki/rest/api/content_spaceKey_ACME.json
+/errors/401 ../../files/confluence/wiki/rest/api/errors/401_unauthorized.json

@@ -1,0 +1,2 @@
+/api/v1/chat/completions ../../files/ai_assist/api/v1/chat/completions.json
+/errors/401 ../../files/ai_assist/api/v1/errors/401_unauthorized.json

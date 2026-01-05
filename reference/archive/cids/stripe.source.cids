@@ -1,0 +1,8 @@
+/v1/customers ../../files/stripe/v1/customers.json
+/v1/customers?limit=0 ../../files/stripe/v1/customers_limit_0.json
+/v1/customers/cus_DrBogusMcFakester ../../files/stripe/v1/customers/cus_DrBogusMcFakester.json
+/v1/charges ../../files/stripe/v1/charges.json
+/v1/charges/ch_1234567890 ../../files/stripe/v1/charges/ch_1234567890.json
+/v1/subscriptions ../../files/stripe/v1/subscriptions.json
+/errors/401 ../../files/stripe/v1/errors/401_invalid_api_key.json
+/errors/402 ../../files/stripe/v1/errors/402_card_declined.json

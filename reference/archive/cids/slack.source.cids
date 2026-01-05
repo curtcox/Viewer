@@ -1,0 +1,5 @@
+/api/chat.postMessage ../../files/slack/api/chat.postMessage.json
+/api/conversations.list ../../files/slack/api/conversations.list.json
+/api/conversations.list?limit=1 ../../files/slack/api/conversations.list_limit_1.json
+/errors/channel_not_found ../../files/slack/api/errors/channel_not_found.json
+/errors/not_authed ../../files/slack/api/errors/not_authed.json

@@ -1,0 +1,28 @@
+{
+  "resources": {
+    "core": {
+      "limit": 5000,
+      "used": 123,
+      "remaining": 4877,
+      "reset": 1735958400
+    },
+    "search": {
+      "limit": 30,
+      "used": 5,
+      "remaining": 25,
+      "reset": 1735954800
+    },
+    "graphql": {
+      "limit": 5000,
+      "used": 42,
+      "remaining": 4958,
+      "reset": 1735958400
+    }
+  },
+  "rate": {
+    "limit": 5000,
+    "used": 123,
+    "remaining": 4877,
+    "reset": 1735958400
+  }
+}

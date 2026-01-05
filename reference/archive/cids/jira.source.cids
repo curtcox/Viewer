@@ -1,0 +1,5 @@
+/rest/api/3/project ../../files/jira/rest/api/3/project.json
+/rest/api/3/project/ACME ../../files/jira/rest/api/3/project/ACME.json
+/rest/api/3/search?jql=project=ACME ../../files/jira/rest/api/3/search_jql_project_ACME.json
+/rest/api/3/issue/ACME-42 ../../files/jira/rest/api/3/issue/ACME-42.json
+/errors/401 ../../files/jira/rest/api/3/errors/401_unauthorized.json

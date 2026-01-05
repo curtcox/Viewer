@@ -1,0 +1,24 @@
+[
+  {
+    "id": "42",
+    "type": 0,
+    "guild_id": "8675309",
+    "position": 0,
+    "name": "general",
+    "topic": "General discussion about widgets",
+    "nsfw": false,
+    "last_message_id": "999888777",
+    "rate_limit_per_user": 0
+  },
+  {
+    "id": "43",
+    "type": 0,
+    "guild_id": "8675309",
+    "position": 1,
+    "name": "hexagonal-widgets",
+    "topic": "Discussion about hexagonal widget designs",
+    "nsfw": false,
+    "last_message_id": "999888778",
+    "rate_limit_per_user": 0
+  }
+]
