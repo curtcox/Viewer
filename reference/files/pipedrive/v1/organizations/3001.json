@@ -3,12 +3,14 @@
   "data": {
     "id": 3001,
     "name": "Acme Corporation",
-    "owner_id": 100,
-    "owner_name": "Sales Rep",
+    "owner_id": {
+      "id": 100,
+      "name": "Sales Rep",
+      "email": null
+    },
     "address": "123 Widget Way, Faketown, FS 12345",
     "cc_email": "acme@pipedrivemail.example.com",
     "visible_to": "3",
-    "label": 1,
     "people_count": 5,
     "open_deals_count": 2,
     "closed_deals_count": 3,

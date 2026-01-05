@@ -1,24 +1,24 @@
 [
   {
-    "CONTACT_ID": 50001,
-    "FIRST_NAME": "Emily",
-    "LAST_NAME": "Carter",
-    "EMAIL_ADDRESS": "emily.carter@globaltech.example.com",
-    "PHONE": "+1-555-0401",
-    "TITLE": "Director of Operations",
-    "ORGANISATION_ID": 30001,
-    "DATE_CREATED_UTC": "2024-01-12T09:00:00Z",
-    "DATE_UPDATED_UTC": "2024-01-22T15:30:00Z"
+    "contact_id": 50001,
+    "first_name": "Emily",
+    "last_name": "Carter",
+    "email_address": "emily.carter@globaltech.example.com",
+    "phone": "+1-555-0401",
+    "title": "Director of Operations",
+    "organisation_id": 30001,
+    "date_created_utc": "2024-01-12T09:00:00Z",
+    "date_updated_utc": "2024-01-22T15:30:00Z"
   },
   {
-    "CONTACT_ID": 50002,
-    "FIRST_NAME": "Michael",
-    "LAST_NAME": "Torres",
-    "EMAIL_ADDRESS": "m.torres@innovate.example.com",
-    "PHONE": "+1-555-0402",
-    "TITLE": "VP of Sales",
-    "ORGANISATION_ID": 30002,
-    "DATE_CREATED_UTC": "2024-01-14T10:30:00Z",
-    "DATE_UPDATED_UTC": "2024-01-20T11:45:00Z"
+    "contact_id": 50002,
+    "first_name": "Michael",
+    "last_name": "Torres",
+    "email_address": "m.torres@innovate.example.com",
+    "phone": "+1-555-0402",
+    "title": "VP of Sales",
+    "organisation_id": 30002,
+    "date_created_utc": "2024-01-14T10:30:00Z",
+    "date_updated_utc": "2024-01-20T11:45:00Z"
   }
 ]

@@ -11,8 +11,8 @@
     "city": "Faketown",
     "state": "FS",
     "country": "United States",
-    "numberofemployees": "250",
-    "annualrevenue": "50000000",
+    "numberofemployees": 250,
+    "annualrevenue": 50000000,
     "description": "Leading provider of widgets and widget accessories"
   },
   "createdAt": "2024-01-10T08:00:00.000Z",

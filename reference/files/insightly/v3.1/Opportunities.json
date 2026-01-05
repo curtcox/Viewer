@@ -1,14 +1,15 @@
 [
   {
-    "OPPORTUNITY_ID": 70001,
-    "OPPORTUNITY_NAME": "Global Tech - Enterprise License",
-    "OPPORTUNITY_STATE": "OPEN",
-    "BID_CURRENCY": "USD",
-    "BID_AMOUNT": 150000,
-    "PROBABILITY": 75,
-    "ORGANISATION_ID": 30001,
-    "FORECAST_CLOSE_DATE": "2024-03-31T00:00:00Z",
-    "DATE_CREATED_UTC": "2024-01-15T10:00:00Z",
-    "DATE_UPDATED_UTC": "2024-01-25T16:00:00Z"
+    "opportunity_id": 70001,
+    "opportunity_name": "Global Tech - Enterprise License",
+    "opportunity_state": "OPEN",
+    "bid_currency": "USD",
+    "bid_amount": 150000,
+    "probability": 75,
+    "organisation_id": 30001,
+    "responsible_user_id": 1001,
+    "forecast_close_date": "2024-03-31T00:00:00Z",
+    "date_created_utc": "2024-01-15T10:00:00Z",
+    "date_updated_utc": "2024-01-25T16:00:00Z"
   }
 ]

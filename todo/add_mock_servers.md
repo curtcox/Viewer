@@ -1162,39 +1162,43 @@ Proxy
 
 The following questions arose during implementation of the HubSpot CID archive:
 
-### Q1: File Naming Convention for Query String Variants
+### Q1: File Naming Convention for Query String Variants ✅ RESOLVED
 
 When a source.cids key includes a query string like `/crm/v3/objects/contacts?limit=0`, what should the corresponding file be named?
 
 **Options:**
-1. **Semantic names**: `contacts_empty.json`, `contacts_single.json` (current approach)
-2. **Query-encoded names**: `contacts_limit_0.json`, `contacts_limit_1.json`
+1. **Semantic names**: `contacts_empty.json`, `contacts_single.json`
+2. **Query-encoded names**: `contacts_limit_0.json`, `contacts_limit_1.json` ← **IMPLEMENTED**
 3. **URL-encoded names**: `contacts%3Flimit%3D0.json` (not recommended)
 
-**Current approach**: Semantic names (`contacts_empty.json`)
+**Resolved**: Query-encoded names (option 2) - replace `?` with `_` and `&` with `_`, non-alphanumeric characters become `_`.
 
-**Trade-offs**:
-- Semantic names are clearer but don't match the source.cids key directly
-- Query-encoded names are mechanical but may be confusing when query strings are complex
-- Need consistency across 93 services
+This convention applies to all 93 services for consistency.
+
+**Verification commands:**
+```bash
+# Check that source.cids paths map to query-encoded filenames
+rg '\?.*\.json' reference/archive/cids/  # Should find NO matches (no ? in filenames)
+fd -e json reference/files/ | grep -E '_limit_|_page_|_top_|_q_'  # Shows query-encoded names
+```
 
 ---
 
-### Q2: Directory Structure - Flat vs Nested
+### Q2: Directory Structure - Flat vs Nested ✅ RESOLVED
 
 Should files be organized in a flat structure or nested to match the API path?
 
 **Options:**
 1. **Flat**: `hubspot/contacts.json`, `hubspot/contacts_501.json`
-2. **Nested**: `hubspot/crm/v3/objects/contacts.json`, `hubspot/crm/v3/objects/contacts/501.json`
+2. **Nested**: `hubspot/crm/v3/objects/contacts.json`, `hubspot/crm/v3/objects/contacts/501.json` ← **IMPLEMENTED**
 3. **Hybrid**: Flat within service but grouped by resource type
 
-**Current approach**: Flat structure
+**Resolved**: Nested directory structure (option 2) - mirrors API paths exactly.
 
-**Trade-offs**:
-- Flat is simpler and avoids deeply nested directories
-- Nested mirrors the API structure but creates many directories
-- Flat may have naming conflicts for complex APIs
+This convention applies to all 93 services for consistency. Benefits:
+- Clear mapping between source.cids paths and file locations
+- Avoids naming conflicts for services with complex API structures
+- Enables relative paths in source.cids files (e.g., `../../files/hubspot/crm/v3/objects/contacts.json`)
 
 ---
 

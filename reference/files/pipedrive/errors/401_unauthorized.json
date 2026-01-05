@@ -1,6 +1,6 @@
 {
   "success": false,
   "error": "unauthorized access",
-  "error_info": "Please check your API token",
+  "error_info": "Please check developers.pipedrive.com",
   "errorCode": 401
 }
