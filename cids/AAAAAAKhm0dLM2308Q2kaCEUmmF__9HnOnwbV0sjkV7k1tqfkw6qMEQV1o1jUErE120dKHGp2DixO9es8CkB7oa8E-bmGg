@@ -1,0 +1,25 @@
+{
+  "lists": [
+    {
+      "id": "1",
+      "name": "Newsletter Subscribers",
+      "stringid": "newsletter-subscribers",
+      "sender_url": "https://techstartup.example.com",
+      "sender_reminder": "You subscribed to our newsletter",
+      "cdate": "2024-01-01T08:00:00-06:00",
+      "udate": "2024-01-25T12:00:00-06:00"
+    },
+    {
+      "id": "2",
+      "name": "Product Updates",
+      "stringid": "product-updates",
+      "sender_url": "https://techstartup.example.com",
+      "sender_reminder": "You opted in to product updates",
+      "cdate": "2024-01-05T09:00:00-06:00",
+      "udate": "2024-01-24T15:30:00-06:00"
+    }
+  ],
+  "meta": {
+    "total": "2"
+  }
+}

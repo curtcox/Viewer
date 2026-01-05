@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 2001,
+      "name": "Jane Doe",
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "email": [{"value": "jane.doe@acme-corp.example.com", "primary": true}],
+      "phone": [{"value": "+1-555-0101", "primary": true}],
+      "org_id": 3001,
+      "owner_id": 100,
+      "add_time": "2024-01-10T08:00:00Z",
+      "update_time": "2024-01-20T14:22:00Z"
+    },
+    {
+      "id": 2002,
+      "name": "John Smith",
+      "first_name": "John",
+      "last_name": "Smith",
+      "email": [{"value": "john.smith@globex.example.com", "primary": true}],
+      "phone": [{"value": "+1-555-0202", "primary": true}],
+      "org_id": 3002,
+      "owner_id": 100,
+      "add_time": "2024-01-12T09:30:00Z",
+      "update_time": "2024-01-18T11:45:00Z"
+    }
+  ],
+  "additional_data": {
+    "pagination": {
+      "start": 0,
+      "limit": 100,
+      "more_items_in_collection": false
+    }
+  }
+}

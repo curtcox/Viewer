@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "4000000012345",
+      "Account_Name": "Quantum Industries",
+      "Account_Type": "Customer",
+      "Website": "https://quantum-ind.example.com",
+      "Phone": "+1-555-0601",
+      "Fax": "+1-555-0699",
+      "Industry": "Manufacturing",
+      "Annual_Revenue": 5000000,
+      "Employees": 250,
+      "Description": "Leading manufacturer of precision instruments",
+      "Billing_Street": "789 Industrial Parkway",
+      "Billing_City": "Oakland",
+      "Billing_State": "CA",
+      "Billing_Code": "94612",
+      "Billing_Country": "United States",
+      "Owner": {
+        "id": "4000000000123",
+        "name": "Sales Manager",
+        "email": "sales.manager@company.example.com"
+      },
+      "Created_By": {
+        "id": "4000000000123",
+        "name": "Sales Manager"
+      },
+      "Modified_By": {
+        "id": "4000000000123",
+        "name": "Sales Manager"
+      },
+      "Created_Time": "2024-01-08T09:00:00-08:00",
+      "Modified_Time": "2024-01-22T14:30:00-08:00"
+    }
+  ]
+}

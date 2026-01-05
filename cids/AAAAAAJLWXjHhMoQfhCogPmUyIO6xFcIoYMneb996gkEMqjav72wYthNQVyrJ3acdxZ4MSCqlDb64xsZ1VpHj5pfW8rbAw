@@ -1,0 +1,19 @@
+{
+  "attributes": {
+    "type": "Opportunity",
+    "url": "/services/data/v59.0/sobjects/Opportunity/006DEF456GHI789"
+  },
+  "Id": "006DEF456GHI789",
+  "Name": "Acme Corp - Widget Upgrade 2024",
+  "AccountId": "001ABC123DEF456",
+  "Amount": 125000,
+  "StageName": "Proposal",
+  "Probability": 60,
+  "CloseDate": "2024-03-31",
+  "Type": "Existing Business",
+  "LeadSource": "Partner",
+  "Description": "Upgrade existing widget infrastructure to v3.0",
+  "OwnerId": "005ABC123DEF456",
+  "CreatedDate": "2024-01-20T09:00:00.000+0000",
+  "LastModifiedDate": "2024-01-25T16:45:00.000+0000"
+}

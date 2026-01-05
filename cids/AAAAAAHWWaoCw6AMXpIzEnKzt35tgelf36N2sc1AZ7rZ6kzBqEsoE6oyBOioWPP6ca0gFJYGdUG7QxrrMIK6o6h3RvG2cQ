@@ -1,0 +1,22 @@
+{
+  "totalSize": 2,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "url": "/services/data/v59.0/sobjects/Account/001ABC123DEF456"
+      },
+      "Id": "001ABC123DEF456",
+      "Name": "Acme Corporation"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "url": "/services/data/v59.0/sobjects/Account/001XYZ789GHI012"
+      },
+      "Id": "001XYZ789GHI012",
+      "Name": "Globex Corporation"
+    }
+  ]
+}

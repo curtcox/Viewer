@@ -1,0 +1,27 @@
+{
+  "name": "Account",
+  "label": "Account",
+  "labelPlural": "Accounts",
+  "keyPrefix": "001",
+  "custom": false,
+  "createable": true,
+  "updateable": true,
+  "deletable": true,
+  "queryable": true,
+  "searchable": true,
+  "fields": [
+    {"name": "Id", "type": "id", "label": "Account ID"},
+    {"name": "Name", "type": "string", "label": "Account Name", "length": 255},
+    {"name": "Type", "type": "picklist", "label": "Account Type"},
+    {"name": "Industry", "type": "picklist", "label": "Industry"},
+    {"name": "AnnualRevenue", "type": "currency", "label": "Annual Revenue"},
+    {"name": "NumberOfEmployees", "type": "int", "label": "Employees"},
+    {"name": "Phone", "type": "phone", "label": "Phone"},
+    {"name": "Website", "type": "url", "label": "Website"}
+  ],
+  "urls": {
+    "sobject": "/services/data/v59.0/sobjects/Account",
+    "describe": "/services/data/v59.0/sobjects/Account/describe",
+    "rowTemplate": "/services/data/v59.0/sobjects/Account/{ID}"
+  }
+}

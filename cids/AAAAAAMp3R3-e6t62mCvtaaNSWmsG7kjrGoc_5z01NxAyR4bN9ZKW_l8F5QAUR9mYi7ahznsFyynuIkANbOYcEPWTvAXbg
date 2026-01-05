@@ -1,0 +1,23 @@
+{
+  "contact": {
+    "id": "1001",
+    "email": "alice.johnson@techstartup.example.com",
+    "firstName": "Alice",
+    "lastName": "Johnson",
+    "phone": "+1-555-0301",
+    "orgid": "101",
+    "orgname": "Tech Startup Inc",
+    "cdate": "2024-01-15T10:00:00-06:00",
+    "udate": "2024-01-20T14:30:00-06:00",
+    "links": {
+      "bounceLogs": "/api/3/contacts/1001/bounceLogs",
+      "contactAutomations": "/api/3/contacts/1001/contactAutomations",
+      "contactData": "/api/3/contacts/1001/contactData",
+      "contactDeals": "/api/3/contacts/1001/contactDeals",
+      "contactGoals": "/api/3/contacts/1001/contactGoals",
+      "contactLists": "/api/3/contacts/1001/contactLists",
+      "contactLogs": "/api/3/contacts/1001/contactLogs",
+      "contactTags": "/api/3/contacts/1001/contactTags"
+    }
+  }
+}

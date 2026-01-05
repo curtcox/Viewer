@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "id": "4000000012345",
+      "Account_Name": "Quantum Industries",
+      "Website": "https://quantum-ind.example.com",
+      "Phone": "+1-555-0601",
+      "Industry": "Manufacturing",
+      "Annual_Revenue": 5000000,
+      "Owner": {
+        "id": "4000000000123",
+        "name": "Sales Manager"
+      },
+      "Created_Time": "2024-01-08T09:00:00-08:00",
+      "Modified_Time": "2024-01-22T14:30:00-08:00"
+    },
+    {
+      "id": "4000000012346",
+      "Account_Name": "Nexus Consulting",
+      "Website": "https://nexus-consulting.example.com",
+      "Phone": "+1-555-0602",
+      "Industry": "Consulting",
+      "Annual_Revenue": 2500000,
+      "Owner": {
+        "id": "4000000000124",
+        "name": "Account Executive"
+      },
+      "Created_Time": "2024-01-10T10:30:00-08:00",
+      "Modified_Time": "2024-01-20T11:15:00-08:00"
+    }
+  ],
+  "info": {
+    "count": 2,
+    "more_records": false,
+    "page": 1,
+    "per_page": 200
+  }
+}
