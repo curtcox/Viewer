@@ -4,7 +4,7 @@
 
 **Status: CORE IMPLEMENTATION COMPLETE - PHASE 1-3 DONE**
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-05
 
 This plan describes the implementation of a generalized JSON API gateway that transforms JSON responses from arbitrary servers into navigable HTML pages. The gateway renders JSON with syntax highlighting and automatically detects references to related resources, converting them into clickable links for seamless API exploration.
 
@@ -63,10 +63,12 @@ This plan describes the implementation of a generalized JSON API gateway that tr
 | File | Purpose |
 |------|---------|
 | `reference_templates/servers/definitions/gateway.py` | Core gateway routing (existing) |
-| `reference_templates/gateways/transforms/json_api_request.py` | Request transform (NEW) |
-| `reference_templates/gateways/transforms/json_api_response.py` | Response transform with link detection (NEW) |
-| `reference_templates/gateways/templates/json_api_data.html` | HTML template for JSON display (NEW) |
+| `reference/templates/gateways/transforms/json_api_request.py` | Request transform (NEW) |
+| `reference/templates/gateways/transforms/json_api_response.py` | Response transform with link detection (NEW) |
+| `reference/templates/gateways/templates/json_api_data.html` | HTML template for JSON display (NEW) |
 | `reference_templates/gateways/link_detectors/*.py` | Pluggable link detector modules (NEW) |
+
+**Note:** `reference/templates/gateways.source.json` now includes a `json_api` entry pointing at these source files so `generate_boot_image.py` can generate `reference/templates/gateways.json` deterministically.
 
 ---
 

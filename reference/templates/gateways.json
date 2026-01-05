@@ -47,5 +47,28 @@
       "cids_markdown.html": "AAAAAAVVvWBdHwdcPFMgu1i08H4uPHfXQl7o_iOhDGVwAtOHnlO4WxIZh619wjwyiOEJBLWv4L41dJt0LBRPIAhrXALdBQ",
       "cids_text.html": "AAAAAAOgIfY_0AQG9T8Lvte99caW99cWI1Hin-3UuJgzkTu2FRa0Vy4KY5zJd9SmbPnziVIySToY9F_ykGrlQHc1BVrbKQ"
     }
+  },
+  "json_api": {
+    "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
+    "response_transform_cid": "AAAAAB4yCgZvI-wH-a8Hl6zDtcsqspMmsX5d6lRjnlDV8b3wGQ_SFKsmpNOQwaXjssgHenLw39YY0RcwWEJYuZSxLwGRPg",
+    "description": "Generalized JSON API gateway with link detection",
+    "templates": {
+      "json_api_data.html": "AAAAAAULeCafo4zOlCtLUvqOuEqQeWpS4tMF2wNccyNJfo6b8Ge2V1YpIVKVXj6iVeI3wZrx_vD2zLCDPCyxQRBH0qMqog"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "base_url_strip": "https://jsonplaceholder.typicode.com",
+        "gateway_prefix": "/gateway/json_api"
+      },
+      "id_reference": {
+        "enabled": true,
+        "patterns": {
+          "userId": "/gateway/json_api/users/{id}",
+          "postId": "/gateway/json_api/posts/{id}",
+          "albumId": "/gateway/json_api/albums/{id}"
+        }
+      }
+    }
   }
 }

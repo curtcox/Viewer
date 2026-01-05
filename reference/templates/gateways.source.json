@@ -47,5 +47,28 @@
       "cids_markdown.html": "reference/templates/gateways/templates/cids_markdown.html",
       "cids_text.html": "reference/templates/gateways/templates/cids_text.html"
     }
+  },
+  "json_api": {
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
+    "description": "Generalized JSON API gateway with link detection",
+    "templates": {
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "base_url_strip": "https://jsonplaceholder.typicode.com",
+        "gateway_prefix": "/gateway/json_api"
+      },
+      "id_reference": {
+        "enabled": true,
+        "patterns": {
+          "userId": "/gateway/json_api/users/{id}",
+          "postId": "/gateway/json_api/posts/{id}",
+          "albumId": "/gateway/json_api/albums/{id}"
+        }
+      }
+    }
   }
 }
