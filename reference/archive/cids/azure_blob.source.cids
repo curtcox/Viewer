@@ -1,0 +1,3 @@
+/?comp=list ../../files/azure_blob/containers.json
+/?comp=list&maxresults=0 ../../files/azure_blob/containers_maxresults_0.json
+/errors/401 ../../files/azure_blob/errors/401_unauthorized.json

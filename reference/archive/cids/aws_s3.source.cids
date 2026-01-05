@@ -1,0 +1,3 @@
+/ ../../files/aws_s3/buckets.json
+/?max-keys=0 ../../files/aws_s3/buckets_max_0.json
+/errors/401 ../../files/aws_s3/errors/401_unauthorized.json

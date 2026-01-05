@@ -1,0 +1,3 @@
+/2/files/list_folder ../../files/dropbox/2/files/list_folder.json
+/2/files/list_folder?limit=0 ../../files/dropbox/2/files/list_folder_limit_0.json
+/errors/401 ../../files/dropbox/2/files/errors/401_unauthorized.json
