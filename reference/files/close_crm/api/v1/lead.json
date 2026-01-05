@@ -1,0 +1,43 @@
+{
+  "has_more": false,
+  "data": [
+    {
+      "id": "lead_ABC123",
+      "display_name": "Acme Corporation",
+      "description": "Leading widget manufacturer",
+      "status_id": "stat_qualified",
+      "status_label": "Qualified",
+      "contacts": [
+        {
+          "id": "cont_XYZ789",
+          "name": "Jane Doe",
+          "title": "VP of Engineering",
+          "emails": [{"email": "jane.doe@acme-corp.example.com", "type": "office"}],
+          "phones": [{"phone": "+1-555-0101", "type": "office"}]
+        }
+      ],
+      "created_by": "user_001",
+      "date_created": "2024-01-10T08:00:00.000000+00:00",
+      "date_updated": "2024-01-22T10:30:00.000000+00:00"
+    },
+    {
+      "id": "lead_DEF456",
+      "display_name": "Globex Corporation",
+      "description": "Technology solutions provider",
+      "status_id": "stat_potential",
+      "status_label": "Potential",
+      "contacts": [
+        {
+          "id": "cont_UVW123",
+          "name": "John Smith",
+          "title": "CTO",
+          "emails": [{"email": "john.smith@globex.example.com", "type": "office"}],
+          "phones": [{"phone": "+1-555-0202", "type": "office"}]
+        }
+      ],
+      "created_by": "user_001",
+      "date_created": "2024-01-12T09:30:00.000000+00:00",
+      "date_updated": "2024-01-19T15:45:00.000000+00:00"
+    }
+  ]
+}

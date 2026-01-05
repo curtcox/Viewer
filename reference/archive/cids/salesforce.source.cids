@@ -1,0 +1,7 @@
+/services/data/v59.0/query?q=SELECT+Id,Name+FROM+Account ../../files/salesforce/services/data/v59.0/query_q_SELECT_Id_Name_FROM_Account.json
+/services/data/v59.0/query?q=SELECT+Id,Name+FROM+Account+LIMIT+0 ../../files/salesforce/services/data/v59.0/query_q_SELECT_Id_Name_FROM_Account_LIMIT_0.json
+/services/data/v59.0/sobjects/Account/001ABC123DEF456 ../../files/salesforce/services/data/v59.0/sobjects/Account/001ABC123DEF456.json
+/services/data/v59.0/sobjects/Contact/003XYZ789GHI012 ../../files/salesforce/services/data/v59.0/sobjects/Contact/003XYZ789GHI012.json
+/services/data/v59.0/sobjects/Opportunity/006DEF456GHI789 ../../files/salesforce/services/data/v59.0/sobjects/Opportunity/006DEF456GHI789.json
+/services/data/v59.0/sobjects/Account/describe ../../files/salesforce/services/data/v59.0/sobjects/Account/describe.json
+/errors/401 ../../files/salesforce/errors/401_session_expired.json

@@ -1,0 +1,44 @@
+{
+  "id": 8001,
+  "uri": "/api/tickets/8001",
+  "external_id": null,
+  "subject": "Order #12345 not delivered",
+  "status": "open",
+  "priority": "high",
+  "channel": "email",
+  "via": "email",
+  "from_agent": false,
+  "customer": {
+    "id": 6001,
+    "email": "frustrated.customer@mail.example.com",
+    "name": "Chris Adams"
+  },
+  "assignee_user": null,
+  "assignee_team": null,
+  "messages": [
+    {
+      "id": 90001,
+      "uri": "/api/messages/90001",
+      "message_id": "<msg001@mail.example.com>",
+      "ticket_id": 8001,
+      "channel": "email",
+      "via": "email",
+      "from_agent": false,
+      "sender": {
+        "id": 6001,
+        "email": "frustrated.customer@mail.example.com",
+        "name": "Chris Adams"
+      },
+      "subject": "Order #12345 not delivered",
+      "body_text": "Hi, I placed an order last week (Order #12345) and it still hasn't arrived. The tracking shows it's been stuck for 5 days. Can you please help?",
+      "body_html": "<p>Hi, I placed an order last week (Order #12345) and it still hasn't arrived. The tracking shows it's been stuck for 5 days. Can you please help?</p>",
+      "created_datetime": "2024-01-20T14:30:00.000000Z"
+    }
+  ],
+  "tags": [
+    {"id": 1, "name": "shipping-issue"},
+    {"id": 2, "name": "escalated"}
+  ],
+  "created_datetime": "2024-01-20T14:30:00.000000Z",
+  "updated_datetime": "2024-01-21T09:15:00.000000Z"
+}

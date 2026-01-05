@@ -1,0 +1,16 @@
+{
+  "campaign": {
+    "id": "101",
+    "name": "January Newsletter 2024",
+    "type": "single",
+    "status": "2",
+    "cdate": "2024-01-10T10:00:00-06:00",
+    "mdate": "2024-01-15T08:00:00-06:00",
+    "sdate": "2024-01-15T08:00:00-06:00",
+    "links": {
+      "automation": "/api/3/campaigns/101/automation",
+      "campaignMessage": "/api/3/campaigns/101/campaignMessage",
+      "campaignLists": "/api/3/campaigns/101/campaignLists"
+    }
+  }
+}

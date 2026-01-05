@@ -1,0 +1,37 @@
+{
+  "contacts": [
+    {
+      "id": "1001",
+      "email": "alice.johnson@techstartup.example.com",
+      "firstName": "Alice",
+      "lastName": "Johnson",
+      "phone": "+1-555-0301",
+      "orgid": "101",
+      "orgname": "Tech Startup Inc",
+      "cdate": "2024-01-15T10:00:00-06:00",
+      "udate": "2024-01-20T14:30:00-06:00"
+    },
+    {
+      "id": "1002",
+      "email": "bob.williams@enterprise.example.com",
+      "firstName": "Bob",
+      "lastName": "Williams",
+      "phone": "+1-555-0302",
+      "orgid": "102",
+      "orgname": "Enterprise Solutions",
+      "cdate": "2024-01-16T09:00:00-06:00",
+      "udate": "2024-01-22T11:15:00-06:00"
+    }
+  ],
+  "meta": {
+    "total": 2,
+    "page_input": {
+      "segmentid": 0,
+      "formid": 0,
+      "listid": 0,
+      "tagid": 0,
+      "limit": 20,
+      "offset": 0
+    }
+  }
+}

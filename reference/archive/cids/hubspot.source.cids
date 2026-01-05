@@ -1,0 +1,7 @@
+/crm/v3/objects/contacts ../../files/hubspot/crm/v3/objects/contacts.json
+/crm/v3/objects/contacts?limit=0 ../../files/hubspot/crm/v3/objects/contacts_limit_0.json
+/crm/v3/objects/contacts?limit=1 ../../files/hubspot/crm/v3/objects/contacts_limit_1.json
+/crm/v3/objects/contacts/501 ../../files/hubspot/crm/v3/objects/contacts/501.json
+/crm/v3/objects/companies ../../files/hubspot/crm/v3/objects/companies.json
+/crm/v3/objects/companies/101 ../../files/hubspot/crm/v3/objects/companies/101.json
+/errors/401 ../../files/hubspot/errors/401_unauthorized.json

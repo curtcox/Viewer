@@ -1,0 +1,79 @@
+{
+  "has_more": false,
+  "data": [
+    {
+      "id": "cont_XYZ789",
+      "lead_id": "lead_ABC123",
+      "name": "Jane Doe",
+      "title": "VP of Engineering",
+      "description": "Primary engineering contact",
+      "emails": [
+        {
+          "email": "jane.doe@acme-corp.example.com",
+          "type": "office",
+          "id": "emai_ABC123",
+          "is_primary": true,
+          "date_created": "2024-01-10T08:00:00Z"
+        }
+      ],
+      "phones": [
+        {
+          "phone": "+1-555-0101",
+          "type": "office",
+          "id": "phon_ABC123",
+          "is_primary": true,
+          "date_created": "2024-01-10T08:00:00Z"
+        }
+      ],
+      "urls": [
+        {"url": "https://linkedin.com/in/janedoe", "type": "url"}
+      ],
+      "addresses": [
+        {"address_1": "123 Tech Lane", "city": "San Francisco", "state": "CA", "zipcode": "94105", "country": "US"}
+      ],
+      "custom": {},
+      "emails_count": 1,
+      "phones_count": 1,
+      "urls_count": 1,
+      "created_by": "user_ABC123",
+      "updated_by": "user_ABC123",
+      "date_created": "2024-01-10T08:00:00Z",
+      "date_updated": "2024-01-20T14:22:00Z"
+    },
+    {
+      "id": "cont_UVW123",
+      "lead_id": "lead_DEF456",
+      "name": "John Smith",
+      "title": "CTO",
+      "description": "Technical decision maker",
+      "emails": [
+        {
+          "email": "john.smith@globex.example.com",
+          "type": "office",
+          "id": "emai_DEF456",
+          "is_primary": true,
+          "date_created": "2024-01-12T09:30:00Z"
+        }
+      ],
+      "phones": [
+        {
+          "phone": "+1-555-0202",
+          "type": "office",
+          "id": "phon_DEF456",
+          "is_primary": true,
+          "date_created": "2024-01-12T09:30:00Z"
+        }
+      ],
+      "urls": [],
+      "addresses": [],
+      "custom": {},
+      "emails_count": 1,
+      "phones_count": 1,
+      "urls_count": 0,
+      "created_by": "user_ABC123",
+      "updated_by": "user_ABC123",
+      "date_created": "2024-01-12T09:30:00Z",
+      "date_updated": "2024-01-18T11:45:00Z"
+    }
+  ]
+}

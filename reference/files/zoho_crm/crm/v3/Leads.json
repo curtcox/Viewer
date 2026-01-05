@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "id": "4000000034567",
+      "First_Name": "Kevin",
+      "Last_Name": "Park",
+      "Email": "kevin.park@startup.example.com",
+      "Phone": "+1-555-0801",
+      "Company": "Emerging Tech Startup",
+      "Lead_Source": "Web Form",
+      "Lead_Status": "Contacted",
+      "Owner": {
+        "id": "4000000000124",
+        "name": "Account Executive"
+      },
+      "Created_Time": "2024-01-18T14:00:00-08:00",
+      "Modified_Time": "2024-01-23T10:30:00-08:00"
+    }
+  ],
+  "info": {
+    "count": 1,
+    "more_records": false,
+    "page": 1,
+    "per_page": 200
+  }
+}

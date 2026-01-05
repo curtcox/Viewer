@@ -1,0 +1,8 @@
+/v3.1/Contacts ../../files/insightly/v3.1/Contacts.json
+/v3.1/Contacts?top=0 ../../files/insightly/v3.1/Contacts_top_0.json
+/v3.1/Contacts/50001 ../../files/insightly/v3.1/Contacts/50001.json
+/v3.1/Organisations ../../files/insightly/v3.1/Organisations.json
+/v3.1/Organisations/30001 ../../files/insightly/v3.1/Organisations/30001.json
+/v3.1/Opportunities ../../files/insightly/v3.1/Opportunities.json
+/v3.1/Opportunities/70001 ../../files/insightly/v3.1/Opportunities/70001.json
+/errors/401 ../../files/insightly/errors/401_unauthorized.json

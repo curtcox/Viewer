@@ -1,0 +1,8 @@
+/v1/deals ../../files/pipedrive/v1/deals.json
+/v1/deals?limit=0 ../../files/pipedrive/v1/deals_limit_0.json
+/v1/deals/1001 ../../files/pipedrive/v1/deals/1001.json
+/v1/persons ../../files/pipedrive/v1/persons.json
+/v1/persons/2001 ../../files/pipedrive/v1/persons/2001.json
+/v1/organizations ../../files/pipedrive/v1/organizations.json
+/v1/organizations/3001 ../../files/pipedrive/v1/organizations/3001.json
+/errors/401 ../../files/pipedrive/errors/401_unauthorized.json

@@ -57,11 +57,13 @@ def test_not_found_returns_pipeline_debug_response(monkeypatch):
     monkeypatch.setattr(
         error_handlers, "should_return_debug_response", lambda req: True
     )
-    monkeypatch.setattr(error_handlers, "is_pipeline_request", lambda path: True)
     monkeypatch.setattr(
         error_handlers,
         "execute_pipeline",
         lambda path, debug=False: {"path": path, "debug": debug},
+    )
+    monkeypatch.setattr(
+        error_handlers, "get_final_extension", lambda full_path: "txt"
     )
 
     def fake_formatter(result, extension=None):
