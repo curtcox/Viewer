@@ -1,0 +1,5 @@
+/me/joinedTeams ../../files/teams/me/joinedTeams.json
+/teams/abc-123 ../../files/teams/teams/abc-123.json
+/teams/abc-123/channels ../../files/teams/teams/abc-123/channels.json
+/teams/abc-123/channels/general/messages ../../files/teams/teams/abc-123/channels/general/messages.json
+/errors/401 ../../files/teams/errors/401_unauthorized.json

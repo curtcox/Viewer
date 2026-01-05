@@ -1,0 +1,6 @@
+/users/@me/guilds ../../files/discord/users/@me/guilds.json
+/guilds/8675309 ../../files/discord/guilds/8675309.json
+/guilds/8675309/channels ../../files/discord/guilds/8675309/channels.json
+/channels/42/messages ../../files/discord/channels/42/messages.json
+/channels/42/messages?limit=1 ../../files/discord/channels/42/messages_limit_1.json
+/errors/401 ../../files/discord/errors/401_unauthorized.json
