@@ -1,0 +1,6 @@
+{
+  "id": "tldr",
+  "name": "tldr",
+  "description": "Serve local tldr pages.",
+  "definition_file": "definitions/tldr.sh"
+}

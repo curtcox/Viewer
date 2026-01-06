@@ -1,0 +1,6 @@
+{
+  "id": "hrx",
+  "name": "HRX",
+  "description": "Parse and serve Human Readable Archive (HRX) files.",
+  "definition_file": "definitions/hrx.py"
+}

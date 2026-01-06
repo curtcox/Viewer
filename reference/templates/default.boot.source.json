@@ -22,6 +22,11 @@
       "name": "help",
       "definition_cid": "reference/templates/aliases/help.txt",
       "enabled": true
+    },
+    {
+      "name": "teams",
+      "definition_cid": "reference/templates/aliases/teams.txt",
+      "enabled": true
     }
   ],
   "servers": [

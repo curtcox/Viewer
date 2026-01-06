@@ -1,0 +1,6 @@
+{
+  "id": "jsonplaceholder",
+  "name": "JSONPlaceholder",
+  "description": "Proxy requests to JSONPlaceholder (https://jsonplaceholder.typicode.com) for testing and prototyping.",
+  "definition_file": "definitions/jsonplaceholder.py"
+}

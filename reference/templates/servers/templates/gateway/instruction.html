@@ -72,57 +72,119 @@
     <h2>API Examples</h2>
 
     <div class="card">
-        <h3>GitHub API</h3>
-        <p><strong>No Auth</strong></p>
-        <p><a href="/gateway?target_server=https://api.github.com">/gateway?target_server=https://api.github.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>OpenAI API</h3>
-        <p><strong>API Key Required</strong></p>
-        <p><a href="/gateway?target_server=https://api.openai.com">/gateway?target_server=https://api.openai.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>Anthropic API</h3>
-        <p><strong>API Key Required</strong></p>
-        <p><a href="/gateway?target_server=https://api.anthropic.com">/gateway?target_server=https://api.anthropic.com</a></p>
-    </div>
-
-    <div class="card">
-        <h3>Google</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>OpenRouter</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>Eleven Labs</h3>
-        <p><strong>API Key Required</strong></p>
-    </div>
-
-    <div class="card">
-        <h3>Vercel</h3>
-        <p><strong>API Key Required</strong></p>
+        <p>Use <code>target_server</code> to select an upstream REST API.</p>
+        <ul>
+            <li><a href="/gateway?target_server=https://api.github.com">GitHub API</a></li>
+            <li><a href="/gateway?target_server=https://api.openai.com">OpenAI API</a></li>
+            <li><a href="/gateway?target_server=https://api.anthropic.com">Anthropic API</a></li>
+            <li><a href="/gateway?target_server=https://www.googleapis.com">Google</a></li>
+            <li><a href="/gateway?target_server=https://openrouter.ai">OpenRouter</a></li>
+            <li><a href="/gateway?target_server=https://api.elevenlabs.io">Eleven Labs</a></li>
+            <li><a href="/gateway?target_server=https://api.vercel.com">Vercel</a></li>
+        </ul>
+        <p><strong>API Key Required</strong> vs <strong>No Auth</strong> depends on the upstream service.</p>
     </div>
 
     <h2>Configured Gateways</h2>
 
-    <ul class="gateway-list">
-        {% for name, config in gateways.items() %}
-        <li>
-            <div class="gateway-name"><a href="/gateway/{{ name }}">{{ name }}</a></div>
-            <div class="gateway-desc">{{ config.description }}</div>
-            <div><a href="/gateway/meta/{{ name }}">View Meta</a></div>
-        </li>
-        {% else %}
-        <li>
-            <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
-        </li>
-        {% endfor %}
-    </ul>
+    {% set mock_server_cid = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w" %}
+
+    <div class="card">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Name</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Server</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Gateway</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Meta</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Test</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Sample</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">External API</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% macro external_api_link(server_name, external_api) -%}
+                    {%- set url = None -%}
+                    {%- set label = None -%}
+
+                    {%- if server_name == "jsonplaceholder" -%}
+                        {%- set url = "https://jsonplaceholder.typicode.com" -%}
+                        {%- set label = "JSONPlaceholder API" -%}
+                    {%- elif server_name == "json_api" -%}
+                        {%- set url = "/servers/" ~ server_name -%}
+                        {%- set label = "Configurable JSON API" -%}
+                    {%- elif server_name in ["man", "tldr"] -%}
+                        {%- set url = "/servers/" ~ server_name -%}
+                        {%- set label = "Local command" -%}
+                    {%- elif server_name in ["hrx", "cids"] -%}
+                        {%- set url = "/servers/" ~ server_name -%}
+                        {%- set label = "Internal content" -%}
+                    {%- elif external_api and (external_api.startswith("http://") or external_api.startswith("https://")) -%}
+                        {%- set url = external_api -%}
+                        {%- if server_name == "github" -%}
+                            {%- set label = "GitHub API" -%}
+                        {%- elif server_name == "stripe" -%}
+                            {%- set label = "Stripe API" -%}
+                        {%- elif server_name == "openai" -%}
+                            {%- set label = "OpenAI API" -%}
+                        {%- elif server_name == "gemini" -%}
+                            {%- set label = "Gemini API" -%}
+                        {%- elif server_name == "teams" -%}
+                            {%- set label = "Microsoft Teams API" -%}
+                        {%- else -%}
+                            {%- set label = server_name|replace('_', ' ')|title ~ " API" -%}
+                        {%- endif -%}
+                    {%- else -%}
+                        {%- set url = "/servers/" ~ server_name -%}
+                        {%- set label = external_api or "External service" -%}
+                    {%- endif -%}
+
+                    <a href="{{ url }}">{{ label }}</a>
+                {%- endmacro %}
+
+                {% for name, config in gateways.items() %}
+                <tr>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                        <span class="gateway-name">{{ name }}</span>
+                        {% if config.description %}
+                        <div class="gateway-desc">{{ config.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/servers/{{ name }}">Server</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ name }}">Gateway</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ name }}">Meta</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ name }}">Test</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/cids/{{ mock_server_cid }}">Sample</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                        {{ external_api_link(name, config.external_api) }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="padding: 0.75rem;">
+                        <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% for server in external_servers or [] %}
+                    {% if server.name and server.name not in gateways %}
+                    <tr>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
+                            <span class="gateway-name">{{ server.name }}</span>
+                            <div class="gateway-desc">External service</div>
+                        </td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/servers/{{ server.name }}">Server</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ server.name }}">Gateway</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ server.name }}">Meta</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ server.name }}">Test</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/cids/{{ mock_server_cid }}">Sample</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;">{{ external_api_link(server.name, server.external_api) }}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

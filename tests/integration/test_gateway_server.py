@@ -125,6 +125,117 @@ def test_gateway_shows_instruction_page(
     assert "test-api" in page
 
 
+def test_gateway_instruction_page_has_link_table_columns(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """Gateway instruction page should include the link table headers."""
+    response = client.get("/gateway", follow_redirects=True)
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Server" in page
+    assert "Gateway" in page
+    assert "Meta" in page
+    assert "Test" in page
+    assert "External API" in page
+
+
+def test_gateway_instruction_page_includes_links_for_builtin_gateways(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """Gateway instruction page should include links for gateways loaded from gateways.source.json."""
+    import json
+
+    from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID, TEST_HRX_ARCHIVE_CID
+
+    with open(
+        "reference/templates/gateways.source.json", "r", encoding="utf-8"
+    ) as f:
+        gateways_config = json.load(f)
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="gateways",
+            definition=json.dumps(gateways_config),
+            enabled=True,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    response = client.get("/gateway", follow_redirects=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+
+    mock_server_cid = TEST_CIDS_ARCHIVE_CID
+
+    assert f"/gateway/test/cids/{mock_server_cid}/as/" in page
+    assert f"/cids/{mock_server_cid}" in page
+    assert f"/gateway/test/cids/{TEST_HRX_ARCHIVE_CID}/as/" not in page
+    assert f"/cids/{TEST_HRX_ARCHIVE_CID}" not in page
+
+    # Non-external (internal-only) gateways
+    for server_name in ("man", "tldr", "hrx", "cids"):
+        assert f"/servers/{server_name}" in page
+        assert f"/gateway/{server_name}" in page
+        assert f"/gateway/meta/{server_name}" in page
+
+        # Table includes a test pattern link that uses a mock CID (no external API)
+        assert (
+            f"/gateway/test/cids/{mock_server_cid}/as/{server_name}" in page
+        )
+
+
+def test_gateways_page_redirects_to_gateway_home(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """/gateways should return the gateway home page content."""
+    response = client.get("/gateways", follow_redirects=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "Gateway Server" in page
+
+
+def test_gateway_instruction_page_includes_external_service_servers(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """Gateway instruction page should include archived external-service servers."""
+    import json
+
+    with open(
+        "reference/templates/gateways.source.json", "r", encoding="utf-8"
+    ) as f:
+        gateways_config = json.load(f)
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="gateways",
+            definition=json.dumps(gateways_config),
+            enabled=True,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    response = client.get("/gateway", follow_redirects=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+
+    # Representative external-service servers backed by reference/archive/cids
+    assert "/servers/github" in page
+    assert "/servers/stripe" in page
+
+    # External API labels should be present when the definition includes a URL
+    assert "GitHub API" in page
+    assert 'href="https://api.github.com"' in page
+
+
 def test_gateway_shows_instruction_page_without_gateways_variable(
     client,
     integration_app,
@@ -166,6 +277,94 @@ def test_gateway_response_form_accessible(
 
     page = response.get_data(as_text=True)
     assert "Response" in page
+
+
+def test_gateway_configured_gateways_server_meta_test_links_respond_without_error(
+    client,
+    integration_app,
+    gateway_server,
+):
+    """All Server/Meta/Test link targets in the Configured Gateways table should work locally.
+
+    This uses Flask's test client (one-shot) and does not involve a browser or
+    outbound HTTP requests.
+    """
+
+    import json
+
+    from reference.templates.servers import get_server_templates
+
+    with open(
+        "reference/templates/gateways.source.json", "r", encoding="utf-8"
+    ) as f:
+        gateways_config = json.load(f)
+
+    with integration_app.app_context():
+        existing = (
+            db.session.query(Variable)
+            .filter_by(name="gateways")
+            .one_or_none()
+        )
+        if existing is None:
+            db.session.add(
+                Variable(
+                    name="gateways",
+                    definition=json.dumps(gateways_config),
+                    enabled=True,
+                )
+            )
+
+        templates = get_server_templates()
+        template_def_by_id = {t.get("id"): t.get("definition") for t in templates}
+
+        for server_name in gateways_config.keys():
+            if db.session.query(Server).filter_by(name=server_name).first():
+                continue
+
+            definition = template_def_by_id.get(server_name)
+            if not definition:
+                # Keep the test strict: if the link exists but server isn't available
+                # from templates, this should surface as a failure when requesting /servers/<name>.
+                continue
+
+            db.session.add(
+                Server(
+                    name=server_name,
+                    definition=definition,
+                    enabled=True,
+                )
+            )
+
+        db.session.commit()
+
+    # Confirm the configured gateways table renders.
+    response = client.get("/gateway", follow_redirects=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "Configured Gateways" in page
+
+    from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID
+
+    mock_server_cid = TEST_CIDS_ARCHIVE_CID
+
+    # Verify each Server/Meta/Test target responds without error.
+    for server_name in gateways_config.keys():
+        server_url = f"/servers/{server_name}"
+        meta_url = f"/gateway/meta/{server_name}"
+        test_url = f"/gateway/test/cids/{mock_server_cid}/as/{server_name}"
+
+        assert f'href="{server_url}"' in page
+        assert f'href="{meta_url}"' in page
+        assert f'href="{test_url}"' in page
+
+        server_response = client.get(server_url, follow_redirects=True)
+        assert server_response.status_code == 200
+
+        meta_response = client.get(meta_url, follow_redirects=True)
+        assert meta_response.status_code == 200
+
+        test_response = client.get(test_url, follow_redirects=True)
+        assert test_response.status_code == 200
 
 
 def test_gateway_meta_page_shows_config(
@@ -323,11 +522,11 @@ def test_gateway_meta_page_shows_templates_section(
     """Meta page should show templates section when templates are configured."""
     import json
     from cid_storage import store_cid_from_bytes
-    
+
     # Create a simple template
     template_content = b"<html><body>{{ test }}</body></html>"
     template_cid = store_cid_from_bytes(template_content)
-    
+
     # Create gateway config with templates
     gateways_config = {
         "test-gateway": {
@@ -338,7 +537,7 @@ def test_gateway_meta_page_shows_templates_section(
             },
         },
     }
-    
+
     with integration_app.app_context():
         variable = Variable(
             name="gateways",
@@ -347,11 +546,11 @@ def test_gateway_meta_page_shows_templates_section(
         )
         db.session.add(variable)
         db.session.commit()
-    
+
     # Visit meta page
     response = client.get("/gateway/meta/test-gateway", follow_redirects=True)
     assert response.status_code == 200
-    
+
     page = response.get_data(as_text=True)
     # Should show Templates section
     assert "Templates" in page
@@ -367,11 +566,11 @@ def test_gateway_meta_page_shows_template_variables(
     """Meta page should show detected template variables."""
     import json
     from cid_storage import store_cid_from_bytes
-    
+
     # Create a template with variables
     template_content = b"<html><body>{{ command }} - {{ message }}</body></html>"
     template_cid = store_cid_from_bytes(template_content)
-    
+
     # Create gateway config with templates
     gateways_config = {
         "test-vars": {
@@ -382,7 +581,7 @@ def test_gateway_meta_page_shows_template_variables(
             },
         },
     }
-    
+
     with integration_app.app_context():
         variable = Variable(
             name="gateways",
@@ -391,11 +590,11 @@ def test_gateway_meta_page_shows_template_variables(
         )
         db.session.add(variable)
         db.session.commit()
-    
+
     # Visit meta page
     response = client.get("/gateway/meta/test-vars", follow_redirects=True)
     assert response.status_code == 200
-    
+
     page = response.get_data(as_text=True)
     # Should show detected variables
     assert "command" in page
@@ -409,7 +608,7 @@ def test_gateway_meta_page_shows_no_templates_message(
 ):
     """Meta page should show message when no templates configured."""
     import json
-    
+
     # Create gateway config without templates
     gateways_config = {
         "no-templates": {
@@ -417,7 +616,7 @@ def test_gateway_meta_page_shows_no_templates_message(
             "response_transform_cid": "FAKE_CID",
         },
     }
-    
+
     with integration_app.app_context():
         variable = Variable(
             name="gateways",
@@ -426,11 +625,11 @@ def test_gateway_meta_page_shows_no_templates_message(
         )
         db.session.add(variable)
         db.session.commit()
-    
+
     # Visit meta page
     response = client.get("/gateway/meta/no-templates", follow_redirects=True)
     assert response.status_code == 200
-    
+
     page = response.get_data(as_text=True)
     # Should show no templates message
     assert "No templates configured" in page or "no templates" in page.lower()
@@ -443,7 +642,7 @@ def test_gateway_template_validation_error(
 ):
     """Meta page should show error for invalid template."""
     import json
-    
+
     # Create gateway config with invalid template CID
     gateways_config = {
         "bad-template": {
@@ -454,7 +653,7 @@ def test_gateway_template_validation_error(
             },
         },
     }
-    
+
     with integration_app.app_context():
         variable = Variable(
             name="gateways",
@@ -463,11 +662,11 @@ def test_gateway_template_validation_error(
         )
         db.session.add(variable)
         db.session.commit()
-    
+
     # Visit meta page
     response = client.get("/gateway/meta/bad-template", follow_redirects=True)
     assert response.status_code == 200
-    
+
     page = response.get_data(as_text=True)
     # Should show error status
     assert "Error" in page or "error" in page.lower()

@@ -2,7 +2,7 @@
   "id": "github",
   "name": "GitHub",
   "description": "List or create issues in a GitHub repository.",
-  "definition_cid": "reference/templates/servers/definitions/github.py",
+  "definition_file": "definitions/github.py",
   "operations": [
     "list_issues",
     "get_issue",

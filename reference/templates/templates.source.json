@@ -9,6 +9,11 @@
       "name": "Cookie Editor alias",
       "description": "Serves the cookie editor interface at /cookies",
       "definition_cid": "reference/templates/aliases/cookies.txt"
+    },
+    "teams-shortcut": {
+      "name": "Teams Alias",
+      "description": "Shortcut alias to Microsoft Teams server",
+      "definition_cid": "reference/templates/aliases/teams.txt"
     }
   },
   "servers": {
@@ -16,6 +21,16 @@
       "name": "Reflect request context",
       "description": "Render the incoming request and context as HTML for debugging",
       "definition_cid": "reference/templates/servers/definitions/reflect.py"
+    },
+    "json_api": {
+      "name": "JSON API",
+      "description": "Browse arbitrary JSON APIs via the JSON API gateway",
+      "definition_cid": "reference/templates/servers/definitions/json_api.py"
+    },
+    "teams": {
+      "name": "Microsoft Teams",
+      "description": "Interact with Microsoft Teams API via Microsoft Graph",
+      "definition_cid": "reference/templates/servers/definitions/microsoft_teams.py"
     },
     "auto-main": {
       "name": "Auto main",
@@ -76,6 +91,11 @@
       "name": "Stripe",
       "description": "List or create customers, list charges, or validate webhooks in Stripe",
       "definition_cid": "reference/templates/servers/definitions/stripe.py"
+    },
+    "servicenow": {
+      "name": "ServiceNow",
+      "description": "Query ServiceNow tables via the REST API",
+      "definition_cid": "reference/templates/servers/definitions/servicenow.py"
     },
     "asana": {
       "name": "Asana",
