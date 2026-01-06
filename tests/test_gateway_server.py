@@ -507,7 +507,9 @@ def test_response_details_source_server(monkeypatch):
         gateway_definition._handle_gateway_request("test", "path", gateways, {})
 
     assert captured_response_details["captured"] is not None
-    assert captured_response_details["captured"]["source"] == "server"
+    captured = captured_response_details["captured"]
+    assert isinstance(captured, dict)
+    assert captured["source"] == "server"
 
 
 def test_response_details_source_request_transform(monkeypatch):
@@ -554,7 +556,9 @@ def test_response_details_source_request_transform(monkeypatch):
         gateway_definition._handle_gateway_request("test", "path", gateways, {})
 
     assert captured_response_details["captured"] is not None
-    assert captured_response_details["captured"]["source"] == "request_transform"
+    captured = captured_response_details["captured"]
+    assert isinstance(captured, dict)
+    assert captured["source"] == "request_transform"
 
 
 # Phase 1: Template Resolver Tests

@@ -118,6 +118,8 @@ def main(
                 status_code=401,
             )
 
+        response = None
+
         # Build request based on operation
         if normalized_operation == "query":
             url = f"https://bigquery.googleapis.com/bigquery/v2/projects/{project_id}/queries"
@@ -135,6 +137,9 @@ def main(
         elif normalized_operation == "list_tables":
             url = f"https://bigquery.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/tables"
             response = api_client.get(url=url, headers=headers, timeout=timeout)
+
+        if response is None:
+            return validation_error("Unsupported operation", field="operation")
 
         if not response.ok:
             return error_output(

@@ -152,20 +152,18 @@ def main(
         )
 
     # Build request based on operation
+    url = ""
+    params: Dict[str, Any] = {}
+    payload = None
+    method = "GET"
     if operation == "list_worksheets":
         url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}/workbook/worksheets"
-        params = {}
-        method = "GET"
-        payload = None
         if dry_run:
             preview = _build_preview(operation=operation, url=url, method=method, payload=None)
             return {"output": preview, "content_type": "application/json"}
 
     elif operation == "get_range":
         url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}/workbook/worksheets/{worksheet_name}/range(address='{range_address}')"
-        params = {}
-        method = "GET"
-        payload = None
         if dry_run:
             preview = _build_preview(operation=operation, url=url, method=method, payload=None)
             return {"output": preview, "content_type": "application/json"}
@@ -177,7 +175,6 @@ def main(
         except json.JSONDecodeError:
             return validation_error("values must be valid JSON array")
         payload = {"values": values_array}
-        params = {}
         method = "PATCH"
         if dry_run:
             preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
@@ -190,7 +187,6 @@ def main(
         except json.JSONDecodeError:
             return validation_error("values must be valid JSON array")
         payload = {"values": values_array}
-        params = {}
         method = "POST"
         if dry_run:
             preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
@@ -202,11 +198,13 @@ def main(
             "address": table_range,
             "hasHeaders": True,
         }
-        params = {}
         method = "POST"
         if dry_run:
             preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
             return {"output": preview, "content_type": "application/json"}
+
+    if not url:
+        return validation_error("Unsupported operation", field="operation")
 
     # Execute request
     headers["Content-Type"] = "application/json"

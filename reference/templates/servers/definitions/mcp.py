@@ -757,7 +757,7 @@ def _execute_tool(server_name: str, tool_name: str, args: Dict, context: Optiona
         path = f"{path}?{query_params}"
 
     # Execute the server
-    result = try_server_execution(path, method="POST", data=args)
+    result = try_server_execution(path)
 
     if result and "output" in result:
         return result["output"]

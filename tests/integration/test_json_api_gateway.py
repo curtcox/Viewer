@@ -55,13 +55,13 @@ def json_api_gateway_config(integration_app):
 
     base_path = os.path.join(os.path.dirname(__file__), '..', '..', 'reference', 'templates', 'gateways')
 
-    with open(os.path.join(base_path, 'transforms', 'json_api_request.py'), 'r') as f:
+    with open(os.path.join(base_path, 'transforms', 'json_api_request.py'), 'r', encoding='utf-8') as f:
         request_transform = f.read()
 
-    with open(os.path.join(base_path, 'transforms', 'json_api_response.py'), 'r') as f:
+    with open(os.path.join(base_path, 'transforms', 'json_api_response.py'), 'r', encoding='utf-8') as f:
         response_transform = f.read()
 
-    with open(os.path.join(base_path, 'templates', 'json_api_data.html'), 'r') as f:
+    with open(os.path.join(base_path, 'templates', 'json_api_data.html'), 'r', encoding='utf-8') as f:
         template_content = f.read()
 
     # Create CIDs for the transforms and template

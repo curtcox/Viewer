@@ -25,7 +25,7 @@ def main(
     run_id: str = "",
     dataset_id: str = "",
     input_data: str = "",
-    format: str = "json",
+    output_format: str = "json",
     timeout: int = 60,
     dry_run: bool = True,
     *,
@@ -43,7 +43,7 @@ def main(
         run_id: Run ID for run-specific operations
         dataset_id: Dataset ID for dataset operations
         input_data: JSON input data for actor run
-        format: Output format for dataset (json, csv, xml)
+        output_format: Output format for dataset (json, csv, xml)
         timeout: Request timeout in seconds (default: 60)
         dry_run: If True, return preview without making actual API call (default: True)
         APIFY_API_TOKEN: API token for authentication (from secrets)
@@ -133,7 +133,7 @@ def main(
             response = client.get(f"{API_BASE_URL}/datasets/{dataset_id}",
                                 headers=headers, params=params)
         elif operation == "download_dataset":
-            download_params = {**params, "format": format}
+            download_params = {**params, "format": output_format}
             response = client.get(f"{API_BASE_URL}/datasets/{dataset_id}/items",
                                 headers=headers, params=download_params)
         elif operation == "delete_dataset":

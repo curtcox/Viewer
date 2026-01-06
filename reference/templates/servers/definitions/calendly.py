@@ -107,6 +107,7 @@ def main(
     base_url = "https://api.calendly.com"
     method = "GET"
     payload = None
+    url = ""
 
     if operation == "get_user":
         url = f"{base_url}/users/me"
@@ -142,6 +143,9 @@ def main(
         url = f"{base_url}/scheduled_events/{event_uuid}/cancellation"
         method = "POST"
         payload = {"reason": "Cancelled via API"}
+
+    if not url:
+        return validation_error("Unsupported operation", field="operation")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

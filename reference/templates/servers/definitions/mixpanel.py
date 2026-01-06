@@ -97,6 +97,8 @@ def main(
     api_client = client or _DEFAULT_CLIENT
 
     try:
+        data = []
+        url = ""
         # Build payload based on operation
         if normalized_operation == "track":
             payload = {
@@ -133,6 +135,9 @@ def main(
             }
             url = "https://api.mixpanel.com/import"
             data = [payload]
+
+        if not url:
+            return validation_error("Unsupported operation", field="operation")
 
         # Encode data as base64 for Mixpanel API
         encoded_data = base64.b64encode(json.dumps(data).encode()).decode()
