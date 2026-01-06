@@ -299,6 +299,14 @@ def given_echo_server_available() -> None:
     )
 
 
+@step("Given the reflect server is available")
+def given_reflect_server_available() -> None:
+    """Ensure the reflect server is available in the workspace."""
+    _create_server_from_definition_file(
+        "reflect", "reference/templates/servers/definitions/reflect.py"
+    )
+
+
 @step("Given the shell server is available")
 def given_shell_server_available() -> None:
     """Ensure the shell server is available in the workspace."""
@@ -311,6 +319,12 @@ def given_shell_server_available() -> None:
 def when_i_request_echo_resource() -> None:
     """Request the echo resource."""
     _perform_get_request("/echo")
+
+
+@step("When I request the resource /reflect")
+def when_i_request_reflect_resource() -> None:
+    """Request the reflect resource."""
+    _perform_get_request("/reflect")
 
 
 @step("When I request the resource /shell")

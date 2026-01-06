@@ -2,9 +2,9 @@
 
 These tests verify that servers loaded from the default boot CID work correctly.
 
-## Echo server returns HTML output
-* Given the echo server is available
-* When I request the resource /echo
+## Reflect server returns HTML output
+* Given the reflect server is available
+* When I request the resource /reflect
 * Then the response status should be 200
 * And the response content type should be text/html
 * And the page should contain "request"
