@@ -25,4 +25,3 @@ def test_cost_estimate_returns_float(memory_db_app, memory_client):
         follow_redirects=True,
     )
     assert float(response_with_inputs.get_data(as_text=True)) > float(output)
-

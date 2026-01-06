@@ -34,22 +34,22 @@ def sign_request(
     """
     # Parse URL
     parsed = urlparse(url)
-    
+
     # Get timestamp
     now = datetime.now(timezone.utc)
     x_ms_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-    
+
     # Add required headers
     request_headers = dict(headers)
     request_headers["x-ms-date"] = x_ms_date
     request_headers["x-ms-version"] = request_headers.get("x-ms-version", "2021-08-06")
-    
+
     # Build canonicalized headers
     canonicalized_headers = _build_canonicalized_headers(request_headers)
-    
+
     # Build canonicalized resource
     canonicalized_resource = _build_canonicalized_resource(account_name, parsed.path, parsed.query)
-    
+
     # Build string to sign
     content_encoding = request_headers.get("Content-Encoding", "")
     content_language = request_headers.get("Content-Language", "")
@@ -61,7 +61,7 @@ def sign_request(
     if_none_match = request_headers.get("If-None-Match", "")
     if_unmodified_since = request_headers.get("If-Unmodified-Since", "")
     range_header = request_headers.get("Range", "")
-    
+
     string_to_sign = "\n".join([
         method.upper(),
         content_encoding,
@@ -78,25 +78,25 @@ def sign_request(
         canonicalized_headers,
         canonicalized_resource,
     ])
-    
+
     # Sign the string
     decoded_key = base64.b64decode(account_key)
     signature = base64.b64encode(
         hmac.new(decoded_key, string_to_sign.encode("utf-8"), hashlib.sha256).digest()
     ).decode("utf-8")
-    
+
     # Add authorization header
     request_headers["Authorization"] = f"SharedKey {account_name}:{signature}"
-    
+
     return request_headers
 
 
 def _build_canonicalized_headers(headers: Dict[str, str]) -> str:
     """Build the canonicalized headers string.
-    
+
     Args:
         headers: Dictionary of request headers
-        
+
     Returns:
         Canonicalized headers string
     """
@@ -106,27 +106,27 @@ def _build_canonicalized_headers(headers: Dict[str, str]) -> str:
         for k, v in headers.items()
         if k.lower().startswith("x-ms-")
     }
-    
+
     sorted_headers = sorted(x_ms_headers.items())
-    
+
     # Build canonicalized string
     return "\n".join(f"{k}:{v}" for k, v in sorted_headers)
 
 
 def _build_canonicalized_resource(account_name: str, path: str, query: str) -> str:
     """Build the canonicalized resource string.
-    
+
     Args:
         account_name: Azure storage account name
         path: URL path
         query: URL query string
-        
+
     Returns:
         Canonicalized resource string
     """
     # Start with account and path
     canonicalized_resource = f"/{account_name}{path}"
-    
+
     # Add query parameters if present
     if query:
         # Parse and sort query parameters
@@ -145,7 +145,7 @@ def _build_canonicalized_resource(account_name: str, path: str, query: str) -> s
                         params[key] = [params[key], value]
                 else:
                     params[key] = value
-        
+
         # Sort and format parameters
         sorted_params = sorted(params.items())
         for key, value in sorted_params:
@@ -154,5 +154,5 @@ def _build_canonicalized_resource(account_name: str, path: str, query: str) -> s
                 canonicalized_resource += f"\n{key}:{','.join(value)}"
             else:
                 canonicalized_resource += f"\n{key}:{value}"
-    
+
     return canonicalized_resource

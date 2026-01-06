@@ -98,4 +98,3 @@ def test_execute_path_limits_redirect_loops(monkeypatch):
     assert status == 302
     assert headers.get("Location") == "/loop"
     assert len(calls) == 2
-

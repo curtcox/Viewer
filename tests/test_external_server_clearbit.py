@@ -69,7 +69,7 @@ def test_request_exception_returns_error():
     mock_response.status_code = 500
     mock_response.text = "Server error"
     mock_client.get.side_effect = requests.RequestException(response=mock_response)
-    
+
     result = clearbit.main(
         operation="enrich_company", domain="example.com",
         CLEARBIT_API_KEY="test_key",
@@ -85,7 +85,7 @@ def test_successful_request_returns_data():
     mock_response.json.return_value = {"result": "success", "data": {"id": "123"}}
     mock_response.raise_for_status = Mock()
     mock_client.get.return_value = mock_response
-    
+
     result = clearbit.main(
         operation="enrich_company", domain="example.com",
         CLEARBIT_API_KEY="test_key",

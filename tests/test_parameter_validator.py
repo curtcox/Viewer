@@ -95,7 +95,7 @@ class TestParameterValidator:
             "create_issue": ["title", "body"],
             "get_issue": ["issue_id"],
         })
-        
+
         assert set(validator.get_required_params("create_issue")) == {"title", "body"}
         assert validator.get_required_params("get_issue") == ["issue_id"]
         assert validator.get_required_params("unknown") == []
@@ -150,19 +150,19 @@ class TestParameterValidatorIntegration:
             "get_issue": ["owner", "repo", "issue_number"],
             "create_issue": ["owner", "repo", "title"],
         })
-        
+
         # list_issues - valid
         assert validator.validate_required(
             "list_issues",
             {"owner": "github", "repo": "hub"},
         ) is None
-        
+
         # get_issue - valid
         assert validator.validate_required(
             "get_issue",
             {"owner": "github", "repo": "hub", "issue_number": 123},
         ) is None
-        
+
         # create_issue - missing title
         error = validator.validate_required(
             "create_issue",
@@ -179,16 +179,16 @@ class TestParameterValidatorIntegration:
             "get_object": ["bucket", "key"],
             "put_object": ["bucket", "key", "body"],
         })
-        
+
         # list_buckets - no requirements
         assert validator.validate_required("list_buckets", {}) is None
-        
+
         # list_objects - valid
         assert validator.validate_required(
             "list_objects",
             {"bucket": "my-bucket"},
         ) is None
-        
+
         # get_object - missing key
         error = validator.validate_required(
             "get_object",
@@ -203,13 +203,13 @@ class TestParameterValidatorIntegration:
             "insert_one": ["collection", "document"],
             "update_one": ["collection", "filter", "update"],
         })
-        
+
         # find - valid
         assert validator.validate_required(
             "find",
             {"collection": "users"},
         ) is None
-        
+
         # update_one - valid
         assert validator.validate_required(
             "update_one",
@@ -300,7 +300,7 @@ class TestParameterValidatorUsagePatterns:
         validator = ParameterValidator({
             "send_email": ["to", "subject", "body"],
         })
-        
+
         # Simulate server function
         def send_email(to="", subject="", body=""):
             error = validator.validate_required(
@@ -310,11 +310,11 @@ class TestParameterValidatorUsagePatterns:
             if error:
                 return error
             return {"output": "Email sent"}
-        
+
         # Valid call
         result = send_email("user@example.com", "Hello", "Message")
         assert result == {"output": "Email sent"}
-        
+
         # Invalid call
         result = send_email("user@example.com", "Hello", "")
         assert "error" in result["output"]
@@ -324,14 +324,14 @@ class TestParameterValidatorUsagePatterns:
         validator = ParameterValidator({
             "create_user": ["username", "email"],
         })
-        
+
         def create_user(username="", email="", role="user"):
             # Common pattern: use locals() to pass all parameters
             error = validator.validate_required("create_user", locals())
             if error:
                 return error
             return {"output": f"Created {username}"}
-        
+
         result = create_user("john", "john@example.com")
         assert "Created john" in result["output"]
 
@@ -342,7 +342,7 @@ class TestParameterValidatorUsagePatterns:
             "authenticate_password": ["username", "password"],
             "authenticate_token": ["token"],
         })
-        
+
         def authenticate(method, username="", password="", token=""):
             error = validator.validate_required(
                 f"authenticate_{method}",
@@ -351,11 +351,11 @@ class TestParameterValidatorUsagePatterns:
             if error:
                 return error
             return {"output": "Authenticated"}
-        
+
         # Password auth
         result = authenticate("password", "user", "pass123")
         assert result == {"output": "Authenticated"}
-        
+
         # Token auth
         result = authenticate("token", token="abc123")
         assert result == {"output": "Authenticated"}

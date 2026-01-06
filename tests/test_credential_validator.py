@@ -144,7 +144,7 @@ class TestCredentialValidatorIntegration:
             OAUTH_TOKEN="oauth-token-123",
         )
         assert error is None
-        
+
         # With API key
         error = CredentialValidator.require_one_of(
             API_KEY="api-key-123",
@@ -160,7 +160,7 @@ class TestCredentialValidatorEdgeCases:
         """Test that both empty string and None are treated as missing."""
         error1 = CredentialValidator.require_secret("", "KEY")
         error2 = CredentialValidator.require_secret(None, "KEY")
-        
+
         assert error1 is not None
         assert error2 is not None
         assert "Missing KEY" in error1["output"]["error"]
@@ -196,7 +196,7 @@ class TestCredentialValidatorEdgeCases:
         """Test require_one_of with only one option."""
         error = CredentialValidator.require_one_of(API_KEY="my-key")
         assert error is None
-        
+
         error = CredentialValidator.require_one_of(API_KEY="")
         assert error is not None
 

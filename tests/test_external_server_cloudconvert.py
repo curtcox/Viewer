@@ -204,7 +204,7 @@ def test_request_exception_returns_error():
     mock_response.status_code = 500
     mock_response.text = "Server error"
     mock_client.post.side_effect = requests.RequestException(response=mock_response)
-    
+
     result = cloudconvert.main(
         operation="create_job",
         input_format="pdf",
@@ -223,7 +223,7 @@ def test_successful_create_job_request_returns_data():
     mock_response.json.return_value = {"job_id": "abc123", "status": "processing"}
     mock_response.raise_for_status = Mock()
     mock_client.post.return_value = mock_response
-    
+
     result = cloudconvert.main(
         operation="create_job",
         input_format="pdf",
@@ -243,7 +243,7 @@ def test_successful_get_job_request_returns_data():
     mock_response.json.return_value = {"job_id": "job123", "status": "finished"}
     mock_response.raise_for_status = Mock()
     mock_client.get.return_value = mock_response
-    
+
     result = cloudconvert.main(
         operation="get_job",
         job_id="job123",
@@ -261,7 +261,7 @@ def test_successful_list_jobs_request_returns_data():
     mock_response.json.return_value = {"jobs": [{"job_id": "job1"}, {"job_id": "job2"}]}
     mock_response.raise_for_status = Mock()
     mock_client.get.return_value = mock_response
-    
+
     result = cloudconvert.main(
         operation="list_jobs",
         CLOUDCONVERT_API_KEY="test_key",

@@ -16,10 +16,10 @@ class TestHandleRequestException:
         """Test handling exception with status code."""
         mock_response = Mock()
         mock_response.status_code = 404
-        
+
         exc = requests.RequestException()
         exc.response = mock_response
-        
+
         result = ResponseHandler.handle_request_exception(exc)
         assert "output" in result
         assert "error" in result["output"]
@@ -29,7 +29,7 @@ class TestHandleRequestException:
         """Test handling exception without response object."""
         exc = requests.RequestException("Connection failed")
         result = ResponseHandler.handle_request_exception(exc)
-        
+
         assert "output" in result
         assert "error" in result["output"]
         assert result["output"]["status_code"] == 500
@@ -38,7 +38,7 @@ class TestHandleRequestException:
         """Test that exception message is preserved in details."""
         exc = requests.RequestException("Connection timeout")
         result = ResponseHandler.handle_request_exception(exc)
-        
+
         assert "details" in result["output"]
         assert "Connection timeout" in result["output"]["details"]
 
@@ -46,7 +46,7 @@ class TestHandleRequestException:
         """Test handling exception with None response."""
         exc = requests.RequestException()
         exc.response = None
-        
+
         result = ResponseHandler.handle_request_exception(exc)
         assert result["output"]["status_code"] == 500
 
@@ -59,7 +59,7 @@ class TestHandleJsonResponse:
         mock_response = Mock()
         mock_response.ok = True
         mock_response.json.return_value = {"data": "value"}
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert "output" in result
         assert result["output"] == {"data": "value"}
@@ -70,7 +70,7 @@ class TestHandleJsonResponse:
         mock_response.ok = False
         mock_response.status_code = 400
         mock_response.json.return_value = {"error": "Bad request"}
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert "output" in result
         assert "error" in result["output"]
@@ -82,7 +82,7 @@ class TestHandleJsonResponse:
         mock_response.status_code = 200
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "Not JSON content"
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert "output" in result
         assert "error" in result["output"]
@@ -96,10 +96,10 @@ class TestHandleJsonResponse:
         mock_response.json.return_value = {
             "error": {"message": "Custom error", "code": 1001}
         }
-        
+
         def extract_error(data):
             return data["error"]["message"]
-        
+
         result = ResponseHandler.handle_json_response(mock_response, extract_error)
         assert "output" in result
         assert "error" in result["output"]
@@ -111,11 +111,11 @@ class TestHandleJsonResponse:
         mock_response.ok = False
         mock_response.status_code = 500
         mock_response.json.return_value = {"status": "error"}
-        
+
         def extract_error(data):
             # Returns None if message not found
             return data.get("message")
-        
+
         result = ResponseHandler.handle_json_response(mock_response, extract_error)
         assert "output" in result
         assert "error" in result["output"]
@@ -128,7 +128,7 @@ class TestHandleJsonResponse:
         mock_response.status_code = 200
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "x" * 1000  # 1000 characters
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert "details" in result["output"]
         assert len(result["output"]["details"]) <= 500
@@ -141,20 +141,20 @@ class TestCheckResponseOk:
         """Test checking OK response."""
         mock_response = Mock()
         mock_response.ok = True
-        
+
         assert ResponseHandler.check_response_ok(mock_response) is True
 
     def test_not_ok_response(self):
         """Test checking not OK response."""
         mock_response = Mock()
         mock_response.ok = False
-        
+
         assert ResponseHandler.check_response_ok(mock_response) is False
 
     def test_response_without_ok_attribute(self):
         """Test response without ok attribute."""
         mock_response = Mock(spec=[])  # No attributes
-        
+
         assert ResponseHandler.check_response_ok(mock_response) is False
 
 
@@ -165,7 +165,7 @@ class TestExtractJsonOrError:
         """Test extracting valid JSON."""
         mock_response = Mock()
         mock_response.json.return_value = {"data": "value"}
-        
+
         data, error = ResponseHandler.extract_json_or_error(mock_response)
         assert data == {"data": "value"}
         assert error is None
@@ -176,7 +176,7 @@ class TestExtractJsonOrError:
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.status_code = 200
         mock_response.text = "Not JSON"
-        
+
         data, error = ResponseHandler.extract_json_or_error(mock_response)
         assert data is None
         assert error is not None
@@ -186,7 +186,7 @@ class TestExtractJsonOrError:
         """Test extracting empty JSON object."""
         mock_response = Mock()
         mock_response.json.return_value = {}
-        
+
         data, error = ResponseHandler.extract_json_or_error(mock_response)
         assert data == {}
         assert error is None
@@ -195,7 +195,7 @@ class TestExtractJsonOrError:
         """Test extracting JSON array."""
         mock_response = Mock()
         mock_response.json.return_value = [1, 2, 3]
-        
+
         data, error = ResponseHandler.extract_json_or_error(mock_response)
         assert data == [1, 2, 3]
         assert error is None
@@ -213,7 +213,7 @@ class TestResponseHandlerIntegration:
             "title": "Test Issue",
             "state": "open",
         }
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert result["output"]["id"] == 1
         assert result["output"]["title"] == "Test Issue"
@@ -227,10 +227,10 @@ class TestResponseHandlerIntegration:
             "message": "Not Found",
             "documentation_url": "https://docs.github.com",
         }
-        
+
         def extract_github_error(data):
             return data.get("message", "GitHub API error")
-        
+
         result = ResponseHandler.handle_json_response(
             mock_response, extract_github_error
         )
@@ -248,10 +248,10 @@ class TestResponseHandlerIntegration:
                 "Message": "Access Denied",
             }
         }
-        
+
         def extract_aws_error(data):
             return data.get("Error", {}).get("Message", "AWS API error")
-        
+
         result = ResponseHandler.handle_json_response(
             mock_response, extract_aws_error
         )
@@ -261,7 +261,7 @@ class TestResponseHandlerIntegration:
         """Test common request exception handling pattern."""
         exc = requests.ConnectionError("Failed to connect")
         result = ResponseHandler.handle_request_exception(exc)
-        
+
         assert "output" in result
         assert "error" in result["output"]
         assert result["output"]["error"] == "Request failed"
@@ -276,7 +276,7 @@ class TestResponseHandlerEdgeCases:
         mock_response = Mock()
         mock_response.ok = True
         mock_response.json.return_value = {"key": None, "value": "test"}
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert result["output"]["key"] is None
         assert result["output"]["value"] == "test"
@@ -292,7 +292,7 @@ class TestResponseHandlerEdgeCases:
                 {"field": "password", "message": "Too short"},
             ]
         }
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert "response" in result["output"]
         assert result["output"]["response"]["errors"]
@@ -302,7 +302,7 @@ class TestResponseHandlerEdgeCases:
         mock_response = Mock()
         mock_response.ok = True
         mock_response.json.return_value = {"message": "Hello 世界 🌍"}
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert result["output"]["message"] == "Hello 世界 🌍"
 
@@ -311,6 +311,6 @@ class TestResponseHandlerEdgeCases:
         mock_response = Mock()
         mock_response.ok = True
         mock_response.json.return_value = {"data": "x" * 10000}
-        
+
         result = ResponseHandler.handle_json_response(mock_response)
         assert len(result["output"]["data"]) == 10000

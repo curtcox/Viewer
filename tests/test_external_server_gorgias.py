@@ -28,7 +28,7 @@ class FakeClient:
             raise self.exc
         return self.response
 
-def test_missing_required(): 
+def test_missing_required():
     assert gorgias.main(domain="", email="a@b.com", GORGIAS_API_KEY="key")["output"]["error"]["message"] == "Missing required domain"
     assert gorgias.main(domain="test", email="", GORGIAS_API_KEY="key")["output"]["error"]["message"] == "Missing required email"
     assert gorgias.main(domain="test", email="a@b.com", GORGIAS_API_KEY="", dry_run=False)["output"]["error"] == "Missing GORGIAS_API_KEY"

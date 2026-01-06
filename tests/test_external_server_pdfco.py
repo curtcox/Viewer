@@ -60,7 +60,7 @@ def test_request_exception_returns_error():
     mock_response.status_code = 500
     mock_response.text = "Server error"
     mock_client.post.side_effect = requests.RequestException(response=mock_response)
-    
+
     result = pdfco.main(
         operation="pdf_to_text", url="https://example.com/doc.pdf",
         PDFCO_API_KEY="test_key",
@@ -76,7 +76,7 @@ def test_successful_request_returns_data():
     mock_response.json.return_value = {"result": "success", "data": {"id": "123"}}
     mock_response.raise_for_status = Mock()
     mock_client.post.return_value = mock_response
-    
+
     result = pdfco.main(
         operation="pdf_to_text", url="https://example.com/doc.pdf",
         PDFCO_API_KEY="test_key",
