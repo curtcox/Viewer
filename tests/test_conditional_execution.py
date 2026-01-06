@@ -8,6 +8,7 @@ from server_execution.conditional_execution import (
     parse_do_segments,
     parse_if_segments,
     parse_try_segments,
+    _execute_path,
 )
 
 
@@ -69,4 +70,32 @@ def test_error_detection_with_status_response():
     assert detected is True
     assert message == "bad"
     assert status == 500
+
+
+def test_execute_path_limits_redirect_loops(monkeypatch):
+    redirect_response = Response("redirect", status=302)
+    redirect_response.headers["Location"] = "/loop"
+
+    calls: list[str] = []
+
+    def fake_evaluate(path):
+        calls.append(path)
+        return redirect_response
+
+    monkeypatch.setattr(
+        "server_execution.conditional_execution.evaluate_nested", fake_evaluate
+    )
+    monkeypatch.setattr(
+        "server_execution.conditional_execution.try_server_execution",
+        lambda path: None,
+    )
+
+    output = _execute_path(["loop"], max_redirects=3)
+
+    assert isinstance(output, tuple)
+    body, status, headers = output
+    assert body == "redirect"
+    assert status == 302
+    assert headers.get("Location") == "/loop"
+    assert len(calls) == 2
 

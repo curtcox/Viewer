@@ -139,34 +139,48 @@ def parse_try_segments(segments: Sequence[str]) -> TryPathParts:
     return TryPathParts(try_path=try_path, catch_path=catch_path)
 
 
-def _execute_path(path_segments: Optional[Sequence[str]]) -> Any:
+def _execute_path(path_segments: Optional[Sequence[str]], max_redirects: int = 10) -> Any:
     if not path_segments:
         return ""
 
-    path = "/" + "/".join(path_segments)
-    nested_value = evaluate_nested(path)
-    if nested_value is not None:
-        if isinstance(nested_value, Response):
-            return (
-                nested_value.get_data(as_text=True),
-                nested_value.status_code,
-                nested_value.headers,
-            )
-        return nested_value
+    current_path = "/" + "/".join(path_segments)
+    visited: set[str] = set()
+    redirects = 0
 
-    response = try_server_execution(path)
-    if response is not None and 300 <= response.status_code < 400:
-        location = response.headers.get("Location") or ""
-        if location:
-            return evaluate_nested(location)
-    if response is not None:
+    while True:
+        response: Optional[Response] = None
+        nested_value = evaluate_nested(current_path)
+
+        if nested_value is not None:
+            if isinstance(nested_value, Response):
+                response = nested_value
+            else:
+                return nested_value
+        else:
+            response = try_server_execution(current_path)
+
+        if response is None:
+            return nested_value
+
+        if 300 <= response.status_code < 400:
+            location = response.headers.get("Location") or ""
+            if not location or redirects >= max_redirects or location in visited:
+                return (
+                    response.get_data(as_text=True),
+                    response.status_code,
+                    response.headers,
+                )
+
+            redirects += 1
+            visited.add(location)
+            current_path = location
+            continue
+
         return (
             response.get_data(as_text=True),
             response.status_code,
             response.headers,
         )
-
-    return nested_value
 
 
 def _normalize_result(result: Any) -> tuple[str, str, int]:
