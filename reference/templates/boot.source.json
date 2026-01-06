@@ -1154,6 +1154,26 @@
       "name": "uptimerobot",
       "definition_cid": "reference/templates/servers/definitions/uptimerobot.py",
       "enabled": true
+    },
+    {
+      "name": "if",
+      "definition_cid": "reference/templates/servers/definitions/if.py",
+      "enabled": true
+    },
+    {
+      "name": "do",
+      "definition_cid": "reference/templates/servers/definitions/do.py",
+      "enabled": true
+    },
+    {
+      "name": "try",
+      "definition_cid": "reference/templates/servers/definitions/try.py",
+      "enabled": true
+    },
+    {
+      "name": "cost_estimate",
+      "definition_cid": "reference/templates/servers/definitions/cost_estimate.py",
+      "enabled": true
     }
   ],
   "variables": [

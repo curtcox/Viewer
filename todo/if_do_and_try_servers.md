@@ -747,18 +747,18 @@ The inner `if` keywords (`then`, `else`) are part of the true-path and will be p
 
 ## Implementation Order
 
-1. Create shared conditional execution module with path parsing
-2. Implement truthiness evaluation and error detection
-3. Create cost_estimate server with placeholder implementation
-4. Create if server with identity behavior
-5. Add if/then/else logic with balanced parsing
-6. Create do server with identity behavior
-7. Add do/while logic with triple limits (cost, time, iterations)
-8. Create try server with identity behavior
-9. Add try/catch logic with error headers
-10. Add all servers to boot images
-11. Write unit tests (ongoing)
-12. Write integration tests
+1. [x] Create shared conditional execution module with path parsing
+2. [x] Implement truthiness evaluation and error detection
+3. [x] Create cost_estimate server with placeholder implementation
+4. [x] Create if server with identity behavior
+5. [x] Add if/then/else logic with balanced parsing
+6. [x] Create do server with identity behavior
+7. [x] Add do/while logic with triple limits (cost, time, iterations)
+8. [x] Create try server with identity behavior
+9. [x] Add try/catch logic with error headers
+10. [x] Add all servers to boot images
+11. [x] Write unit tests (ongoing)
+12. [x] Write integration tests
 
 ---
 

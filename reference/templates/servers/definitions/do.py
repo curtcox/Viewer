@@ -1,0 +1,13 @@
+"""Looping server implementing do/while semantics."""
+
+from server_execution import _remaining_path_segments
+from server_execution.conditional_execution import parse_do_segments, run_do_loop
+
+
+def main(context=None):
+    segments = _remaining_path_segments("do")
+    parts = parse_do_segments(segments)
+    if parts.test_path is None and not parts.implicit_test:
+        return run_do_loop(parts)
+    return run_do_loop(parts)
+
