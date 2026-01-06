@@ -331,7 +331,7 @@ jobs:
         run: ./scripts/checks/run_unit_tests_impacted.sh
       - name: Run full unit tests with coverage
         id: run_tests
-        if: success()
+        if: always()
         run: |
           STATUS=0
           ./scripts/checks/run_unit_tests_full.sh || STATUS=$?
@@ -352,11 +352,12 @@ jobs:
           name: coverage-xml
           path: coverage.xml
       - name: Upload HTML coverage report
-        if: always() && steps.coverage.outputs.generated == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-tests-html
           path: htmlcov
+          if-no-files-found: warn
       - name: Fail if tests failed
         if: steps.run_impacted_tests.outcome == 'failure' || steps.run_tests.outputs.status != '0'
         run: exit 1
