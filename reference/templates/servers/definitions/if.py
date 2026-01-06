@@ -1,3 +1,4 @@
+# ruff: noqa: F821
 """Conditional branching server (if/then/else)."""
 
 from server_execution import _remaining_path_segments

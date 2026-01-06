@@ -1,3 +1,4 @@
+# ruff: noqa: F821
 """Exception handling server (try/catch)."""
 
 from server_execution import _remaining_path_segments

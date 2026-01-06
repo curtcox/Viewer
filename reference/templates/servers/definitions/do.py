@@ -1,3 +1,4 @@
+# ruff: noqa: F821
 """Looping server implementing do/while semantics."""
 
 from server_execution import _remaining_path_segments

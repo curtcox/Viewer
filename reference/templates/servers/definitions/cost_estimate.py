@@ -1,3 +1,4 @@
+# ruff: noqa: F821
 """Placeholder cost estimation server used by looping control flow."""
 
 from server_execution.conditional_execution import _cost_estimate_cents
