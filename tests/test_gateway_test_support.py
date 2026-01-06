@@ -3,8 +3,11 @@
 import os
 
 
-# CID for the test archive
-TEST_ARCHIVE_CID = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A"
+# CID for the HRX test archive
+TEST_HRX_ARCHIVE_CID = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A"
+
+# CID for the CIDS test archive
+TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
 
 
 # Test parsing of test server paths from URL
@@ -128,7 +131,7 @@ class TestAliasDefinition:
     
     def test_alias_definition_format(self):
         """Test that the alias definition has the correct format."""
-        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r") as f:
+        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r", encoding="utf-8") as f:
             content = f.read().strip()
         
         # Should contain the pattern
@@ -139,11 +142,11 @@ class TestAliasDefinition:
     
     def test_alias_uses_correct_cid(self):
         """Test that the alias references the correct CID."""
-        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r") as f:
+        with open("reference/templates/aliases/local_jsonplaceholder.txt", "r", encoding="utf-8") as f:
             content = f.read().strip()
         
         # Should contain the CID we created
-        assert TEST_ARCHIVE_CID in content
+        assert TEST_HRX_ARCHIVE_CID in content
 
 
 class TestCIDArchive:
@@ -151,14 +154,14 @@ class TestCIDArchive:
     
     def test_cid_file_exists(self):
         """Test that the CID archive file was created."""
-        path = f"cids/{TEST_ARCHIVE_CID}"
+        path = f"cids/{TEST_HRX_ARCHIVE_CID}"
         assert os.path.exists(path), f"CID archive should exist at {path}"
     
     def test_cid_file_is_hrx(self):
         """Test that the CID file contains HRX format data."""
-        path = f"cids/{TEST_ARCHIVE_CID}"
+        path = f"cids/{TEST_HRX_ARCHIVE_CID}"
         
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         
         # Should contain HRX boundary markers
@@ -168,12 +171,31 @@ class TestCIDArchive:
     
     def test_cid_contains_jsonplaceholder_data(self):
         """Test that the CID contains jsonplaceholder test data."""
-        path = f"cids/{TEST_ARCHIVE_CID}"
+        path = f"cids/{TEST_HRX_ARCHIVE_CID}"
         
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         
         # Should contain sample posts and users
         assert "/posts" in content
         assert "/users" in content
         assert "userId" in content or "username" in content
+
+
+class TestCIDSArchive:
+    """Test the CIDS archive used for gateway link examples."""
+
+    def test_cids_archive_file_exists(self):
+        path = f"cids/{TEST_CIDS_ARCHIVE_CID}"
+        assert os.path.exists(path), f"CIDS archive should exist at {path}"
+
+    def test_cids_archive_format(self):
+        path = f"cids/{TEST_CIDS_ARCHIVE_CID}"
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        assert "<==>" not in content
+        # Expect CIDS-style mapping lines
+        assert "posts/1 " in content
+        assert "users/1 " in content
+        assert ".json" in content

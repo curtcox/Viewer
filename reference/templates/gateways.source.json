@@ -80,5 +80,133 @@
         }
       }
     }
+  },
+  "github": {
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
+    "description": "GitHub API via JSON API gateway",
+    "external_api": "https://api.github.com",
+    "templates": {
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "base_url_strip": "https://api.github.com",
+        "gateway_prefix": "/gateway/github"
+      },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": [
+          "url",
+          "*_url",
+          "*_path",
+          "href"
+        ],
+        "gateway_prefix": "/gateway/github"
+      },
+      "id_reference": {
+        "enabled": true,
+        "patterns": {
+          "login": "/gateway/github/users/{id}"
+        }
+      },
+      "composite_reference": {
+        "enabled": true,
+        "patterns": {
+          "number": {
+            "context_regex": "repos/(?P<owner>[^/]+)/(?P<repo>[^/]+)/(issues|pulls)$",
+            "url_template": "/gateway/github/repos/{owner}/{repo}/issues/{id}"
+          }
+        }
+      }
+    }
+  },
+  "teams": {
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
+    "description": "Microsoft Teams (Graph) via JSON API gateway",
+    "external_api": "https://graph.microsoft.com",
+    "templates": {
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "base_url_strip": "https://graph.microsoft.com/v1.0",
+        "gateway_prefix": "/gateway/teams"
+      },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": [
+          "url",
+          "*_url",
+          "*_path",
+          "href"
+        ],
+        "gateway_prefix": "/gateway/teams"
+      }
+    }
+  },
+  "stripe": {
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
+    "description": "Stripe API via JSON API gateway",
+    "external_api": "https://api.stripe.com",
+    "templates": {
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "base_url_strip": "https://api.stripe.com/v1",
+        "gateway_prefix": "/gateway/stripe"
+      },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": [
+          "url",
+          "*_url",
+          "*_path",
+          "href"
+        ],
+        "gateway_prefix": "/gateway/stripe"
+      },
+      "id_reference": {
+        "enabled": true,
+        "patterns": {
+          "customer": "/gateway/stripe/customers/{id}",
+          "payment_intent": "/gateway/stripe/payment_intents/{id}",
+          "invoice": "/gateway/stripe/invoices/{id}",
+          "subscription": "/gateway/stripe/subscriptions/{id}"
+        }
+      }
+    }
+  },
+  "servicenow": {
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
+    "description": "ServiceNow API via JSON API gateway",
+    "external_api": "https://service-now.com",
+    "templates": {
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
+    },
+    "link_detection": {
+      "full_url": {
+        "enabled": true,
+        "gateway_prefix": "/gateway/servicenow"
+      },
+      "partial_url": {
+        "enabled": true,
+        "key_patterns": [
+          "url",
+          "*_url",
+          "*_path",
+          "href",
+          "link"
+        ],
+        "gateway_prefix": "/gateway/servicenow"
+      }
+    }
   }
 }

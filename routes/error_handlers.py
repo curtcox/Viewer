@@ -1,7 +1,7 @@
 """Error handler functions for HTTP errors."""
 
 from pathlib import Path
-from flask import current_app, render_template, request
+from flask import current_app, redirect, render_template, request
 
 from alias_routing import is_potential_alias_path, try_alias_redirect
 from cid_utils import serve_cid_content
@@ -49,6 +49,10 @@ def not_found_error(error):  # pylint: disable=unused-argument  # Required by Fl
     """
     path = request.path
     existing_routes = get_existing_routes()
+
+    debug_value = request.args.get("debug")
+    if isinstance(debug_value, str) and debug_value.strip() and not should_return_debug_response(request):
+        return redirect(path)
 
     if should_return_debug_response(request):
         result = execute_pipeline(path, debug=True)

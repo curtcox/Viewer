@@ -22,6 +22,11 @@
       "name": "help",
       "definition_cid": "AAAAAAAOaGVscCAtPiAvaGVscAo",
       "enabled": true
+    },
+    {
+      "name": "teams",
+      "definition_cid": "AAAAAAAadGVhbXMgLT4gL21pY3Jvc29mdF90ZWFtcwo",
+      "enabled": true
     }
   ],
   "servers": [
@@ -57,17 +62,17 @@
     },
     {
       "name": "hrx",
-      "definition_cid": "AAAAAA8Tn-0jBpGU5avOURnO8ijKs4rH6ZQG9MZdJ4A1GaUnMXn2qnglHxb5zdLJezyotp-yqh2WCxe7McyUm6RB7D2HSg",
+      "definition_cid": "AAAAABZbs8FlvAhKNzIX071_VDxX62h-axbbPv8VfID_4zjp7RojntQ2EbRV4dGoa2hD-KCksBJDa_iHWu4x3tXyW3KEpw",
       "enabled": true
     },
     {
       "name": "cids",
-      "definition_cid": "AAAAAB6z4v3aGskAQ4qOTcw1J4qhilgnld_1dD8acI5HwipUB2mIwfOW6R_3iqhEk6E3sIXGlOk51Nvt6kbtymJ7ntWGQw",
+      "definition_cid": "AAAAACpgpFL69yW_HmoVMqTWUKUacZt8nXJG-Z7cUt_D65gSDXGlb9IjuOLhs04M8tvmbm3WR49DdyxLa38Dg9Th2t9Y_Q",
       "enabled": true
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAU6pSlFI4-ybkihXRIuPbZye9De7yMg2-9rscm2rVRAFnzWx53gwot9_08ijXEzRCQA7Oo1n96GA8ILbULSDsv4U3w",
+      "definition_cid": "AAAAAU8q0eD4rKQWwvLxL8U7-XOQmmcufTUl3WiTF87-i3A5Y3hT3KrhZdmpFzLn9u8opr9IOsytFXtSUkrLzhTFzi4wNw",
       "enabled": true
     },
     {
@@ -362,7 +367,7 @@
     },
     {
       "name": "echo",
-      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBlY2hvCg",
+      "definition_cid": "AAAAAAE2GlTsOfnmkP_qgTVznmotH_oFnYsCNBD1x_66OpPCxLfU3g3z7tZjfnfA-6y1SzivsRV0Aeju2s13cOujCbj_cg",
       "enabled": true
     },
     {
@@ -1154,7 +1159,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACLo8s4e_ohCH7A6YyoamLSnnniSgrnE8zPrKHDNfobZ6h6ey7plIkCOwIjwD5oRC2ayN90vFIKu_vPPhnIidK6dhA",
+      "definition": "AAAAACaSBM8cMfWp0TqVjtuXcytGphqNQV909TMS8SXw8yDw96sdmfZBaqsVR0GWbUwzVG7x4_C_qCXFgoRGvavxYsBGnA",
       "enabled": true
     },
     {
@@ -1164,7 +1169,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAABKHJQYCTElU6HWu57N3NHRCZh2xGNO5uv8gWBB5KblJPiiXD1zuUlGt2p1szgSzFQwiapFSMct_6fhWYfM80rwnxg",
+      "definition": "AAAAACPc2lUzcyObiwLExXGyPr6MKqN3KuzJQOLeQ_UG9xXuUrD50u3NbE0DeUydU-h4kzqhRrW3D1K4sUmOIvSEb82Hxw",
       "enabled": true
     },
     {

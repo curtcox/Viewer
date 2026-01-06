@@ -2,7 +2,7 @@
   "id": "servicenow",
   "name": "ServiceNow",
   "description": "List, retrieve, create, and update ServiceNow records using Basic auth with username and password.",
-  "definition_cid": "reference/templates/servers/definitions/servicenow.py",
+  "definition_file": "definitions/servicenow.py",
   "operations": [
     "list_records",
     "get_record",

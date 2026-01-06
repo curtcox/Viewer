@@ -85,7 +85,6 @@
     "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
     "response_transform_cid": "AAAAACyp9DQ8V1cv_x8F8Tpq8Zp4ELgV5s3LAkC-dl3T0WSewEMDvgBNlDwqS86Wg0ekYqMsEeRW3pS4yZpaoSosuzca8Q",
     "description": "GitHub API via JSON API gateway",
-    "external_api": "https://api.github.com",
     "templates": {
       "json_api_data.html": "AAAAAAT-fpAssDkHfoi51QNXIG3FT9wJS1Qy00u-lizm8Y97G60WA2jKUaZvple7pdDBafSopMzdwaTnVL-vxGBrr-79Hw"
     },
@@ -126,7 +125,6 @@
     "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
     "response_transform_cid": "AAAAACyp9DQ8V1cv_x8F8Tpq8Zp4ELgV5s3LAkC-dl3T0WSewEMDvgBNlDwqS86Wg0ekYqMsEeRW3pS4yZpaoSosuzca8Q",
     "description": "Microsoft Teams (Graph) via JSON API gateway",
-    "external_api": "https://graph.microsoft.com",
     "templates": {
       "json_api_data.html": "AAAAAAT-fpAssDkHfoi51QNXIG3FT9wJS1Qy00u-lizm8Y97G60WA2jKUaZvple7pdDBafSopMzdwaTnVL-vxGBrr-79Hw"
     },
@@ -152,7 +150,6 @@
     "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
     "response_transform_cid": "AAAAACyp9DQ8V1cv_x8F8Tpq8Zp4ELgV5s3LAkC-dl3T0WSewEMDvgBNlDwqS86Wg0ekYqMsEeRW3pS4yZpaoSosuzca8Q",
     "description": "Stripe API via JSON API gateway",
-    "external_api": "https://api.stripe.com",
     "templates": {
       "json_api_data.html": "AAAAAAT-fpAssDkHfoi51QNXIG3FT9wJS1Qy00u-lizm8Y97G60WA2jKUaZvple7pdDBafSopMzdwaTnVL-vxGBrr-79Hw"
     },
@@ -187,7 +184,6 @@
     "request_transform_cid": "AAAAAAInWB1Mq4pHNZ_3k_Jrs3zD6k2l5twHIQOIlmawl53LDOGaApu0bwPAGWvw-M0zExqlqusUSHTFV51BWEPJC-LxRQ",
     "response_transform_cid": "AAAAACyp9DQ8V1cv_x8F8Tpq8Zp4ELgV5s3LAkC-dl3T0WSewEMDvgBNlDwqS86Wg0ekYqMsEeRW3pS4yZpaoSosuzca8Q",
     "description": "ServiceNow API via JSON API gateway",
-    "external_api": "https://service-now.com",
     "templates": {
       "json_api_data.html": "AAAAAAT-fpAssDkHfoi51QNXIG3FT9wJS1Qy00u-lizm8Y97G60WA2jKUaZvple7pdDBafSopMzdwaTnVL-vxGBrr-79Hw"
     },

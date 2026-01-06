@@ -143,6 +143,7 @@ class TestHRXServer(unittest.TestCase):
         response = self.client.post("/hrx", data={"archive": invalid_archive})
         self.assertEqual(response.status_code, 500)
         self.assertIn(b"Invalid HRX archive", response.data)
+        self.assertIn(b"source_snippet", response.data)
 
 
 if __name__ == "__main__":

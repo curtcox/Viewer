@@ -1,0 +1,6 @@
+{
+  "id": "teams",
+  "name": "Microsoft Teams",
+  "description": "Interact with Microsoft Teams API via Microsoft Graph",
+  "definition_file": "definitions/microsoft_teams.py"
+}

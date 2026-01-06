@@ -62,12 +62,12 @@
     },
     {
       "name": "hrx",
-      "definition_cid": "AAAAABZbs8FlvAhKNzIX071_VDxX62h-axbbPv8VfID_4zjp7RojntQ2EbRV4dGoa2hD-KCksBJDa_iHWu4x3tXyW3KEpw",
+      "definition_cid": "AAAAAA8Tn-0jBpGU5avOURnO8ijKs4rH6ZQG9MZdJ4A1GaUnMXn2qnglHxb5zdLJezyotp-yqh2WCxe7McyUm6RB7D2HSg",
       "enabled": true
     },
     {
       "name": "cids",
-      "definition_cid": "AAAAACpgpFL69yW_HmoVMqTWUKUacZt8nXJG-Z7cUt_D65gSDXGlb9IjuOLhs04M8tvmbm3WR49DdyxLa38Dg9Th2t9Y_Q",
+      "definition_cid": "AAAAAB6z4v3aGskAQ4qOTcw1J4qhilgnld_1dD8acI5HwipUB2mIwfOW6R_3iqhEk6E3sIXGlOk51Nvt6kbtymJ7ntWGQw",
       "enabled": true
     },
     {
@@ -367,7 +367,7 @@
     },
     {
       "name": "echo",
-      "definition_cid": "AAAAAAE2GlTsOfnmkP_qgTVznmotH_oFnYsCNBD1x_66OpPCxLfU3g3z7tZjfnfA-6y1SzivsRV0Aeju2s13cOujCbj_cg",
+      "definition_cid": "AAAAAAATQGJhc2hfY29tbWFuZCBlY2hvCg",
       "enabled": true
     },
     {
@@ -1159,7 +1159,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACaSBM8cMfWp0TqVjtuXcytGphqNQV909TMS8SXw8yDw96sdmfZBaqsVR0GWbUwzVG7x4_C_qCXFgoRGvavxYsBGnA",
+      "definition": "AAAAACOr7iX3ckOcifPY3UI6_O7VP-iKeLk8I5-s7TeAul1PRsecYHG80x5UiXRIO2msX5oNjVS6kcnbke2aaLdCaGBtdA",
       "enabled": true
     },
     {
@@ -1169,7 +1169,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAACPc2lUzcyObiwLExXGyPr6MKqN3KuzJQOLeQ_UG9xXuUrD50u3NbE0DeUydU-h4kzqhRrW3D1K4sUmOIvSEb82Hxw",
+      "definition": "AAAAACMe_lueSHUlX0lxduAHg4o_LR5CO8_A6l6-wk5mXedPY1xclQREk9jxmupWhdAHAFa5XZMBO_q2VXtb0mmRTJVXyw",
       "enabled": true
     },
     {

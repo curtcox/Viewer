@@ -1,0 +1,6 @@
+{
+  "id": "json_api",
+  "name": "JSON API",
+  "description": "Generalized JSON API server intended to be used behind the gateway.",
+  "definition_file": "definitions/json_api.py"
+}

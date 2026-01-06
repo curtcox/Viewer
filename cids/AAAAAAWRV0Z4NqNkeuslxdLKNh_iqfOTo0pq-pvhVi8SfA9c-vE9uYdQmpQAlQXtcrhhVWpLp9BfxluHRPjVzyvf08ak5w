@@ -34,7 +34,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACaSBM8cMfWp0TqVjtuXcytGphqNQV909TMS8SXw8yDw96sdmfZBaqsVR0GWbUwzVG7x4_C_qCXFgoRGvavxYsBGnA",
+      "definition": "AAAAACOr7iX3ckOcifPY3UI6_O7VP-iKeLk8I5-s7TeAul1PRsecYHG80x5UiXRIO2msX5oNjVS6kcnbke2aaLdCaGBtdA",
       "enabled": true
     },
     {
@@ -44,7 +44,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAACPc2lUzcyObiwLExXGyPr6MKqN3KuzJQOLeQ_UG9xXuUrD50u3NbE0DeUydU-h4kzqhRrW3D1K4sUmOIvSEb82Hxw",
+      "definition": "AAAAACMe_lueSHUlX0lxduAHg4o_LR5CO8_A6l6-wk5mXedPY1xclQREk9jxmupWhdAHAFa5XZMBO_q2VXtb0mmRTJVXyw",
       "enabled": true
     }
   ]

@@ -150,8 +150,7 @@ def test_gateway_instruction_page_includes_links_for_builtin_gateways(
     """Gateway instruction page should include links for gateways loaded from gateways.source.json."""
     import json
 
-    from models import Variable
-    from tests.test_gateway_test_support import TEST_ARCHIVE_CID
+    from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID, TEST_HRX_ARCHIVE_CID
 
     with open(
         "reference/templates/gateways.source.json", "r", encoding="utf-8"
@@ -171,7 +170,12 @@ def test_gateway_instruction_page_includes_links_for_builtin_gateways(
     assert response.status_code == 200
     page = response.get_data(as_text=True)
 
-    mock_server_cid = TEST_ARCHIVE_CID
+    mock_server_cid = TEST_CIDS_ARCHIVE_CID
+
+    assert f"/gateway/test/cids/{mock_server_cid}/as/" in page
+    assert f"/cids/{mock_server_cid}" in page
+    assert f"/gateway/test/cids/{TEST_HRX_ARCHIVE_CID}/as/" not in page
+    assert f"/cids/{TEST_HRX_ARCHIVE_CID}" not in page
 
     # Non-external (internal-only) gateways
     for server_name in ("man", "tldr", "hrx", "cids"):
@@ -204,8 +208,6 @@ def test_gateway_instruction_page_includes_external_service_servers(
 ):
     """Gateway instruction page should include archived external-service servers."""
     import json
-
-    from models import Variable
 
     with open(
         "reference/templates/gateways.source.json", "r", encoding="utf-8"
@@ -341,9 +343,9 @@ def test_gateway_configured_gateways_server_meta_test_links_respond_without_erro
     page = response.get_data(as_text=True)
     assert "Configured Gateways" in page
 
-    from tests.test_gateway_test_support import TEST_ARCHIVE_CID
+    from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID
 
-    mock_server_cid = TEST_ARCHIVE_CID
+    mock_server_cid = TEST_CIDS_ARCHIVE_CID
 
     # Verify each Server/Meta/Test target responds without error.
     for server_name in gateways_config.keys():

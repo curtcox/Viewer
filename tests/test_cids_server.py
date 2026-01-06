@@ -71,6 +71,7 @@ class TestCIDSServer(unittest.TestCase):
         # Should return an error status and message
         self.assertIn(response.status_code, [400, 500])
         self.assertIn(b"Invalid", response.data)
+        self.assertIn(b"source_snippet", response.data)
 
     def test_cids_server_duplicate_paths_raises_error(self):
         """Test that duplicate paths raise an error."""
@@ -102,6 +103,7 @@ class TestCIDSServer(unittest.TestCase):
         # Since CID_DATA doesn't exist, this should return 404
         self.assertEqual(response.status_code, 404)
         self.assertIn(b"CID not found", response.data)
+        self.assertIn(b"source_snippet", response.data)
 
     def test_cids_server_with_multiple_files(self):
         """Test CIDS server with multiple files."""

@@ -69,9 +69,25 @@
         </div>
     </div>
 
+    <h2>API Examples</h2>
+
+    <div class="card">
+        <p>Use <code>target_server</code> to select an upstream REST API.</p>
+        <ul>
+            <li><a href="/gateway?target_server=https://api.github.com">GitHub API</a></li>
+            <li><a href="/gateway?target_server=https://api.openai.com">OpenAI API</a></li>
+            <li><a href="/gateway?target_server=https://api.anthropic.com">Anthropic API</a></li>
+            <li><a href="/gateway?target_server=https://www.googleapis.com">Google</a></li>
+            <li><a href="/gateway?target_server=https://openrouter.ai">OpenRouter</a></li>
+            <li><a href="/gateway?target_server=https://api.elevenlabs.io">Eleven Labs</a></li>
+            <li><a href="/gateway?target_server=https://api.vercel.com">Vercel</a></li>
+        </ul>
+        <p><strong>API Key Required</strong> vs <strong>No Auth</strong> depends on the upstream service.</p>
+    </div>
+
     <h2>Configured Gateways</h2>
 
-    {% set mock_server_cid = "AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A" %}
+    {% set mock_server_cid = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w" %}
 
     <div class="card">
         <table style="width: 100%; border-collapse: collapse;">
@@ -82,6 +98,7 @@
                     <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Gateway</th>
                     <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Meta</th>
                     <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Test</th>
+                    <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">Sample</th>
                     <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid #333;">External API</th>
                 </tr>
             </thead>
@@ -137,13 +154,14 @@
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ name }}">Gateway</a></td>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ name }}">Meta</a></td>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ name }}">Test</a></td>
+                    <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/cids/{{ mock_server_cid }}">Sample</a></td>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
                         {{ external_api_link(name, config.external_api) }}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" style="padding: 0.75rem;">
+                    <td colspan="7" style="padding: 0.75rem;">
                         <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
                     </td>
                 </tr>
@@ -160,6 +178,7 @@
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/{{ server.name }}">Gateway</a></td>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/meta/{{ server.name }}">Meta</a></td>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/gateway/test/cids/{{ mock_server_cid }}/as/{{ server.name }}">Test</a></td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #333;"><a href="/cids/{{ mock_server_cid }}">Sample</a></td>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;">{{ external_api_link(server.name, server.external_api) }}</td>
                     </tr>
                     {% endif %}

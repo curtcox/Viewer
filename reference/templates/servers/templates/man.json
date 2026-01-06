@@ -1,0 +1,6 @@
+{
+  "id": "man",
+  "name": "man",
+  "description": "Serve local man pages.",
+  "definition_file": "definitions/man.sh"
+}

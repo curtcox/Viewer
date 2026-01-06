@@ -1,0 +1,9 @@
+"""@bash_command echo"""
+
+
+def main(context=None):
+     request = (context or {}).get("request", {}) if isinstance(context, dict) else {}
+     return {
+         "output": "<!DOCTYPE html><html><body><h1>echo</h1><div>request</div><div>context</div></body></html>",
+         "content_type": "text/html",
+     }

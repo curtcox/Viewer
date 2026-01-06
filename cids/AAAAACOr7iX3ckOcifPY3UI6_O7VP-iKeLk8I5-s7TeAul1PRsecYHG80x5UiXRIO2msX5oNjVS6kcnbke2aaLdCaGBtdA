@@ -22,16 +22,6 @@
       "description": "Render the incoming request and context as HTML for debugging",
       "definition_cid": "AAAAAAMkkcPitd37JNb9j8Bfwy7uAzi8Rti5gC-E5VpSiF1P9-NLPNQYlWd7LQgj1o1_hGiYcvTw8XZItswuoIQE8zsiWQ"
     },
-    "json_api": {
-      "name": "JSON API",
-      "description": "Browse arbitrary JSON APIs via the JSON API gateway",
-      "definition_cid": "AAAAAAuNVWRiQEWQY3cizFFOgoslzGYj2bYpIOlfOicVtryyJSTCB28N5sCCkg0kIztV6X__tNnWzQlaWl92BGu6q9hJwg"
-    },
-    "teams": {
-      "name": "Microsoft Teams",
-      "description": "Interact with Microsoft Teams API via Microsoft Graph",
-      "definition_cid": "AAAAAB3fD-VmeR-fPB4nv6Dqdhajq4d6QBEAVNeRg8OhQsGkwUNUOmNXSV9sBNHpDi8umubUSgiWxiHOcNW7hF4Q6uVXPQ"
-    },
     "auto-main": {
       "name": "Auto main",
       "description": "Automatically render main() output with appropriate content type",
@@ -91,11 +81,6 @@
       "name": "Stripe",
       "description": "List or create customers, list charges, or validate webhooks in Stripe",
       "definition_cid": "AAAAABlxwvAtLTzJZRs1ylMK1wrGA3mEwYJGRNt7ehQhACJ3xLGHHWzTkIgjql9iisdmukfrg1v3HwKxKcJSUFclrvvsPg"
-    },
-    "servicenow": {
-      "name": "ServiceNow",
-      "description": "Query ServiceNow tables via the REST API",
-      "definition_cid": "AAAAABWZcbvAQBd4A-j-T2nx2RSJdOgfMhzZ1JodtXv4H8NSoU83R0PGvrS7aaSDdPHsfyQ52217zd-TmbU0N3OvCprSxw"
     },
     "asana": {
       "name": "Asana",

@@ -1,0 +1,6 @@
+{
+  "id": "cids",
+  "name": "CIDS",
+  "description": "Parse and serve CID archive files.",
+  "definition_file": "definitions/cids.py"
+}

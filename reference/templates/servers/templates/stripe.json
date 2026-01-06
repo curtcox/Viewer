@@ -2,7 +2,7 @@
   "id": "stripe",
   "name": "Stripe",
   "description": "List or create customers, list charges, or validate webhooks in Stripe",
-  "definition_cid": "reference/templates/servers/definitions/stripe.py",
+  "definition_file": "definitions/stripe.py",
   "operations": [
     "list_customers",
     "get_customer",

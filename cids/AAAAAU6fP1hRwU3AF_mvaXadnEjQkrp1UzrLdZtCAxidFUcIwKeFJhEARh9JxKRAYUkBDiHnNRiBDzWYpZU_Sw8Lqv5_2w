@@ -23,7 +23,6 @@ import traceback
 from html import escape
 from pathlib import Path
 from urllib.parse import urljoin
-from urllib.parse import urlparse
 
 from flask import current_app, request as flask_request
 from jinja2 import Template
@@ -427,11 +426,8 @@ def _infer_external_api_for_server(server_name: str) -> str | None:
     if not match:
         return None
 
-    url = match.group(0).rstrip("/")
-    parsed = urlparse(url)
-    if parsed.scheme and parsed.netloc:
-        return f"{parsed.scheme}://{parsed.netloc}"
-
+    url = match.group(0)
+    url = url.rstrip("/",)
     return url
 
 
