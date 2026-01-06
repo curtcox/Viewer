@@ -110,6 +110,7 @@ def main(
     base_url = "https://api.pipedrive.com/v1"
     method = "GET"
     payload = None
+    url = ""
 
     if operation == "list_deals":
         url = f"{base_url}/deals?limit={limit}"
@@ -159,6 +160,9 @@ def main(
         url = f"{base_url}/organizations"
         method = "POST"
         payload = data
+
+    if not url:
+        return validation_error("Unsupported operation", field="operation")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

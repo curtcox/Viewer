@@ -23,7 +23,7 @@ def main(
     parser_id: str = "",
     document_id: str = "",
     file_url: str = "",
-    format: str = "object",
+    output_format: str = "object",
     timeout: int = 60,
     dry_run: bool = True,
     *,
@@ -40,7 +40,7 @@ def main(
         parser_id: Parser ID for document operations
         document_id: Document ID for document-specific operations
         file_url: URL of document to upload
-        format: Output format for parsed data (object, flat, csv)
+        output_format: Output format for parsed data (object, flat, csv)
         timeout: Request timeout in seconds (default: 60)
         dry_run: If True, return preview without making actual API call (default: True)
         DOCPARSER_API_KEY: API key for authentication (from secrets)
@@ -97,7 +97,7 @@ def main(
                     help_text="URL of document to upload",
                 ),
                 FormField(
-                    name="format",
+                    name="output_format",
                     label="Output Format",
                     field_type="select",
                     options=["object", "flat", "csv"],
@@ -168,8 +168,8 @@ def main(
             preview["document_id"] = document_id
         if file_url:
             preview["file_url"] = file_url
-        if format:
-            preview["format"] = format
+        if output_format:
+            preview["output_format"] = output_format
 
         return {"output": preview, "content_type": "application/json"}
 
@@ -211,10 +211,12 @@ def main(
             )
 
         elif operation == "get_parsed_data":
+            if not parser_id or not document_id:
+                return validation_error("parser_id and document_id are required")
             response = client.get(
                 f"{API_BASE_URL}/results/{parser_id}/{document_id}",
                 headers=headers,
-                params={"format": format},
+                params={"format": output_format},
                 auth=auth
             )
 

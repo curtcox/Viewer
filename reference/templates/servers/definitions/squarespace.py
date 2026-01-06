@@ -280,12 +280,12 @@ def main(
                 "Invalid or expired SQUARESPACE_API_KEY. Check your API key in Squarespace Settings",
                 status_code=401
             )
-        elif response.status_code == 403:
+        if response.status_code == 403:
             return error_output(
                 "Insufficient permissions for this operation. Check your API key has the required scopes",
                 status_code=403
             )
-        elif response.status_code == 404:
+        if response.status_code == 404:
             return error_output(
                 f"Resource not found (product_id={product_id}, order_id={order_id}, inventory_item_id={inventory_item_id})",
                 status_code=404

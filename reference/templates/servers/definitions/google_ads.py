@@ -122,6 +122,7 @@ def main(
     base_url = f"https://googleads.googleapis.com/v16/customers/{customer_id}"
     method = "POST"
     payload = None
+    url = ""
 
     if operation == "search":
         if not query:
@@ -138,6 +139,9 @@ def main(
         payload = {
             "query": "SELECT campaign.id, campaign.name, campaign.status FROM campaign"
         }
+
+    if not url:
+        return validation_error("Unsupported operation", field="operation")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

@@ -4,7 +4,7 @@ def test_cost_estimate_returns_float(memory_db_app, memory_client):
     from models import Server
 
     with memory_db_app.app_context():
-        with open("reference/templates/servers/definitions/cost_estimate.py", "r") as f:
+        with open("reference/templates/servers/definitions/cost_estimate.py", "r", encoding="utf-8") as f:
             db.session.add(
                 Server(
                     name="cost_estimate",

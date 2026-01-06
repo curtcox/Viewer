@@ -205,7 +205,7 @@ def main(
 
     if operation == "delete_contact":
         # DELETE returns 200 on success
-        if response.status_code == 200 or response.status_code == 204:
+        if response.status_code in (200, 204):
             return {"output": {"message": "Contact deleted successfully"}}
 
     if not response.ok:

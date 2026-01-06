@@ -118,6 +118,7 @@ def main(
     base_url = "https://www.googleapis.com/youtube/v3"
     method = "GET"
     payload = None
+    url = ""
 
     if operation == "list_videos":
         if not video_id:
@@ -139,6 +140,9 @@ def main(
         if not video_id:
             return validation_error("video_id is required for list_comments operation")
         url = f"{base_url}/commentThreads?videoId={video_id}&part={part}&maxResults={max_results}"
+
+    if not url:
+        return validation_error("Unsupported operation", field="operation")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
