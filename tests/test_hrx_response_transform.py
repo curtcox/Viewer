@@ -17,9 +17,9 @@ def test_fix_relative_urls_handles_absolute_paths():
     html = '<a href="/docs/index.html">Docs</a>'
     archive_cid = "ABC123"
     file_path = "readme.html"
-    
+
     result = _fix_relative_urls(html, archive_cid, file_path)
-    
+
     assert f'/gateway/hrx/{archive_cid}/docs/index.html' in result
 
 
@@ -28,9 +28,9 @@ def test_fix_relative_urls_handles_relative_paths():
     html = '<a href="other.html">Other</a>'
     archive_cid = "ABC123"
     file_path = "readme.html"
-    
+
     result = _fix_relative_urls(html, archive_cid, file_path)
-    
+
     assert f'/gateway/hrx/{archive_cid}/other.html' in result
 
 
@@ -39,9 +39,9 @@ def test_fix_relative_urls_skips_external_urls():
     html = '<a href="https://example.com">Example</a>'
     archive_cid = "ABC123"
     file_path = "readme.html"
-    
+
     result = _fix_relative_urls(html, archive_cid, file_path)
-    
+
     assert 'https://example.com' in result
     assert '/gateway/hrx/' not in result
 
@@ -51,9 +51,9 @@ def test_fix_relative_urls_handles_nested_files():
     html = '<a href="../index.html">Up</a><a href="sub/page.html">Down</a>'
     archive_cid = "ABC123"
     file_path = "docs/readme.html"
-    
+
     result = _fix_relative_urls(html, archive_cid, file_path)
-    
+
     # Base path for docs/readme.html is /gateway/hrx/ABC123/docs
     assert f'/gateway/hrx/{archive_cid}/docs/../index.html' in result
     assert f'/gateway/hrx/{archive_cid}/docs/sub/page.html' in result
@@ -64,9 +64,9 @@ def test_fix_css_urls_handles_relative_paths():
     css = 'background: url("../images/bg.png");'
     archive_cid = "ABC123"
     file_path = "css/style.css"
-    
+
     result = _fix_css_urls(css, archive_cid, file_path)
-    
+
     assert f'/gateway/hrx/{archive_cid}/css/../images/bg.png' in result
 
 
@@ -75,9 +75,9 @@ def test_fix_css_urls_skips_external_urls():
     css = 'background: url("https://example.com/bg.png");'
     archive_cid = "ABC123"
     file_path = "style.css"
-    
+
     result = _fix_css_urls(css, archive_cid, file_path)
-    
+
     assert 'https://example.com/bg.png' in result
     assert '/gateway/hrx/' not in result
 
@@ -86,9 +86,9 @@ def test_build_breadcrumb_root():
     """Test breadcrumb for archive root."""
     archive_cid = "ABC123"
     current_path = ""
-    
+
     result = _build_breadcrumb(archive_cid, current_path)
-    
+
     assert f'/gateway/hrx/{archive_cid}' in result
     assert 'archive' in result
 
@@ -97,9 +97,9 @@ def test_build_breadcrumb_nested_path():
     """Test breadcrumb for nested path."""
     archive_cid = "ABC123"
     current_path = "docs/api/reference.html"
-    
+
     result = _build_breadcrumb(archive_cid, current_path)
-    
+
     assert 'archive' in result
     assert 'docs' in result
     assert 'api' in result
@@ -111,7 +111,7 @@ def test_transform_response_uses_templates_for_error():
     mock_template = MagicMock()
     mock_template.render.return_value = "<html>Error Page</html>"
     mock_resolve = MagicMock(return_value=mock_template)
-    
+
     response_details = {
         "request_path": "/ABC123/nonexistent.txt",
         "status_code": 404,
@@ -119,9 +119,9 @@ def test_transform_response_uses_templates_for_error():
         "headers": {},
     }
     context = {"resolve_template": mock_resolve}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/html"
     assert "Error Page" in result["output"]
     mock_resolve.assert_called_with("hrx_error.html")
@@ -159,7 +159,7 @@ def test_transform_response_uses_templates_for_directory():
     mock_template = MagicMock()
     mock_template.render.return_value = "<html>Directory</html>"
     mock_resolve = MagicMock(return_value=mock_template)
-    
+
     response_details = {
         "request_path": "/ABC123/",
         "status_code": 200,
@@ -167,9 +167,9 @@ def test_transform_response_uses_templates_for_directory():
         "headers": {},
     }
     context = {"resolve_template": mock_resolve}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/html"
     assert "Directory" in result["output"]
     mock_resolve.assert_called_with("hrx_directory.html")
@@ -204,7 +204,7 @@ def test_transform_response_uses_templates_for_markdown():
     mock_template = MagicMock()
     mock_template.render.return_value = "<html>Markdown</html>"
     mock_resolve = MagicMock(return_value=mock_template)
-    
+
     response_details = {
         "request_path": "/ABC123/README.md",
         "status_code": 200,
@@ -212,9 +212,9 @@ def test_transform_response_uses_templates_for_markdown():
         "headers": {},
     }
     context = {"resolve_template": mock_resolve}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/html"
     assert "Markdown" in result["output"]
     mock_resolve.assert_called_with("hrx_markdown.html")
@@ -226,7 +226,7 @@ def test_transform_response_uses_templates_for_text():
     mock_template = MagicMock()
     mock_template.render.return_value = "<html>Text File</html>"
     mock_resolve = MagicMock(return_value=mock_template)
-    
+
     response_details = {
         "request_path": "/ABC123/test.py",
         "status_code": 200,
@@ -234,9 +234,9 @@ def test_transform_response_uses_templates_for_text():
         "headers": {"Content-Type": "text/plain"},
     }
     context = {"resolve_template": mock_resolve}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/html"
     assert "Text File" in result["output"]
     mock_resolve.assert_called_with("hrx_text.html")
@@ -252,7 +252,7 @@ def test_transform_response_requires_templates():
         "headers": {},
     }
     context = {}  # No resolve_template
-    
+
     try:
         transform_response(response_details, context)
         assert False, "Should have raised RuntimeError"
@@ -269,9 +269,9 @@ def test_transform_response_passes_through_css():
         "headers": {"Content-Type": "text/css"},
     }
     context = {"resolve_template": MagicMock()}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/css"
     assert "/gateway/hrx/ABC123/bg.png" in result["output"]
 
@@ -285,8 +285,8 @@ def test_transform_response_fixes_html_urls():
         "headers": {"Content-Type": "text/html"},
     }
     context = {"resolve_template": MagicMock()}
-    
+
     result = transform_response(response_details, context)
-    
+
     assert result["content_type"] == "text/html"
     assert "/gateway/hrx/ABC123/about.html" in result["output"]

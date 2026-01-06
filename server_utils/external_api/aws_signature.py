@@ -41,25 +41,25 @@ def sign_request(
     parsed = urlparse(url)
     host = parsed.netloc
     canonical_uri = parsed.path or "/"
-    
+
     # Get timestamp
     now = datetime.now(timezone.utc)
     amz_date = now.strftime("%Y%m%dT%H%M%SZ")
     date_stamp = now.strftime("%Y%m%d")
-    
+
     # Add required headers
     request_headers = dict(headers)
     request_headers["Host"] = host
     request_headers["X-Amz-Date"] = amz_date
-    
+
     if session_token:
         request_headers["X-Amz-Security-Token"] = session_token
-    
+
     # Create canonical request
     canonical_headers, signed_headers_list = _create_canonical_headers(request_headers)
     payload_hash = hashlib.sha256(payload).hexdigest()
     canonical_query_string = _create_canonical_query_string(parsed.query)
-    
+
     canonical_request = "\n".join([
         method.upper(),
         canonical_uri,
@@ -68,23 +68,23 @@ def sign_request(
         signed_headers_list,
         payload_hash,
     ])
-    
+
     # Create string to sign
     algorithm = "AWS4-HMAC-SHA256"
     credential_scope = f"{date_stamp}/{region}/{service}/aws4_request"
     canonical_request_hash = hashlib.sha256(canonical_request.encode()).hexdigest()
-    
+
     string_to_sign = "\n".join([
         algorithm,
         amz_date,
         credential_scope,
         canonical_request_hash,
     ])
-    
+
     # Calculate signature
     signing_key = _get_signature_key(secret_key, date_stamp, region, service)
     signature = hmac.new(signing_key, string_to_sign.encode(), hashlib.sha256).hexdigest()
-    
+
     # Create authorization header
     authorization_header = (
         f"{algorithm} "
@@ -92,48 +92,48 @@ def sign_request(
         f"SignedHeaders={signed_headers_list}, "
         f"Signature={signature}"
     )
-    
+
     request_headers["Authorization"] = authorization_header
-    
+
     return request_headers
 
 
 def _create_canonical_headers(headers: Dict[str, str]) -> Tuple[str, str]:
     """Create canonical headers string and signed headers list.
-    
+
     Args:
         headers: Dictionary of request headers
-        
+
     Returns:
         Tuple of (canonical_headers_string, signed_headers_list)
     """
     # Convert to lowercase and sort
     sorted_headers = sorted((k.lower(), v.strip()) for k, v in headers.items())
-    
+
     # Build canonical headers string
     canonical_headers = "".join(f"{k}:{v}\n" for k, v in sorted_headers)
-    
+
     # Build signed headers list
     signed_headers_list = ";".join(k for k, _ in sorted_headers)
-    
+
     return canonical_headers, signed_headers_list
 
 
 def _create_canonical_query_string(query_string: str) -> str:
     """Create canonical query string.
-    
+
     Args:
         query_string: URL query string
-        
+
     Returns:
         Canonical query string
     """
     if not query_string:
         return ""
-    
+
     # Parse query parameters
     params = parse_qs(query_string, keep_blank_values=True)
-    
+
     # Sort and encode
     sorted_params = []
     for key in sorted(params.keys()):
@@ -141,19 +141,19 @@ def _create_canonical_query_string(query_string: str) -> str:
             encoded_key = quote(key, safe="")
             encoded_value = quote(value, safe="")
             sorted_params.append(f"{encoded_key}={encoded_value}")
-    
+
     return "&".join(sorted_params)
 
 
 def _get_signature_key(secret_key: str, date_stamp: str, region: str, service: str) -> bytes:
     """Derive the signing key for AWS Signature V4.
-    
+
     Args:
         secret_key: AWS secret access key
         date_stamp: Date in YYYYMMDD format
         region: AWS region
         service: AWS service name
-        
+
     Returns:
         Signing key as bytes
     """

@@ -115,7 +115,7 @@ class TestPreviewBuilder:
             auth_type="Token",
         )
         response = PreviewBuilder.dry_run_response(preview)
-        
+
         assert "output" in response
         assert "preview" in response["output"]
         assert "message" in response["output"]
@@ -215,7 +215,7 @@ class TestPreviewBuilderIntegration:
             params={"state": "open", "per_page": 30},
         )
         response = PreviewBuilder.dry_run_response(preview)
-        
+
         assert response["output"]["preview"]["operation"] == "list_issues"
         assert response["output"]["preview"]["method"] == "GET"
         assert "params" in response["output"]["preview"]
@@ -229,7 +229,7 @@ class TestPreviewBuilderIntegration:
             auth_type="Bearer Token",
             payload={"title": "Bug", "body": "Description"},
         )
-        
+
         assert preview["operation"] == "create_issue"
         assert preview["method"] == "POST"
         assert "payload" in preview
@@ -245,7 +245,7 @@ class TestPreviewBuilderIntegration:
             bucket="my-bucket",
             region="us-east-1",
         )
-        
+
         assert preview["bucket"] == "my-bucket"
         assert preview["region"] == "us-east-1"
         assert preview["params"]["max-keys"] == 1000
@@ -261,7 +261,7 @@ class TestPreviewBuilderIntegration:
             query={"status": "active"},
             limit=100,
         )
-        
+
         assert preview["collection"] == "users"
         assert preview["query"] == {"status": "active"}
         assert preview["limit"] == 100

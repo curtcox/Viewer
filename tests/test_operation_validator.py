@@ -74,12 +74,12 @@ class TestOperationValidatorIntegration:
     def test_github_operations(self):
         """Test with GitHub-style operations."""
         validator = OperationValidator({"list_issues", "get_issue", "create_issue"})
-        
+
         # Valid operations
         assert validator.validate("list_issues") is None
         assert validator.validate("get_issue") is None
         assert validator.validate("create_issue") is None
-        
+
         # Invalid operations
         assert validator.validate("delete_issue") is not None
         assert validator.validate("update_issue") is not None
@@ -93,11 +93,11 @@ class TestOperationValidatorIntegration:
             "put_object",
             "delete_object",
         })
-        
+
         # Valid operations
         assert validator.validate("list_buckets") is None
         assert validator.validate("get_object") is None
-        
+
         # Invalid operations
         assert validator.validate("copy_object") is not None
 
@@ -109,11 +109,11 @@ class TestOperationValidatorIntegration:
             "update_one",
             "delete_one",
         })
-        
+
         # Valid operations
         assert validator.validate("find") is None
         assert validator.validate("insert_one") is None
-        
+
         # Invalid operations
         assert validator.validate("find_one") is not None
         assert validator.validate("insert_many") is not None

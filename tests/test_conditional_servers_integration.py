@@ -78,4 +78,3 @@ def test_try_catch_status(monkeypatch):
     assert output == "caught"
     assert status == 200
     assert headers.get("X-Error-Status") == "404"
-

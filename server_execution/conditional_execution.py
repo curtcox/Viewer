@@ -345,4 +345,3 @@ def _ensure_response(result: Any) -> Response:
     response = make_response(output)
     response.headers["Content-Type"] = content_type
     return response
-

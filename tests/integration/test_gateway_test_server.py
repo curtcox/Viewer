@@ -106,10 +106,10 @@ def test_gateway_test_pattern_routing(
     response = client.get(
         "/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1"
     )
-    
+
     # Should return success (may be 200 or redirect)
     assert response.status_code in [200, 302], f"Got status {response.status_code}"
-    
+
     # Response should contain data if successful
     if response.status_code == 200:
         page = response.get_data(as_text=True)
@@ -129,10 +129,10 @@ def test_gateway_test_meta_page(
         "/gateway/meta/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder",
         follow_redirects=True,
     )
-    
+
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    
+
     # Should mention the server name
     assert "jsonplaceholder" in page.lower()
 
@@ -193,7 +193,7 @@ def test_local_jsonplaceholder_alias_when_enabled(
         alias = db.session.query(Alias).filter_by(name="local_jsonplaceholder").first()
         alias.enabled = True
         db.session.commit()
-    
+
     # Now requests to /gateway/jsonplaceholder should be redirected to the test server
     # This is just checking the alias exists and is enabled
     with integration_app.app_context():
@@ -212,7 +212,7 @@ def test_gateway_test_pattern_without_hrx_server_shows_error(
     response = client.get(
         "/gateway/test/hrx/SOMECID/as/jsonplaceholder/posts/1"
     )
-    
+
     # Should get some response (could be error or redirect)
     assert response.status_code in [200, 302, 404, 500]
 
@@ -229,7 +229,7 @@ def test_gateway_test_pattern_with_nonexistent_cid(
     response = client.get(
         "/gateway/test/hrx/AAAAANONEXISTENT_CID/as/jsonplaceholder/posts/1"
     )
-    
+
     # Should get some response (error or redirect)
     assert response.status_code in [200, 302, 404, 500]
 
@@ -247,7 +247,7 @@ def test_gateway_test_pattern_preserves_transforms(
     response = client.get(
         "/gateway/test/hrx/AAAAAAZCSIClksiwHZUoWgcSYgxDmR2pj2mgV1rz-oCey_hAB0soDmvPZ3ymH6P6NhOTDvgdbPTQHj8dqABcQw42a6wx5A/as/jsonplaceholder/posts/1"
     )
-    
+
     # Response should exist
     assert response is not None
     # We're mainly testing that the request doesn't crash
