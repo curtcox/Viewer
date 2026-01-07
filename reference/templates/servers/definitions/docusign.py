@@ -7,50 +7,118 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
 
 
-def _build_preview(
-    *,
-    account_id: str,
-    operation: str,
-    envelope_id: Optional[str],
-    params: Optional[Dict[str, Any]],
-    payload: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    base_url = f"https://demo.docusign.net/restapi/v2.1/accounts/{account_id}"
+_ENDPOINT_MAP = {
+    "list_envelopes": "envelopes",
+    "get_envelope": "envelopes/{envelope_id}",
+    "create_envelope": "envelopes",
+    "list_templates": "templates",
+    "get_template": "templates/{template_id}",
+    "download_document": "envelopes/{envelope_id}/documents/combined",
+}
 
-    if operation == "get_envelope" and envelope_id:
-        url = f"{base_url}/envelopes/{envelope_id}"
-    elif operation == "list_envelopes":
-        url = f"{base_url}/envelopes"
-    elif operation == "create_envelope":
-        url = f"{base_url}/envelopes"
-    elif operation == "list_templates":
-        url = f"{base_url}/templates"
-    elif operation == "get_template" and envelope_id:  # reuse envelope_id for template_id
-        url = f"{base_url}/templates/{envelope_id}"
-    elif operation == "download_document" and envelope_id:
-        url = f"{base_url}/envelopes/{envelope_id}/documents/combined"
-    else:
-        url = f"{base_url}/{operation}"
 
-    method = "POST" if operation == "create_envelope" else "GET"
-
-    preview: Dict[str, Any] = {
-        "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "Bearer token",
-    }
-    if params:
-        preview["params"] = params
-    if payload:
-        preview["payload"] = payload
-    return preview
+_OPERATIONS = {
+    "list_envelopes": OperationDefinition(
+        payload_builder=lambda status, from_date, **_: {
+            "method": "GET",
+            "params": {
+                **({} if not status else {"status": status}),
+                **({} if not from_date else {"from_date": from_date}),
+            } or None,
+            "payload": None,
+            "envelope_id": None,
+            "template_id": None,
+        },
+    ),
+    "get_envelope": OperationDefinition(
+        required=(RequiredField("envelope_id"),),
+        payload_builder=lambda envelope_id, **_: {
+            "method": "GET",
+            "params": None,
+            "payload": None,
+            "envelope_id": envelope_id,
+            "template_id": None,
+        },
+    ),
+    "create_envelope": OperationDefinition(
+        required=(
+            RequiredField("email_subject"),
+            RequiredField("recipient_email"),
+            RequiredField("recipient_name"),
+        ),
+        payload_builder=lambda email_subject, recipient_email, recipient_name, email_body, document_base64, document_name, **_: {
+            "method": "POST",
+            "params": None,
+            "payload": {
+                "emailSubject": email_subject,
+                "status": "sent",
+                "recipients": {
+                    "signers": [
+                        {
+                            "email": recipient_email,
+                            "name": recipient_name,
+                            "recipientId": "1",
+                        }
+                    ]
+                },
+                **({} if not document_base64 else {
+                    "documents": [{
+                        "documentBase64": document_base64,
+                        "name": document_name,
+                        "fileExtension": "pdf",
+                        "documentId": "1",
+                    }]
+                }),
+                **({} if not email_body else {"emailBlurb": email_body}),
+            },
+            "envelope_id": None,
+            "template_id": None,
+        },
+    ),
+    "list_templates": OperationDefinition(
+        payload_builder=lambda **_: {
+            "method": "GET",
+            "params": None,
+            "payload": None,
+            "envelope_id": None,
+            "template_id": None,
+        },
+    ),
+    "get_template": OperationDefinition(
+        required=(RequiredField("template_id"),),
+        payload_builder=lambda template_id, **_: {
+            "method": "GET",
+            "params": None,
+            "payload": None,
+            "envelope_id": None,
+            "template_id": template_id,
+        },
+    ),
+    "download_document": OperationDefinition(
+        required=(RequiredField("envelope_id"),),
+        payload_builder=lambda envelope_id, **_: {
+            "method": "GET",
+            "params": None,
+            "payload": None,
+            "envelope_id": envelope_id,
+            "template_id": None,
+        },
+    ),
+}
 
 
 def main(
@@ -84,19 +152,7 @@ def main(
     - download_document: Download envelope documents
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_envelopes",
-        "get_envelope",
-        "create_envelope",
-        "list_templates",
-        "get_template",
-        "download_document",
-    }
-
-    if normalized_operation not in valid_operations:
-        return validation_error("Unsupported operation", field="operation")
-
+    # Validate credentials
     if not DOCUSIGN_ACCESS_TOKEN:
         return error_output(
             "Missing DOCUSIGN_ACCESS_TOKEN",
@@ -111,117 +167,77 @@ def main(
             details="Provide your DocuSign account ID",
         )
 
-    api_client = client or _DEFAULT_CLIENT
+    # Validate operation
+    normalized_operation = operation.lower()
+    if normalized_operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
+    # Validate and build request configuration
+    result = validate_and_build_payload(
+        normalized_operation,
+        _OPERATIONS,
+        envelope_id=envelope_id,
+        template_id=template_id,
+        status=status,
+        from_date=from_date,
+        email_subject=email_subject,
+        email_body=email_body,
+        recipient_email=recipient_email,
+        recipient_name=recipient_name,
+        document_base64=document_base64,
+        document_name=document_name,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+
+    # Extract request configuration
+    method = result["method"]
+    params = result["params"]
+    payload = result["payload"]
+    envelope_id_param = result["envelope_id"]
+    template_id_param = result["template_id"]
+
+    # Build URL
     base_url = f"https://demo.docusign.net/restapi/v2.1/accounts/{DOCUSIGN_ACCOUNT_ID}"
+    endpoint = _ENDPOINT_MAP[normalized_operation]
+    url = f"{base_url}/{endpoint}"
+    
+    # Replace placeholders in URL
+    if envelope_id_param:
+        url = url.replace("{envelope_id}", envelope_id_param)
+    if template_id_param:
+        url = url.replace("{template_id}", template_id_param)
+
+    # Dry run preview
+    if dry_run:
+        preview: Dict[str, Any] = {
+            "operation": normalized_operation,
+            "url": url,
+            "method": method,
+            "auth": "Bearer token",
+        }
+        if params:
+            preview["params"] = params
+        if payload:
+            preview["payload"] = payload
+        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
+
+    # Build headers
     headers = {
         "Authorization": f"Bearer {DOCUSIGN_ACCESS_TOKEN}",
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
-    params: Optional[Dict[str, Any]] = None
-    payload: Optional[Dict[str, Any]] = None
-    resource_id = envelope_id or template_id
-
-    if normalized_operation == "list_envelopes":
-        params = {}
-        if status:
-            params["status"] = status
-        if from_date:
-            params["from_date"] = from_date
-    elif normalized_operation == "get_envelope":
-        if not envelope_id:
-            return validation_error("Missing required envelope_id", field="envelope_id")
-    elif normalized_operation == "create_envelope":
-        if not email_subject:
-            return validation_error("Missing required email_subject", field="email_subject")
-        if not recipient_email:
-            return validation_error("Missing required recipient_email", field="recipient_email")
-        if not recipient_name:
-            return validation_error("Missing required recipient_name", field="recipient_name")
-
-        payload = {
-            "emailSubject": email_subject,
-            "status": "sent",
-            "recipients": {
-                "signers": [
-                    {
-                        "email": recipient_email,
-                        "name": recipient_name,
-                        "recipientId": "1",
-                    }
-                ]
-            },
-        }
-
-        if document_base64:
-            payload["documents"] = [
-                {
-                    "documentBase64": document_base64,
-                    "name": document_name,
-                    "fileExtension": "pdf",
-                    "documentId": "1",
-                }
-            ]
-
-        if email_body:
-            payload["emailBlurb"] = email_body
-    elif normalized_operation == "get_template":
-        if not template_id:
-            return validation_error("Missing required template_id", field="template_id")
-    elif normalized_operation == "download_document":
-        if not envelope_id:
-            return validation_error("Missing required envelope_id", field="envelope_id")
-
-    if dry_run:
-        preview = _build_preview(
-            account_id=DOCUSIGN_ACCOUNT_ID,
-            operation=normalized_operation,
-            envelope_id=resource_id,
-            params=params,
-            payload=payload,
-        )
-        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
-
-    # Build URL
-    if normalized_operation == "get_envelope":
-        url = f"{base_url}/envelopes/{envelope_id}"
-    elif normalized_operation == "list_envelopes":
-        url = f"{base_url}/envelopes"
-    elif normalized_operation == "create_envelope":
-        url = f"{base_url}/envelopes"
-    elif normalized_operation == "list_templates":
-        url = f"{base_url}/templates"
-    elif normalized_operation == "get_template":
-        url = f"{base_url}/templates/{template_id}"
-    elif normalized_operation == "download_document":
-        url = f"{base_url}/envelopes/{envelope_id}/documents/combined"
-    else:
-        url = f"{base_url}/{normalized_operation}"
-
-    try:
-        if normalized_operation == "create_envelope":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, params=params, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("DocuSign request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        error_msg = data.get("message", "DocuSign API error")
-        if isinstance(data, dict) and "errorCode" in data:
-            error_msg = f"{data.get('errorCode')}: {error_msg}"
-        return error_output(error_msg, status_code=response.status_code, response=data)
-
-    return {"output": data}
+    # Execute request
+    api_client = client or _DEFAULT_CLIENT
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        params=params,
+        timeout=timeout,
+        error_key="message",
+    )
