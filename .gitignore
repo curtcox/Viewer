@@ -64,6 +64,8 @@ gauge-artifacts/
 tmp_gauge_artifacts/
 .testmondata*
 test-results/
+test-results.xml
+unit-test-report.html
 
 # Translations
 *.mo
