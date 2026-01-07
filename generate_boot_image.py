@@ -249,7 +249,7 @@ class BootImageGenerator:
 
     def _process_template_entry(self, template_name: str, template_value: Any) -> None:
         """Process a single template entry.
-        
+
         Args:
             template_name: Name of the template
             template_value: Value of the template (expected to be a file path string)
@@ -258,7 +258,7 @@ class BootImageGenerator:
             return
         if not template_value.startswith("reference/templates/"):
             return
-            
+
         file_path = self.base_dir / template_value
         if file_path.exists():
             self.generate_and_store_cid(file_path, template_value)
@@ -267,7 +267,7 @@ class BootImageGenerator:
 
     def _process_file_reference(self, value: Any) -> None:
         """Process a file reference value (from keys ending in _cid or _file).
-        
+
         Args:
             value: Value to process (expected to be a file path string)
         """
@@ -275,7 +275,7 @@ class BootImageGenerator:
             return
         if not value.startswith("reference/templates/"):
             return
-            
+
         file_path = self.base_dir / value
         if file_path.exists():
             self.generate_and_store_cid(file_path, value)
