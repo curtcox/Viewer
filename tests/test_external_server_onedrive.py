@@ -60,8 +60,9 @@ def test_dry_run_returns_preview_for_list_items():
         MICROSOFT_ACCESS_TOKEN="test-token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "graph.microsoft.com" in result["output"]["url"]
+    preview = result["output"]["preview"]
+    assert "operation" in preview
+    assert "graph.microsoft.com" in preview["url"]
 
 
 def test_dry_run_returns_preview_for_upload_file():
@@ -72,8 +73,9 @@ def test_dry_run_returns_preview_for_upload_file():
         MICROSOFT_ACCESS_TOKEN="test-token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "PUT"
+    preview = result["output"]["preview"]
+    assert "operation" in preview
+    assert preview["method"] == "PUT"
 
 
 def test_list_items_with_path():
@@ -83,7 +85,8 @@ def test_list_items_with_path():
         MICROSOFT_ACCESS_TOKEN="test-token",
         dry_run=True,
     )
-    assert "Documents" in result["output"]["url"]
+    preview = result["output"]["preview"]
+    assert "Documents" in preview["url"]
 
 
 def test_list_items_success_with_mock():

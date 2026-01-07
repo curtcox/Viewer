@@ -10,6 +10,10 @@ import requests
 from server_utils.external_api import (
     ExternalApiClient,
     MicrosoftAuthManager,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
     error_output,
     validation_error,
 )
@@ -19,8 +23,7 @@ _GRAPH_API_BASE = "https://graph.microsoft.com/v1.0"
 _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = MicrosoftAuthManager()
 
-
-_SUPPORTED_OPERATIONS = {
+_OPERATIONS = {
     "list_items",
     "get_item",
     "upload_file",
@@ -28,37 +31,13 @@ _SUPPORTED_OPERATIONS = {
     "delete_item",
     "create_folder",
 }
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
 
-
-def _build_preview(
-    *,
-    operation: str,
-    url: str,
-    method: str,
-    payload: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    preview: Dict[str, Any] = {
-        "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "microsoft_oauth",
-    }
-
-    if payload:
-        preview["payload"] = payload
-
-    return preview
-
-
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+_PARAMETER_REQUIREMENTS = {
+    "upload_file": ["file_name", "file_content"],
+    "create_folder": ["folder_name"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -104,23 +83,24 @@ def main(
         Dict with 'output' containing the API response or error.
     """
     # Validate operation
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Supported: {', '.join(sorted(_SUPPORTED_OPERATIONS))}"
-        )
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
 
-    # Validate operation-specific requirements
-    if operation in ("get_item", "download_file", "delete_item") and not (item_id or path):
-        return validation_error(f"operation={operation} requires item_id or path")
+    # Validate operation-specific parameters
+    if error := _PARAMETER_VALIDATOR.validate_required(
+        normalized_operation,
+        {
+            "file_name": file_name,
+            "file_content": file_content,
+            "folder_name": folder_name,
+        },
+    ):
+        return error
 
-    if operation == "upload_file":
-        if not file_name:
-            return validation_error("upload_file requires file_name")
-        if not file_content:
-            return validation_error("upload_file requires file_content")
-
-    if operation == "create_folder" and not folder_name:
-        return validation_error("create_folder requires folder_name")
+    # Additional validation for operations requiring item_id or path
+    if normalized_operation in ("get_item", "download_file", "delete_item") and not (item_id or path):
+        return validation_error(f"operation={normalized_operation} requires item_id or path")
 
     # Get authentication
     auth_manager_instance = auth_manager or _DEFAULT_AUTH_MANAGER
@@ -145,86 +125,53 @@ def main(
             details="Provide MICROSOFT_ACCESS_TOKEN or all of MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET",
         )
 
+    headers["Content-Type"] = "application/json"
+
     # Build request based on operation
-    if operation == "list_items":
-        if path:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}:/children"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root/children"
+    params: Optional[Dict[str, Any]] = None
+    payload: Optional[Dict[str, Any]] = None
+
+    if normalized_operation == "list_items":
+        url = f"{_GRAPH_API_BASE}/me/drive/root:{path}:/children" if path else f"{_GRAPH_API_BASE}/me/drive/root/children"
         params = {"$top": top}
         method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=params)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "get_item":
-        if item_id:
-            url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}"
-        params = {}
+    elif normalized_operation == "get_item":
+        url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}" if item_id else f"{_GRAPH_API_BASE}/me/drive/root:{path}"
         method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=None)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "upload_file":
-        if path:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}/{file_name}:/content"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:/{file_name}:/content"
-        params = {}
+    elif normalized_operation == "upload_file":
+        url = f"{_GRAPH_API_BASE}/me/drive/root:{path}/{file_name}:/content" if path else f"{_GRAPH_API_BASE}/me/drive/root:/{file_name}:/content"
         method = "PUT"
         payload = {"content": file_content}
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "download_file":
-        if item_id:
-            url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}/content"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}:/content"
-        params = {}
+    elif normalized_operation == "download_file":
+        url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}/content" if item_id else f"{_GRAPH_API_BASE}/me/drive/root:{path}:/content"
         method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=None)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "delete_item":
-        if item_id:
-            url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}"
-        params = {}
+    elif normalized_operation == "delete_item":
+        url = f"{_GRAPH_API_BASE}/me/drive/items/{item_id}" if item_id else f"{_GRAPH_API_BASE}/me/drive/root:{path}"
         method = "DELETE"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=None)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "create_folder":
-        if path:
-            url = f"{_GRAPH_API_BASE}/me/drive/root:{path}:/children"
-        else:
-            url = f"{_GRAPH_API_BASE}/me/drive/root/children"
+    elif normalized_operation == "create_folder":
+        url = f"{_GRAPH_API_BASE}/me/drive/root:{path}:/children" if path else f"{_GRAPH_API_BASE}/me/drive/root/children"
         payload = {
             "name": folder_name,
             "folder": {},
             "@microsoft.graph.conflictBehavior": "rename"
         }
-        params = {}
         method = "POST"
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
-            return {"output": preview, "content_type": "application/json"}
+    else:
+        url = f"{_GRAPH_API_BASE}/{normalized_operation}"
+        method = "GET"
+
+    if dry_run:
+        preview = PreviewBuilder.build(
+            operation=normalized_operation,
+            url=url,
+            method=method,
+            auth_type="Microsoft OAuth",
+            params=params,
+            payload=payload,
+        )
+        return PreviewBuilder.dry_run_response(preview)
 
     # Execute request
-    headers["Content-Type"] = "application/json"
-
     try:
         if method == "GET":
             response = client_instance.get(url, headers=headers, params=params, timeout=timeout)
@@ -238,27 +185,18 @@ def main(
         else:
             return error_output(f"Unsupported HTTP method: {method}")
     except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            f"Request failed: {exc}",
-            status_code=status,
-            details=str(exc),
-        )
+        return ResponseHandler.handle_request_exception(exc)
 
-    if not response.ok:
-        error_details = _parse_json_response(response)
-        return error_output(
-            f"API request failed: {response.status_code}",
-            status_code=response.status_code,
-            details=error_details,
-        )
-
-    # DELETE returns 204 with no content
+    # Handle 204 No Content for delete
     if response.status_code == 204:
         return {"output": {"success": True, "message": "Resource deleted"}, "content_type": "application/json"}
 
-    result = _parse_json_response(response)
-    if "output" in result:
-        return result
+    # Extract error message from Microsoft Graph response
+    def extract_error(data: Dict[str, Any]) -> str:
+        if isinstance(data, dict) and "error" in data:
+            error_info = data["error"]
+            if isinstance(error_info, dict):
+                return error_info.get("message", "Microsoft Graph API error")
+        return "Microsoft Graph API error"
 
-    return {"output": result, "content_type": "application/json"}
+    return ResponseHandler.handle_json_response(response, extract_error)
