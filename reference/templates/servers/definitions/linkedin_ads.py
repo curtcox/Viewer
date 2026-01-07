@@ -39,7 +39,7 @@ _OPERATIONS = {
         required=(RequiredField("account_id"),),
         payload_builder=lambda account_id, **_: {
             "method": "GET",
-            "url_path": f"adAccounts/{account_id.split(':')[-1]}",
+            "url_path": f"adAccounts/{account_id.split(':')[-1] if ':' in account_id else account_id}",
             "params": None,
             "payload": None,
             "account_id": account_id,

@@ -26,8 +26,8 @@ API_BASE_URL = "https://api.xero.com/api.xro/2.0"
 DOCUMENTATION_URL = "https://developer.xero.com/documentation/api/accounting/overview"
 
 
-def _parse_json_or_error(value: str | dict, field_name: str) -> dict | tuple[str, str]:
-    """Parse JSON string or return error tuple."""
+def _parse_json_or_error(value: str | dict, field_name: str) -> dict[str, Any] | tuple[str, str]:
+    """Parse JSON string or return error tuple (error_message, field_name)."""
     if isinstance(value, dict):
         return value
     try:
