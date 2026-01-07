@@ -1,9 +1,10 @@
 [MASTER]
 # Disable parallel processing to avoid recursion errors in pylint plugins on Python 3.12
 jobs=1
+load-plugins=pylint.extensions.mccabe
 
 # Ignore generated or template directories that shouldn't be linted
-ignore-paths=reference/templates/servers/definitions,venv,.venv,node_modules
+ignore-paths=venv,.venv,node_modules
 
 [MESSAGES CONTROL]
 # Disable messages that are false positives or design choices
@@ -11,10 +12,6 @@ disable=
     # Design choices - not bugs
     too-few-public-methods,      # R0903 - Data classes, forms, simple classes are fine
     too-many-instance-attributes, # R0902 - Some classes legitimately need many attrs
-    too-many-arguments,           # R0913 - Sometimes necessary for complex functions
-    too-many-locals,              # R0914 - Complex functions may need many variables
-    too-many-branches,            # R0912 - Complex logic is sometimes unavoidable
-    too-many-statements,          # R0915 - Long functions exist for good reasons
     too-many-return-statements,   # R0911 - Guard clauses with early returns are clear
     too-many-public-methods,      # R0904 - Test classes often have many methods
 
@@ -65,7 +62,14 @@ max-line-length=100
 [DESIGN]
 # Adjust some thresholds to be more reasonable
 max-attributes=10
-max-args=7
+max-args=8
+max-branches=12
+max-statements=50
+max-locals=15
+max-nested-blocks=4
+
+[MCCABE]
+max-complexity=15
 
 [BASIC]
 # Good variable names that don't conform to naming conventions
