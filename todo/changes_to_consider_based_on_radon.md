@@ -7,24 +7,29 @@ This document outlines structural improvements to consider based on Radon cyclom
 **Completed Improvements:**
 1. ✅ **Language Detection Refactoring** - Reduced complexity from E (31) to A/B (~8)
 2. ✅ **Server Utils Documentation** - Comprehensive guide created at `docs/server_utils_usage_guide.md`
-3. ✅ **High-Complexity Server Migrations** - Migrated box.py, coda.py, and squarespace.py to server_utils patterns
+3. ✅ **High-Complexity Server Migrations (Phase 1)** - Migrated box.py, coda.py, and squarespace.py to server_utils patterns
    - box.py: 287 → 211 lines (26% reduction), all 27 tests passing
    - coda.py: 335 → 299 lines (11% reduction), all 23 tests passing
    - squarespace.py: 322 → 238 lines (26% reduction), all 21 squarespace tests passing
    - Total: 944 → 748 lines (21% overall reduction)
    - Expected complexity reduction: F (41-58) → B/C (6-15)
+4. ✅ **High-Complexity Server Migrations (Phase 2)** - Migrated onedrive.py, meta_ads.py, and wix.py to server_utils patterns
+   - onedrive.py: 264 → 202 lines (23% reduction), all 14 tests passing
+   - meta_ads.py: 319 → 306 lines (4% reduction), all 16 tests passing
+   - wix.py: 298 → 251 lines (16% reduction), all 20 tests passing
+   - Total: 881 → 759 lines (14% overall reduction)
+   - Expected complexity reduction: F (44) → B/C (8-15)
 
 **Next Steps (Optional/Future Work):**
-- Migrate remaining high-complexity servers (onedrive, meta_ads, wix) to use server_utils patterns
 - Gateway handler unification (if significant benefit identified)
 - Operation registry pattern (advanced future enhancement)
 
 **Measurable Impact:**
 - Language detection: Complexity reduced by ~75% (E→A/B)
-- Server definitions: 3 servers migrated with 21% line reduction and expected 60-75% complexity reduction
+- Server definitions: 6 servers migrated with 17% average line reduction and expected 60-75% complexity reduction
 - Path documented for server definitions: D/E/F (23-58) → B/C (8-15)
 - Zero test failures, no behavioral changes
-- All 71 tests passing across migrated servers
+- All 121 tests passing across migrated servers (27+23+21+14+16+20)
 
 ## Executive Summary
 
@@ -37,7 +42,8 @@ The Radon analysis revealed three primary areas of concern:
 **Progress:**
 - ✅ Language detection refactored with detector registry pattern
 - ✅ Server utils usage documented with comprehensive guide
-- ✅ Server definition improvements: box.py, coda.py, and squarespace.py migrated to server_utils
+- ✅ Server definition improvements (Phase 1): box.py, coda.py, and squarespace.py migrated to server_utils
+- ✅ Server definition improvements (Phase 2): onedrive.py, meta_ads.py, and wix.py migrated to server_utils
 - ⏸️ Additional server migrations (optional, documented patterns available)
 - ⏸️ Gateway handler improvements (pending, future work if needed)
 
@@ -154,10 +160,13 @@ The codebase already has under-utilized abstractions in `server_utils/external_a
 1. ✅ box.py: 287 → 211 lines (26% reduction), complexity F → B/C expected
 2. ✅ coda.py: 335 → 299 lines (11% reduction), complexity F → B/C expected
 3. ✅ squarespace.py: 322 → 238 lines (26% reduction), complexity F → B/C expected
+4. ✅ onedrive.py: 264 → 202 lines (23% reduction), complexity F → B/C expected
+5. ✅ meta_ads.py: 319 → 306 lines (4% reduction), complexity F → B/C expected
+6. ✅ wix.py: 298 → 251 lines (16% reduction), complexity F → B/C expected
 
 **Total Impact:**
-- 944 → 748 lines (21% reduction)
-- 71 tests passing (27 + 23 + 21)
+- 1825 → 1507 lines (17% reduction)
+- 121 tests passing (27 + 23 + 21 + 14 + 16 + 20)
 - Expected complexity reduction: 60-75%
 
 **Next Steps (Optional):**
@@ -424,7 +433,7 @@ class UrlBuilder:
 
 ### High Priority (Significant Complexity Reduction)
 
-3. ~~**Adopt Server Utils in High-Complexity Servers**~~ ✅ COMPLETED - Migrated box.py, coda.py, squarespace.py to use server_utils
+3. ~~**Adopt Server Utils in High-Complexity Servers**~~ ✅ COMPLETED - Migrated 6 servers (box.py, coda.py, squarespace.py, onedrive.py, meta_ads.py, wix.py) to use server_utils
 4. **Unified Gateway Handler** - Reduces gateway.py complexity by ~40% (optional future work)
 
 ### Medium Priority (Maintainability Improvements)
@@ -447,7 +456,7 @@ class UrlBuilder:
 | Average server `main()` complexity | D (25) | B (8) | B/C (est. 8-12) ✅ |
 | Gateway handler complexity | E-F (31-42) | C (15) | TODO |
 | Language detection complexity | ~~E (31)~~ | B (8) | **A/B (~8)** ✅ |
-| Server definitions using `server_utils` | ~20% | 100% | ~20% (3 pilots) ✅ |
+| Server definitions using `server_utils` | ~20% | 100% | ~25% (6 additional pilots) ✅ |
 | Average lines per server definition | 250 | 100 | ~180 (for migrated) ✅ |
 
 ---
