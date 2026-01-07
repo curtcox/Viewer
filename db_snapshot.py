@@ -3,7 +3,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -40,12 +40,12 @@ class DatabaseSnapshot:
             raise RuntimeError("Snapshots are only supported in memory mode")
 
         if name is None:
-            name = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            name = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
         os.makedirs(cls.SNAPSHOT_DIR, exist_ok=True)
         snapshot_path = os.path.join(cls.SNAPSHOT_DIR, f"{name}.json")
 
-        snapshot_data = {"created_at": datetime.utcnow().isoformat(), "tables": {}}
+        snapshot_data = {"created_at": datetime.now(UTC).isoformat(), "tables": {}}
 
         # Export each model's data
         models = [

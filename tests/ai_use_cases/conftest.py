@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -126,7 +126,7 @@ class AIInteractionTracker:
                 "request": request_payload,
                 "response": response_data,
                 "status": status_code,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "external_calls": external_calls or [],
             }
         )

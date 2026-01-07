@@ -11,7 +11,7 @@ import os
 import re
 import textwrap
 from functools import lru_cache
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -59,7 +59,7 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
     status_code = getattr(response, "status_code", "?")
     resolved_label = label or f"{method} {path}"
 
-    timestamp = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    timestamp = datetime.now(UTC).isoformat(timespec="seconds").replace('+00:00', 'Z')
     preview_text = _prepare_preview_text(body_text)
 
     screenshot_bytes: bytes | None = None
@@ -151,7 +151,7 @@ def _render_text_image(label: str, status_code: str, preview_text: str) -> bytes
     font = ImageFont.load_default()
     lines: list[str] = []
 
-    timestamp = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    timestamp = datetime.now(UTC).isoformat(timespec="seconds").replace('+00:00', 'Z')
     lines.append(f"{label}")
     lines.append(f"Status: {status_code}  •  Captured: {timestamp}")
     lines.append("")
@@ -184,7 +184,7 @@ def _build_base_filename(label: str) -> str:
     sanitized = re.sub(r"[^a-zA-Z0-9._-]+", "-", label).strip("-")
     if not sanitized:
         sanitized = "response"
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     unique = uuid4().hex[:8]
     filename = f"{sanitized}-{timestamp}-{unique}"
     return filename[:240]
