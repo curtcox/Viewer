@@ -227,16 +227,19 @@ def when_request_jq_with_filter(jq_filter: str) -> None:
     state["response"] = response
 
 
-@step("When I request the resource /<path>/{stored CID}")
-def when_request_path_with_stored_cid(path: str) -> None:
+@step("When I request the resource /<path>/<stored_cid>")
+def when_request_path_with_stored_cid(path: str, stored_cid: str) -> None:
     """Request a path with the stored CID appended."""
     state = get_scenario_state()
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored."
 
-    # Replace {stored CID} placeholder in path if present
-    normalized_path = path.replace("{stored CID}", cid_value)
-    request_path = f"/{normalized_path}"
+    if stored_cid:
+        assert stored_cid == cid_value, (
+            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
+        )
+
+    request_path = f"/{path}/{cid_value}"
 
     client = get_shared_client()
     response = client.get(request_path)
@@ -246,12 +249,17 @@ def when_request_path_with_stored_cid(path: str) -> None:
 # Generic request step for wrapper tests
 
 
-@step("When I request the resource /awk-wrapper/awk/{print $1}/{stored CID}")
-def when_request_awk_wrapper() -> None:
+@step("When I request the resource /awk-wrapper/awk/%7Bprint%20$1%7D/<stored_cid>")
+def when_request_awk_wrapper(stored_cid: str) -> None:
     """Request awk-wrapper with awk path parameter chain."""
     state = get_scenario_state()
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored."
+
+    if stored_cid:
+        assert stored_cid == cid_value, (
+            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
+        )
 
     encoded_pattern = quote("{print $1}", safe="")
     request_path = f"/awk-wrapper/awk/{encoded_pattern}/{cid_value}"
@@ -261,12 +269,17 @@ def when_request_awk_wrapper() -> None:
     state["response"] = response
 
 
-@step("When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/{stored CID}")
-def when_request_sed_wrapper() -> None:
+@step("When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/<stored_cid>")
+def when_request_sed_wrapper(stored_cid: str) -> None:
     """Request sed-wrapper with sed path parameter chain."""
     state = get_scenario_state()
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored."
+
+    if stored_cid:
+        assert stored_cid == cid_value, (
+            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
+        )
 
     request_path = f"/sed-wrapper/sed/s%2Fbar%2Fbaz%2F/{cid_value}"
 
@@ -275,12 +288,17 @@ def when_request_sed_wrapper() -> None:
     state["response"] = response
 
 
-@step("When I request the resource /grep-wrapper/grep/apple/{stored CID}")
-def when_request_grep_wrapper() -> None:
+@step("When I request the resource /grep-wrapper/grep/apple/<stored_cid>")
+def when_request_grep_wrapper(stored_cid: str) -> None:
     """Request grep-wrapper with grep path parameter chain."""
     state = get_scenario_state()
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored."
+
+    if stored_cid:
+        assert stored_cid == cid_value, (
+            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
+        )
 
     request_path = f"/grep-wrapper/grep/apple/{cid_value}"
 
@@ -289,12 +307,17 @@ def when_request_grep_wrapper() -> None:
     state["response"] = response
 
 
-@step("When I request the resource /jq-wrapper/jq/.key/{stored CID}")
-def when_request_jq_wrapper() -> None:
+@step("When I request the resource /jq-wrapper/jq/.key/<stored_cid>")
+def when_request_jq_wrapper(stored_cid: str) -> None:
     """Request jq-wrapper with jq path parameter chain."""
     state = get_scenario_state()
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored."
+
+    if stored_cid:
+        assert stored_cid == cid_value, (
+            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
+        )
 
     encoded_filter = quote(".key", safe="")
     request_path = f"/jq-wrapper/jq/{encoded_filter}/{cid_value}"

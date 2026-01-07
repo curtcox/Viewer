@@ -7,14 +7,14 @@ and chain input from subsequent path segments.
 
 * Given the awk server is available
 * And a CID containing "word1 word2 word3"
-* When I request the awk server with pattern "{print $1}" and the stored CID
+* When I request the awk server with pattern "\{print $1\}" and the stored CID
 * Then the response should redirect to a CID
 * And the CID content should contain "word1"
 
 ## Awk server accepts CID pattern
 
 * Given the awk server is available
-* And a CID containing "{print $2}" as pattern_cid
+* And a CID containing "\{print $2\}" as pattern_cid
 * And a CID containing "a1 b1 c1"
 * When I request the awk server with CID pattern and the stored CID
 * Then the response should redirect to a CID
@@ -25,7 +25,7 @@ and chain input from subsequent path segments.
 * Given the awk server is available
 * And a wrapping server named "awk-wrapper" that wraps payload with "AWK:"
 * And a CID containing "hello world"
-* When I request the resource /awk-wrapper/awk/{print $1}/{stored CID}
+* When I request the resource /awk-wrapper/awk/%7Bprint%20$1%7D/<stored_cid>
 * Then the response should redirect to a CID
 * And the CID content should contain "AWK:hello"
 
@@ -42,7 +42,7 @@ and chain input from subsequent path segments.
 * Given the sed server is available
 * And a wrapping server named "sed-wrapper" that wraps payload with "SED:"
 * And a CID containing "foo bar"
-* When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/{stored CID}
+* When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/<stored_cid>
 * Then the response should redirect to a CID
 * And the CID content should contain "SED:foo baz"
 
@@ -60,7 +60,7 @@ and chain input from subsequent path segments.
 * Given the grep server is available
 * And a wrapping server named "grep-wrapper" that wraps payload with "GREP:"
 * And a CID containing multiline grep test data
-* When I request the resource /grep-wrapper/grep/apple/{stored CID}
+* When I request the resource /grep-wrapper/grep/apple/<stored_cid>
 * Then the response should redirect to a CID
 * And the CID content should contain "GREP:"
 * And the CID content should contain "apple"
@@ -68,7 +68,7 @@ and chain input from subsequent path segments.
 ## Jq server accepts filter from path parameter
 
 * Given the jq server is available
-* And a CID containing JSON data '{"name": "test", "value": 42}'
+* And a CID containing JSON data '\{"name": "test", "value": 42\}'
 * When I request the jq server with filter ".name" and the stored CID
 * Then the response should redirect to a CID
 * And the CID content should contain "test"
@@ -77,8 +77,8 @@ and chain input from subsequent path segments.
 
 * Given the jq server is available
 * And a wrapping server named "jq-wrapper" that wraps payload with "JQ:"
-* And a CID containing JSON data '{"key": "secret"}'
-* When I request the resource /jq-wrapper/jq/.key/{stored CID}
+* And a CID containing JSON data '\{"key": "secret"\}'
+* When I request the resource /jq-wrapper/jq/.key/<stored_cid>
 * Then the response should redirect to a CID
 * And the CID content should contain "JQ:"
 * And the CID content should contain "secret"
