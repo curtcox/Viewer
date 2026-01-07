@@ -7,68 +7,33 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    CredentialValidator,
+    ExternalApiClient,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
-
-
-def _build_preview(
-    *,
-    operation: str,
-    product_id: Optional[str],
-    order_id: Optional[str],
-    inventory_item_id: Optional[str],
-    payload: Optional[Dict[str, Any]],
-    params: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    base_url = "https://api.squarespace.com/1.0"
-
-    if operation == "list_products":
-        url = f"{base_url}/commerce/products"
-        method = "GET"
-    elif operation == "get_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "GET"
-    elif operation == "create_product":
-        url = f"{base_url}/commerce/products"
-        method = "POST"
-    elif operation == "update_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "PUT"
-    elif operation == "delete_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "DELETE"
-    elif operation == "list_orders":
-        url = f"{base_url}/commerce/orders"
-        method = "GET"
-    elif operation == "get_order":
-        url = f"{base_url}/commerce/orders/{order_id}"
-        method = "GET"
-    elif operation == "list_inventory":
-        url = f"{base_url}/commerce/inventory"
-        method = "GET"
-    elif operation == "get_inventory":
-        url = f"{base_url}/commerce/inventory/{inventory_item_id}"
-        method = "GET"
-    elif operation == "update_inventory":
-        url = f"{base_url}/commerce/inventory/{inventory_item_id}"
-        method = "PUT"
-    else:
-        url = base_url
-        method = "GET"
-
-    preview: Dict[str, Any] = {
-        "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "Bearer token",
-    }
-    if params:
-        preview["params"] = params
-    if payload:
-        preview["payload"] = payload
-    return preview
+_OPERATIONS = {
+    "list_products", "get_product", "create_product", "update_product", "delete_product",
+    "list_orders", "get_order",
+    "list_inventory", "get_inventory", "update_inventory"
+}
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+_PARAMETER_REQUIREMENTS = {
+    "get_product": ["product_id"],
+    "update_product": ["product_id"],
+    "delete_product": ["product_id"],
+    "get_order": ["order_id"],
+    "get_inventory": ["inventory_item_id"],
+    "update_inventory": ["inventory_item_id", "quantity"],
+    "create_product": ["name", "price"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -123,43 +88,27 @@ def main(
         context: Request context
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_products", "get_product", "create_product", "update_product", "delete_product",
-        "list_orders", "get_order",
-        "list_inventory", "get_inventory", "update_inventory"
+    # Validate operation
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
+
+    # Validate credentials
+    if error := CredentialValidator.require_secret(SQUARESPACE_API_KEY, "SQUARESPACE_API_KEY"):
+        return error
+
+    # Validate operation-specific parameters
+    # Note: price and quantity are special as they can be None vs empty string
+    params_dict = {
+        "product_id": product_id,
+        "order_id": order_id,
+        "inventory_item_id": inventory_item_id,
+        "name": name,
+        "price": price,
+        "quantity": quantity,
     }
-
-    if normalized_operation not in valid_operations:
-        return validation_error(
-            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(valid_operations))}",
-            field="operation"
-        )
-
-    # Validate required parameters based on operation
-    if normalized_operation in {"get_product", "update_product", "delete_product"} and not product_id:
-        return validation_error(f"Missing required product_id for {normalized_operation}", field="product_id")
-
-    if normalized_operation == "get_order" and not order_id:
-        return validation_error("Missing required order_id", field="order_id")
-
-    if normalized_operation in {"get_inventory", "update_inventory"} and not inventory_item_id:
-        return validation_error(f"Missing required inventory_item_id for {normalized_operation}", field="inventory_item_id")
-
-    if normalized_operation == "create_product" and not name:
-        return validation_error("Missing required name for create_product", field="name")
-
-    if normalized_operation == "create_product" and price is None:
-        return validation_error("Missing required price for create_product", field="price")
-
-    if normalized_operation == "update_inventory" and quantity is None:
-        return validation_error("Missing required quantity for update_inventory", field="quantity")
-
-    if not SQUARESPACE_API_KEY:
-        return error_output(
-            "Missing SQUARESPACE_API_KEY. Get your API key from Squarespace Settings > Advanced > API Keys",
-            status_code=401
-        )
+    if error := _PARAMETER_VALIDATOR.validate_required(normalized_operation, params_dict):
+        return error
 
     # Build payload for create/update operations
     payload = None
@@ -200,9 +149,7 @@ def main(
                 }
             ]
     elif normalized_operation == "update_inventory":
-        payload = {
-            "quantity": quantity
-        }
+        payload = {"quantity": quantity}
     elif normalized_operation in {"list_products", "list_orders", "list_inventory"}:
         params = {}
         if cursor:
@@ -210,28 +157,8 @@ def main(
         if limit:
             params["limit"] = min(limit, 200)  # Max 200
 
-    # Dry-run preview
-    if dry_run:
-        preview = _build_preview(
-            operation=normalized_operation,
-            product_id=product_id,
-            order_id=order_id,
-            inventory_item_id=inventory_item_id,
-            payload=payload,
-            params=params,
-        )
-        return {"output": {"dry_run": True, "preview": preview}, "content_type": "application/json"}
-
-    # Make the actual API call
-    api_client = client or _DEFAULT_CLIENT
-    base_url = "https://api.squarespace.com/1.0"
-    headers = {
-        "Authorization": f"Bearer {SQUARESPACE_API_KEY}",
-        "Content-Type": "application/json",
-        "User-Agent": "Viewer/1.0",
-    }
-
     # Build URL based on operation
+    base_url = "https://api.squarespace.com/1.0"
     if normalized_operation == "list_products":
         url = f"{base_url}/commerce/products"
         method = "GET"
@@ -263,7 +190,28 @@ def main(
         url = f"{base_url}/commerce/inventory/{inventory_item_id}"
         method = "PUT"
     else:
-        return validation_error(f"Unknown operation: {operation}")
+        url = base_url
+        method = "GET"
+
+    # Dry-run preview
+    if dry_run:
+        preview = PreviewBuilder.build(
+            operation=normalized_operation,
+            url=url,
+            method=method,
+            auth_type="Bearer Token",
+            params=params,
+            payload=payload,
+        )
+        return PreviewBuilder.dry_run_response(preview)
+
+    # Make the actual API call
+    api_client = client or _DEFAULT_CLIENT
+    headers = {
+        "Authorization": f"Bearer {SQUARESPACE_API_KEY}",
+        "Content-Type": "application/json",
+        "User-Agent": "Viewer/1.0",
+    }
 
     try:
         response = api_client.request(
@@ -274,49 +222,17 @@ def main(
             params=params if params else None,
             timeout=timeout,
         )
+    except requests.exceptions.RequestException as exc:
+        return ResponseHandler.handle_request_exception(exc)
 
-        if response.status_code == 401:
-            return error_output(
-                "Invalid or expired SQUARESPACE_API_KEY. Check your API key in Squarespace Settings",
-                status_code=401
-            )
-        if response.status_code == 403:
-            return error_output(
-                "Insufficient permissions for this operation. Check your API key has the required scopes",
-                status_code=403
-            )
-        if response.status_code == 404:
-            return error_output(
-                f"Resource not found (product_id={product_id}, order_id={order_id}, inventory_item_id={inventory_item_id})",
-                status_code=404
-            )
+    # Some operations return no content (204)
+    if response.status_code == 204 or not response.content:
+        return {"output": {"success": True}, "content_type": "application/json"}
 
-        response.raise_for_status()
+    # Extract error message from Squarespace API response
+    def extract_error(data: Dict[str, Any]) -> str:
+        if isinstance(data, dict):
+            return data.get("message", "Squarespace API error")
+        return "Squarespace API error"
 
-        # Some operations return no content
-        if response.status_code == 204 or not response.content:
-            return {"output": {"success": True}, "content_type": "application/json"}
-
-        try:
-            data = response.json()
-            return {"output": data, "content_type": "application/json"}
-        except requests.exceptions.JSONDecodeError:
-            return error_output(
-                "Failed to parse API response as JSON",
-                status_code=response.status_code,
-                response=response.text[:500]
-            )
-
-    except requests.exceptions.Timeout:
-        return error_output(
-            f"Request timed out after {timeout} seconds. Try increasing the timeout parameter",
-            status_code=408
-        )
-    except requests.exceptions.RequestException as e:
-        status_code = e.response.status_code if e.response else None
-        error_detail = e.response.text[:500] if e.response else str(e)
-        return error_output(
-            f"Squarespace API request failed: {str(e)}",
-            status_code=status_code,
-            response=error_detail
-        )
+    return ResponseHandler.handle_json_response(response, extract_error)

@@ -7,70 +7,44 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    CredentialValidator,
+    ExternalApiClient,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
-
-
-def _build_preview(
-    *,
-    operation: str,
-    file_id: Optional[str],
-    folder_id: Optional[str],
-    params: Optional[Dict[str, Any]],
-    payload: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    base_url = "https://api.box.com/2.0"
-
-    if operation == "list_items" and folder_id:
-        url = f"{base_url}/folders/{folder_id}/items"
-    elif operation == "get_file" and file_id:
-        url = f"{base_url}/files/{file_id}"
-    elif operation == "get_folder" and folder_id:
-        url = f"{base_url}/folders/{folder_id}"
-    elif operation == "download_file" and file_id:
-        url = f"{base_url}/files/{file_id}/content"
-    elif operation == "upload_file":
-        url = "https://upload.box.com/api/2.0/files/content"
-    elif operation == "delete_file" and file_id:
-        url = f"{base_url}/files/{file_id}"
-    elif operation == "delete_folder" and folder_id:
-        url = f"{base_url}/folders/{folder_id}"
-    elif operation == "create_folder":
-        url = f"{base_url}/folders"
-    elif operation == "copy_file" and file_id:
-        url = f"{base_url}/files/{file_id}/copy"
-    elif operation == "move_file" and file_id:
-        url = f"{base_url}/files/{file_id}"
-    elif operation == "search":
-        url = f"{base_url}/search"
-    elif operation == "get_user":
-        url = f"{base_url}/users/me"
-    else:
-        url = f"{base_url}/{operation}"
-
-    method_map = {
-        "upload_file": "POST",
-        "create_folder": "POST",
-        "copy_file": "POST",
-        "move_file": "PUT",
-        "delete_file": "DELETE",
-        "delete_folder": "DELETE",
-    }
-    method = method_map.get(operation, "GET")
-
-    preview: Dict[str, Any] = {
-        "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "Bearer token",
-    }
-    if params:
-        preview["params"] = params
-    if payload:
-        preview["payload"] = payload
-    return preview
+_OPERATIONS = {
+    "list_items",
+    "get_file",
+    "get_folder",
+    "download_file",
+    "upload_file",
+    "delete_file",
+    "delete_folder",
+    "create_folder",
+    "copy_file",
+    "move_file",
+    "search",
+    "get_user",
+}
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+_PARAMETER_REQUIREMENTS = {
+    "get_file": ["file_id"],
+    "download_file": ["file_id"],
+    "upload_file": ["name", "content"],
+    "delete_file": ["file_id"],
+    "delete_folder": ["folder_id"],
+    "create_folder": ["name"],
+    "copy_file": ["file_id", "parent_id"],
+    "move_file": ["file_id", "parent_id"],
+    "search": ["query"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -105,31 +79,28 @@ def main(
     - get_user: Get current user information
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_items",
-        "get_file",
-        "get_folder",
-        "download_file",
-        "upload_file",
-        "delete_file",
-        "delete_folder",
-        "create_folder",
-        "copy_file",
-        "move_file",
-        "search",
-        "get_user",
-    }
+    # Validate operation
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
 
-    if normalized_operation not in valid_operations:
-        return validation_error("Unsupported operation", field="operation")
+    # Validate credentials
+    if error := CredentialValidator.require_secret(BOX_ACCESS_TOKEN, "BOX_ACCESS_TOKEN"):
+        return error
 
-    if not BOX_ACCESS_TOKEN:
-        return error_output(
-            "Missing BOX_ACCESS_TOKEN",
-            status_code=401,
-            details="Provide an OAuth access token for Box API",
-        )
+    # Validate operation-specific parameters
+    if error := _PARAMETER_VALIDATOR.validate_required(
+        normalized_operation,
+        {
+            "file_id": file_id,
+            "folder_id": folder_id,
+            "name": name,
+            "content": content,
+            "parent_id": parent_id,
+            "query": query,
+        },
+    ):
+        return error
 
     api_client = client or _DEFAULT_CLIENT
 
@@ -139,127 +110,89 @@ def main(
         "Content-Type": "application/json",
     }
 
+    # Set defaults
+    if not folder_id:
+        folder_id = "0"
+    if not parent_id:
+        parent_id = "0"
+
     params: Optional[Dict[str, Any]] = None
     payload: Optional[Dict[str, Any]] = None
 
-    # Validate and build payload/params based on operation
+    # Build request details based on operation
     if normalized_operation == "list_items":
-        # Default to root folder if not specified
-        if not folder_id:
-            folder_id = "0"
+        url = f"{base_url}/folders/{folder_id}/items"
+        method = "GET"
     elif normalized_operation == "get_file":
-        if not file_id:
-            return validation_error("Missing required file_id", field="file_id")
+        url = f"{base_url}/files/{file_id}"
+        method = "GET"
     elif normalized_operation == "get_folder":
-        if not folder_id:
-            folder_id = "0"
+        url = f"{base_url}/folders/{folder_id}"
+        method = "GET"
     elif normalized_operation == "download_file":
-        if not file_id:
-            return validation_error("Missing required file_id", field="file_id")
+        url = f"{base_url}/files/{file_id}/content"
+        method = "GET"
     elif normalized_operation == "upload_file":
-        if not name:
-            return validation_error("Missing required name", field="name")
-        if not content:
-            return validation_error("Missing required content", field="content")
-        if not parent_id:
-            parent_id = "0"
-        payload = {
-            "name": name,
-            "parent": {"id": parent_id},
-        }
+        url = "https://upload.box.com/api/2.0/files/content"
+        method = "POST"
+        payload = {"name": name, "parent": {"id": parent_id}}
     elif normalized_operation == "delete_file":
-        if not file_id:
-            return validation_error("Missing required file_id", field="file_id")
+        url = f"{base_url}/files/{file_id}"
+        method = "DELETE"
     elif normalized_operation == "delete_folder":
-        if not folder_id:
-            return validation_error("Missing required folder_id", field="folder_id")
+        url = f"{base_url}/folders/{folder_id}"
+        method = "DELETE"
         params = {"recursive": "true"}
     elif normalized_operation == "create_folder":
-        if not name:
-            return validation_error("Missing required name", field="name")
-        if not parent_id:
-            parent_id = "0"
-        payload = {
-            "name": name,
-            "parent": {"id": parent_id},
-        }
+        url = f"{base_url}/folders"
+        method = "POST"
+        payload = {"name": name, "parent": {"id": parent_id}}
     elif normalized_operation == "copy_file":
-        if not file_id:
-            return validation_error("Missing required file_id", field="file_id")
-        if not parent_id:
-            return validation_error("Missing required parent_id (destination folder)", field="parent_id")
-        payload = {
-            "parent": {"id": parent_id},
-        }
+        url = f"{base_url}/files/{file_id}/copy"
+        method = "POST"
+        payload = {"parent": {"id": parent_id}}
         if name:
             payload["name"] = name
     elif normalized_operation == "move_file":
-        if not file_id:
-            return validation_error("Missing required file_id", field="file_id")
-        if not parent_id:
-            return validation_error("Missing required parent_id (destination folder)", field="parent_id")
-        payload = {
-            "parent": {"id": parent_id},
-        }
+        url = f"{base_url}/files/{file_id}"
+        method = "PUT"
+        payload = {"parent": {"id": parent_id}}
         if name:
             payload["name"] = name
     elif normalized_operation == "search":
-        if not query:
-            return validation_error("Missing required query", field="query")
+        url = f"{base_url}/search"
+        method = "GET"
         params = {"query": query, "limit": 100}
+    elif normalized_operation == "get_user":
+        url = f"{base_url}/users/me"
+        method = "GET"
+    else:
+        url = f"{base_url}/{normalized_operation}"
+        method = "GET"
 
     if dry_run:
-        preview = _build_preview(
+        preview = PreviewBuilder.build(
             operation=normalized_operation,
-            file_id=file_id,
-            folder_id=folder_id,
+            url=url,
+            method=method,
+            auth_type="Bearer Token",
             params=params,
             payload=payload,
         )
-        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
+        return PreviewBuilder.dry_run_response(preview)
 
-    # Build URL and make request
-    if normalized_operation == "list_items":
-        url = f"{base_url}/folders/{folder_id}/items"
-    elif normalized_operation == "get_file":
-        url = f"{base_url}/files/{file_id}"
-    elif normalized_operation == "get_folder":
-        url = f"{base_url}/folders/{folder_id}"
-    elif normalized_operation == "download_file":
-        url = f"{base_url}/files/{file_id}/content"
-    elif normalized_operation == "upload_file":
-        url = "https://upload.box.com/api/2.0/files/content"
-    elif normalized_operation == "delete_file":
-        url = f"{base_url}/files/{file_id}"
-    elif normalized_operation == "delete_folder":
-        url = f"{base_url}/folders/{folder_id}"
-    elif normalized_operation == "create_folder":
-        url = f"{base_url}/folders"
-    elif normalized_operation == "copy_file":
-        url = f"{base_url}/files/{file_id}/copy"
-    elif normalized_operation == "move_file":
-        url = f"{base_url}/files/{file_id}"
-    elif normalized_operation == "search":
-        url = f"{base_url}/search"
-    elif normalized_operation == "get_user":
-        url = f"{base_url}/users/me"
-    else:
-        url = f"{base_url}/{normalized_operation}"
-
+    # Execute request
     try:
-        if normalized_operation == "upload_file":
+        if method == "POST":
             response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        elif normalized_operation in {"create_folder", "copy_file"}:
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        elif normalized_operation == "move_file":
+        elif method == "PUT":
             response = api_client.put(url, headers=headers, json=payload, timeout=timeout)
-        elif normalized_operation in {"delete_file", "delete_folder"}:
+        elif method == "DELETE":
             response = api_client.delete(url, headers=headers, params=params, timeout=timeout)
         else:
             response = api_client.get(url, headers=headers, params=params, timeout=timeout)
     except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Box request failed", status_code=status, details=str(exc))
+        return ResponseHandler.handle_request_exception(exc)
 
     # Handle binary download
     if normalized_operation == "download_file" and response.ok:
@@ -269,19 +202,10 @@ def main(
     if normalized_operation in {"delete_file", "delete_folder"} and response.status_code == 204:
         return {"output": {"message": "Successfully deleted"}}
 
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        error_msg = "Box API error"
+    # Extract error message from Box API response
+    def extract_error(data: Dict[str, Any]) -> str:
         if isinstance(data, dict):
-            error_msg = data.get("message", data.get("error_description", error_msg))
-        return error_output(error_msg, status_code=response.status_code, response=data)
+            return data.get("message", data.get("error_description", "Box API error"))
+        return "Box API error"
 
-    return {"output": data}
+    return ResponseHandler.handle_json_response(response, extract_error)

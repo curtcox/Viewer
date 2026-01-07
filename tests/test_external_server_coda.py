@@ -108,9 +108,9 @@ def test_dry_run_returns_preview_for_list_docs():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "GET"
-    assert "docs" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert result["output"]["preview"]["method"] == "GET"
+    assert "docs" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_get_doc():
@@ -120,8 +120,8 @@ def test_dry_run_returns_preview_for_get_doc():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "doc123" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert "doc123" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_list_tables():
@@ -131,8 +131,8 @@ def test_dry_run_returns_preview_for_list_tables():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "tables" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert "tables" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_list_rows():
@@ -143,8 +143,8 @@ def test_dry_run_returns_preview_for_list_rows():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "rows" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert "rows" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_create_row():
@@ -156,9 +156,9 @@ def test_dry_run_returns_preview_for_create_row():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "POST"
-    assert "payload" in result["output"]
+    assert "preview" in result["output"]
+    assert result["output"]["preview"]["method"] == "POST"
+    assert "payload" in result["output"]["preview"]
 
 
 def test_dry_run_returns_preview_for_update_row():
@@ -171,9 +171,9 @@ def test_dry_run_returns_preview_for_update_row():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "PUT"
-    assert "row123" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert result["output"]["preview"]["method"] == "PUT"
+    assert "row123" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_delete_row():
@@ -185,9 +185,9 @@ def test_dry_run_returns_preview_for_delete_row():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "DELETE"
-    assert "row123" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert result["output"]["preview"]["method"] == "DELETE"
+    assert "row123" in result["output"]["preview"]["url"]
 
 
 def test_dry_run_returns_preview_for_list_columns():
@@ -198,8 +198,8 @@ def test_dry_run_returns_preview_for_list_columns():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "columns" in result["output"]["url"]
+    assert "preview" in result["output"]
+    assert "columns" in result["output"]["preview"]["url"]
 
 
 def test_list_rows_with_query():
@@ -211,8 +211,9 @@ def test_list_rows_with_query():
         CODA_API_TOKEN="test_token",
         dry_run=True,
     )
-    assert "params" in result["output"]
-    assert result["output"]["params"]["query"] == "Name contains test"
+    assert "preview" in result["output"]
+    assert "params" in result["output"]["preview"]
+    assert result["output"]["preview"]["params"]["query"] == "Name contains test"
 
 
 def test_invalid_json_in_data_returns_error():

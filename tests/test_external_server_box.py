@@ -71,7 +71,7 @@ def test_get_file_requires_id():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required file_id"
+    assert result["output"]["error"]["message"] == "Missing required file_id for get_file"
 
 
 def test_download_file_requires_id():
@@ -80,7 +80,7 @@ def test_download_file_requires_id():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required file_id"
+    assert result["output"]["error"]["message"] == "Missing required file_id for download_file"
 
 
 def test_upload_file_requires_name():
@@ -89,7 +89,7 @@ def test_upload_file_requires_name():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required name"
+    assert result["output"]["error"]["message"] == "Missing required name for upload_file"
 
 
 def test_upload_file_requires_content():
@@ -99,7 +99,7 @@ def test_upload_file_requires_content():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required content"
+    assert result["output"]["error"]["message"] == "Missing required content for upload_file"
 
 
 def test_delete_file_requires_id():
@@ -108,7 +108,7 @@ def test_delete_file_requires_id():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required file_id"
+    assert result["output"]["error"]["message"] == "Missing required file_id for delete_file"
 
 
 def test_delete_folder_uses_default_when_no_id():
@@ -129,7 +129,7 @@ def test_create_folder_requires_name():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required name"
+    assert result["output"]["error"]["message"] == "Missing required name for create_folder"
 
 
 def test_copy_file_requires_file_id():
@@ -138,7 +138,7 @@ def test_copy_file_requires_file_id():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required file_id"
+    assert result["output"]["error"]["message"] == "Missing required file_id for copy_file"
 
 
 def test_copy_file_uses_default_parent():
@@ -160,7 +160,7 @@ def test_move_file_requires_file_id():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required file_id"
+    assert result["output"]["error"]["message"] == "Missing required file_id for move_file"
 
 
 def test_move_file_uses_default_parent():
@@ -182,7 +182,7 @@ def test_search_requires_query():
         BOX_ACCESS_TOKEN="token",
     )
 
-    assert result["output"]["error"]["message"] == "Missing required query"
+    assert result["output"]["error"]["message"] == "Missing required query for search"
 
 
 def test_dry_run_preview_for_list_items():

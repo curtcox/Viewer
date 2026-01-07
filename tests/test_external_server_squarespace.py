@@ -31,7 +31,7 @@ def test_list_products_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "list_products"
     assert "api.squarespace.com/1.0/commerce/products" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "GET"
@@ -54,7 +54,7 @@ def test_get_product_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "get_product"
     assert "api.squarespace.com/1.0/commerce/products/prod123" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "GET"
@@ -88,7 +88,7 @@ def test_create_product_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "create_product"
     assert "api.squarespace.com/1.0/commerce/products" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "POST"
@@ -104,7 +104,7 @@ def test_update_product_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "update_product"
     assert "api.squarespace.com/1.0/commerce/products/prod123" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "PUT"
@@ -117,7 +117,7 @@ def test_delete_product_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "delete_product"
     assert "api.squarespace.com/1.0/commerce/products/prod123" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "DELETE"
@@ -129,7 +129,7 @@ def test_list_orders_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "list_orders"
     assert "api.squarespace.com/1.0/commerce/orders" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "GET"
@@ -152,7 +152,7 @@ def test_get_order_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "get_order"
     assert "api.squarespace.com/1.0/commerce/orders/order123" in result["output"]["preview"]["url"]
 
@@ -163,7 +163,7 @@ def test_list_inventory_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "list_inventory"
     assert "api.squarespace.com/1.0/commerce/inventory" in result["output"]["preview"]["url"]
 
@@ -186,7 +186,7 @@ def test_update_inventory_dry_run():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["operation"] == "update_inventory"
     assert "api.squarespace.com/1.0/commerce/inventory/inv123" in result["output"]["preview"]["url"]
     assert result["output"]["preview"]["method"] == "PUT"
@@ -201,7 +201,7 @@ def test_list_products_pagination():
         SQUARESPACE_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
+    assert "preview" in result["output"]
     assert result["output"]["preview"]["params"]["cursor"] == "abc123"
     assert result["output"]["preview"]["params"]["limit"] == 50
 
@@ -232,6 +232,8 @@ def test_api_401_error_handling():
     mock_response = Mock()
     mock_response.status_code = 401
     mock_response.text = "Unauthorized"
+    mock_response.ok = False
+    mock_response.json.return_value = {"message": "Unauthorized"}
     mock_client.request.return_value = mock_response
 
     result = squarespace.main(
@@ -249,6 +251,8 @@ def test_api_404_error_handling():
     mock_response = Mock()
     mock_response.status_code = 404
     mock_response.text = "Product not found"
+    mock_response.ok = False
+    mock_response.json.return_value = {"message": "Product not found"}
     mock_client.request.return_value = mock_response
 
     result = squarespace.main(
