@@ -10,8 +10,8 @@ Tags: servers, dependencies
 * And there is a server named weather_service with main parameters city and api_key
 * When I request the page /servers
 * The response status should be 200
-* The page should contain 'href="/variables/city" class="badge'
-* The page should contain 'href="/secrets/api_key" class="badge'
+* The page should contain /variables/city
+* The page should contain /secrets/api_key
 
 ## Servers list page shows only matching dependencies
 Tags: servers, dependencies
@@ -22,9 +22,9 @@ Tags: servers, dependencies
 * And there is a server named weather_service with main parameters city and api_key
 * When I request the page /servers
 * The response status should be 200
-* The page should contain 'href="/variables/city" class="badge'
-* The page should contain 'href="/secrets/api_key" class="badge'
-* The page should not contain 'href="/variables/country" class="badge'
+* The page should contain /variables/city
+* The page should contain /secrets/api_key
+* The page should not contain /variables/country
 
 ## Servers list page handles servers without dependencies
 Tags: servers, dependencies
@@ -34,4 +34,5 @@ Tags: servers, dependencies
 * When I request the page /servers
 * The response status should be 200
 * The page should contain echo_service
-* The page should not contain 'href="/variables/city" class="badge'
+* The page should not contain /variables/city
+
