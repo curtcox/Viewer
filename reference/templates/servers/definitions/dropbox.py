@@ -47,8 +47,9 @@ _OPERATIONS = {
     ),
     "upload": OperationDefinition(
         required=(RequiredField("path"), RequiredField("content")),
-        payload_builder=lambda path, mode, autorename, mute, **_: {
+        payload_builder=lambda path, content, mode, autorename, mute, **_: {
             "path": path,
+            "content": content,
             "mode": mode,
             "autorename": autorename,
             "mute": mute,
