@@ -3,10 +3,14 @@
 
 from typing import Optional
 from server_utils.external_api import (
+    CredentialValidator,
     ExternalApiClient,
     HttpClientConfig,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
     error_response,
-    missing_secret_error,
     generate_form,
     FormField,
 )
@@ -14,6 +18,30 @@ from server_utils.external_api import (
 
 API_BASE_URL = "https://graph.facebook.com/v18.0"
 DOCUMENTATION_URL = "https://developers.facebook.com/docs/marketing-apis"
+
+_OPERATIONS = {
+    "list_accounts",
+    "list_campaigns",
+    "get_campaign",
+    "create_campaign",
+    "list_adsets",
+    "get_adset",
+    "list_ads",
+    "get_ad",
+    "get_insights",
+}
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+
+_PARAMETER_REQUIREMENTS = {
+    "list_campaigns": ["account_id"],
+    "create_campaign": ["account_id", "campaign_name", "objective"],
+    "get_campaign": ["campaign_id"],
+    "list_adsets": ["account_id"],
+    "get_adset": ["ad_set_id"],
+    "list_ads": ["account_id"],
+    "get_ad": ["ad_id"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -59,8 +87,8 @@ def main(
         Dict with 'output' containing the API response or preview
     """
     # Validate secret first
-    if not META_ACCESS_TOKEN:
-        return missing_secret_error("META_ACCESS_TOKEN")
+    if error := CredentialValidator.require_secret(META_ACCESS_TOKEN, "META_ACCESS_TOKEN"):
+        return error
 
     # Show form if no operation provided
     if not operation:
@@ -153,59 +181,51 @@ def main(
         )
 
     # Validate operation
-    valid_operations = [
-        "list_accounts",
-        "list_campaigns",
-        "get_campaign",
-        "create_campaign",
-        "list_adsets",
-        "get_adset",
-        "list_ads",
-        "get_ad",
-        "get_insights",
-    ]
-    if operation not in valid_operations:
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
+
+    # Validate operation-specific parameters
+    if error := _PARAMETER_VALIDATOR.validate_required(
+        normalized_operation,
+        {
+            "account_id": account_id,
+            "campaign_id": campaign_id,
+            "campaign_name": campaign_name,
+            "objective": objective,
+            "ad_set_id": ad_set_id,
+            "ad_id": ad_id,
+        },
+    ):
+        return error
+
+    # Additional validation for get_insights
+    if normalized_operation == "get_insights" and not (campaign_id or ad_set_id or ad_id):
         return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
+            "campaign_id, ad_set_id, or ad_id is required for get_insights",
             error_type="validation_error",
         )
 
     # Build request based on operation
     method = "GET"
-    url = API_BASE_URL
     payload = None
     params = {"access_token": META_ACCESS_TOKEN}
 
-    if operation == "list_accounts":
+    if normalized_operation == "list_accounts":
         url = f"{API_BASE_URL}/me/adaccounts"
         params["limit"] = limit
         if fields:
             params["fields"] = fields
-    elif operation == "list_campaigns":
-        if not account_id:
-            return error_response(
-                "account_id is required for list_campaigns operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_campaigns":
         url = f"{API_BASE_URL}/{account_id}/campaigns"
         params["limit"] = limit
         if fields:
             params["fields"] = fields
-    elif operation == "get_campaign":
-        if not campaign_id:
-            return error_response(
-                "campaign_id is required for get_campaign operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_campaign":
         url = f"{API_BASE_URL}/{campaign_id}"
         if fields:
             params["fields"] = fields
-    elif operation == "create_campaign":
-        if not account_id or not campaign_name or not objective:
-            return error_response(
-                "account_id, campaign_name, and objective are required for create_campaign",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "create_campaign":
         method = "POST"
         url = f"{API_BASE_URL}/{account_id}/campaigns"
         payload = {
@@ -214,66 +234,43 @@ def main(
             "status": status,
             "special_ad_categories": "[]",
         }
-    elif operation == "list_adsets":
-        if not account_id:
-            return error_response(
-                "account_id is required for list_adsets operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_adsets":
         url = f"{API_BASE_URL}/{account_id}/adsets"
         params["limit"] = limit
         if fields:
             params["fields"] = fields
-    elif operation == "get_adset":
-        if not ad_set_id:
-            return error_response(
-                "ad_set_id is required for get_adset operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_adset":
         url = f"{API_BASE_URL}/{ad_set_id}"
         if fields:
             params["fields"] = fields
-    elif operation == "list_ads":
-        if not account_id:
-            return error_response(
-                "account_id is required for list_ads operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_ads":
         url = f"{API_BASE_URL}/{account_id}/ads"
         params["limit"] = limit
         if fields:
             params["fields"] = fields
-    elif operation == "get_ad":
-        if not ad_id:
-            return error_response(
-                "ad_id is required for get_ad operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_ad":
         url = f"{API_BASE_URL}/{ad_id}"
         if fields:
             params["fields"] = fields
-    elif operation == "get_insights":
-        if not campaign_id and not ad_set_id and not ad_id:
-            return error_response(
-                "campaign_id, ad_set_id, or ad_id is required for get_insights",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_insights":
         entity_id = campaign_id or ad_set_id or ad_id
         url = f"{API_BASE_URL}/{entity_id}/insights"
         if fields:
             params["fields"] = fields
+    else:
+        url = API_BASE_URL
 
     # Dry run: return preview
     if dry_run:
-        preview = {
-            "operation": operation,
-            "method": method,
-            "url": url,
-            "params": {**params, "access_token": "[REDACTED]"},
-        }
-        if payload:
-            preview["payload"] = payload
-        return {"output": preview}
+        preview = PreviewBuilder.build(
+            operation=normalized_operation,
+            url=url,
+            method=method,
+            auth_type="Access Token",
+            params={**params, "access_token": "[REDACTED]"},
+            payload=payload,
+        )
+        return PreviewBuilder.dry_run_response(preview)
 
     # Create client with configured timeout
     if client is None:
@@ -295,25 +292,15 @@ def main(
             params=params,
             timeout=timeout,
         )
+    except Exception as exc:
+        return ResponseHandler.handle_request_exception(exc)
 
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
+    # Extract error message from Meta API response
+    def extract_error(data):
+        if isinstance(data, dict) and "error" in data:
+            error_info = data["error"]
+            if isinstance(error_info, dict):
+                return error_info.get("message", "Meta API error")
+        return "Meta API error"
 
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return ResponseHandler.handle_json_response(response, extract_error)

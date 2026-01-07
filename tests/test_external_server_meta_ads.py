@@ -79,9 +79,10 @@ def test_dry_run_returns_preview_for_list_accounts():
     result = meta_ads.main(
         operation="list_accounts", META_ACCESS_TOKEN="test_token", dry_run=True
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "GET"
-    assert "adaccounts" in result["output"]["url"]
+    preview = result["output"]["preview"]
+    assert "operation" in preview
+    assert preview["method"] == "GET"
+    assert "adaccounts" in preview["url"]
 
 
 def test_dry_run_returns_preview_for_create_campaign():
@@ -93,9 +94,10 @@ def test_dry_run_returns_preview_for_create_campaign():
         META_ACCESS_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert result["output"]["method"] == "POST"
-    assert "payload" in result["output"]
+    preview = result["output"]["preview"]
+    assert "operation" in preview
+    assert preview["method"] == "POST"
+    assert "payload" in preview
 
 
 def test_dry_run_returns_preview_for_get_campaign():
@@ -105,8 +107,9 @@ def test_dry_run_returns_preview_for_get_campaign():
         META_ACCESS_TOKEN="test_token",
         dry_run=True,
     )
-    assert "operation" in result["output"]
-    assert "120123456789" in result["output"]["url"]
+    preview = result["output"]["preview"]
+    assert "operation" in preview
+    assert "120123456789" in preview["url"]
 
 
 def test_request_exception_returns_error():
