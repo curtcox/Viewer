@@ -252,6 +252,9 @@ def generate_failure_report(
     failures: list[SpecFailure], output_path: Path
 ) -> None:
     """Generate a comprehensive failure report file."""
+    # Ensure parent directories exist
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     if not failures:
         # Create empty report indicating no failures
         with output_path.open("w", encoding="utf-8") as f:

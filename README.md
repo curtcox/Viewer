@@ -93,6 +93,11 @@ through the running app's source browser at `/source/reports/html-report/index.h
 alongside unit test and coverage results. A build is only considered passing when
 both the pytest suite and the Gauge specs succeed.
 
+When Gauge specs fail or are skipped, a comprehensive failure report is automatically
+generated at `reports/html-report/gauge-failures.md`. This report includes detailed
+information about each failure or skip, including error messages, stack traces, and
+investigation tips to help diagnose and fix issues.
+
 ## Requirements
 
 * Python 3.12 or newer

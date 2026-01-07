@@ -147,6 +147,8 @@ Authentication is handled by external systems. This repository focuses on conten
 - Install `python` and `html-report` plugins
 - HTML reports at `reports/html-report/index.html`
 - Accessible via app's source browser at `/source/reports/html-report/index.html`
+- Comprehensive failure report automatically generated at `reports/html-report/gauge-failures.md`
+- Failure report includes error messages, stack traces, and investigation tips
 - May fail in offline/sandboxed environments due to Chromium download requirement
 
 ### Observability
