@@ -117,7 +117,7 @@ def main(context=None):
     except Exception as e:
         # Catch-all error handler with diagnostic information
         error_detail = traceback.format_exc()
-        logger.error(f"Gateway error: {e}\n{error_detail}")
+        logger.error("Gateway error: %s\n%s", e, error_detail)
         return _render_error(
             "Gateway Error",
             f"An unexpected error occurred: {escape(str(e))}",
@@ -287,7 +287,7 @@ def _load_gateways(context):
                             return json.loads(cid_content)
 
     except Exception as e:
-        logger.warning(f"Failed to load gateways: {e}")
+        logger.warning("Failed to load gateways: %s", e)
 
     return {}
 
@@ -870,7 +870,7 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                         # Normal request transformation
                         request_details = transformed
         except Exception as e:
-            logger.error(f"Request transform error: {e}")
+            logger.error("Request transform error: %s", e)
             return _render_error(
                 "Request Transform Error",
                 f"Failed to execute request transform: {escape(str(e))}",
@@ -899,7 +899,7 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
         try:
             response = _execute_target_request(resolved_target, request_details)
         except Exception as e:
-            logger.error(f"Target request error: {e}")
+            logger.error("Target request error: %s", e)
             return _render_error(
                 "Request Failed",
                 f"Failed to connect to target: {escape(str(e))}",
@@ -977,7 +977,7 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                 if isinstance(result, dict) and "output" in result:
                     return result
         except Exception as e:
-            logger.error(f"Response transform error: {e}")
+            logger.error("Response transform error: %s", e)
             return _render_error(
                 "Response Transform Error",
                 f"Failed to execute response transform: {escape(str(e))}",
@@ -994,11 +994,10 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
             "output": response_details["_original_output"],
             "content_type": response_details.get("_original_content_type", "text/plain"),
         }
-    else:
-        return {
-            "output": response_details.get("content", b""),
-            "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
-        }
+    return {
+        "output": response_details.get("content", b""),
+        "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
+    }
 
 
 def _handle_gateway_test_request(server_name, rest_path, test_server_path, gateways, context):
@@ -1150,7 +1149,7 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
                         # Normal request transformation
                         request_details = transformed
         except Exception as e:
-            logger.error(f"Request transform error: {e}")
+            logger.error("Request transform error: %s", e)
             return _render_error(
                 "Request Transform Error",
                 f"Failed to execute request transform: {escape(str(e))}",
@@ -1180,7 +1179,7 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
         try:
             response = _execute_target_request(resolved_target, request_details)
         except Exception as e:
-            logger.error(f"Target request error: {e}")
+            logger.error("Target request error: %s", e)
             return _render_error(
                 "Request Failed",
                 f"Failed to connect to test target: {escape(str(e))}",
@@ -1270,7 +1269,7 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
                             result["output"] = decoded.replace(old_prefix, prefix)
                     return result
         except Exception as e:
-            logger.error(f"Response transform error: {e}")
+            logger.error("Response transform error: %s", e)
             return _render_error(
                 "Response Transform Error",
                 f"Failed to execute response transform: {escape(str(e))}",
@@ -1296,21 +1295,20 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
             "output": output,
             "content_type": content_type,
         }
-    else:
-        output = response_details.get("content", b"")
-        content_type = response_details.get("headers", {}).get("Content-Type", "text/plain")
-        if "html" in str(content_type).lower():
-            prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
-            old_prefix = f"/gateway/{server_name}"
-            if isinstance(output, str):
-                output = output.replace(old_prefix, prefix)
-            elif isinstance(output, (bytes, bytearray)):
-                decoded = bytes(output).decode("utf-8", errors="replace")
-                output = decoded.replace(old_prefix, prefix)
-        return {
-            "output": output,
-            "content_type": content_type,
-        }
+    output = response_details.get("content", b"")
+    content_type = response_details.get("headers", {}).get("Content-Type", "text/plain")
+    if "html" in str(content_type).lower():
+        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
+        old_prefix = f"/gateway/{server_name}"
+        if isinstance(output, str):
+            output = output.replace(old_prefix, prefix)
+        elif isinstance(output, (bytes, bytearray)):
+            decoded = bytes(output).decode("utf-8", errors="replace")
+            output = decoded.replace(old_prefix, prefix)
+    return {
+        "output": output,
+        "content_type": content_type,
+    }
 
 
 def _resolve_test_target(test_server_path: str, request_details: dict) -> dict:
@@ -1754,7 +1752,7 @@ def _load_transform_function(cid, context):
             return _compile_transform(source)
 
     except Exception as e:
-        logger.error(f"Failed to load transform from CID {cid}: {e}")
+        logger.error("Failed to load transform from CID %s: %s", cid, e)
 
     return None
 

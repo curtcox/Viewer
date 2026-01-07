@@ -38,7 +38,7 @@ def main(context=None):
         return _main_impl(context)
     except Exception as e:
         error_detail = traceback.format_exc()
-        logger.error(f"MCP error: {e}\n{error_detail}")
+        logger.error("MCP error: %s\n%s", e, error_detail)
         return _render_error(
             "MCP Error",
             f"An unexpected error occurred: {escape(str(e))}",
@@ -120,13 +120,13 @@ def _load_mcps(context: Optional[Dict] = None) -> Dict[str, Any]:
                     try:
                         mcps_data = json.loads(cid_content)
                     except json.JSONDecodeError as e:
-                        logger.warning(f"Failed to parse mcps CID content: {e}")
+                        logger.warning("Failed to parse mcps CID content: %s", e)
                         return {}
                 else:
-                    logger.warning(f"Failed to resolve mcps CID: {mcps_value}")
+                    logger.warning("Failed to resolve mcps CID: %s", mcps_value)
                     return {}
             else:
-                logger.warning(f"mcps value is not valid JSON or CID: {mcps_value[:50]}")
+                logger.warning("mcps value is not valid JSON or CID: %s", mcps_value[:50])
                 return {}
     else:
         return {}
@@ -144,16 +144,16 @@ def _load_mcps(context: Optional[Dict] = None) -> Dict[str, Any]:
                         config = json.loads(config_content) if isinstance(config_content, str) else config_content
                         resolved_mcps[server_name] = config
                     except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse config for MCP server '{server_name}'")
+                        logger.warning("Failed to parse config for MCP server '%s'", server_name)
                 else:
-                    logger.warning(f"Config CID not found for MCP server '{server_name}': {config_cid}")
+                    logger.warning("Config CID not found for MCP server '%s': %s", server_name, config_cid)
             else:
                 # Use the entry directly if no config_cid
                 resolved_mcps[server_name] = server_entry
 
         return resolved_mcps
     except (AttributeError, TypeError) as e:
-        logger.warning(f"Failed to process mcps configuration: {e}")
+        logger.warning("Failed to process mcps configuration: %s", e)
         return {}
 
 
@@ -175,7 +175,7 @@ def _get_cid_content(cid_path: str, context: Optional[Dict] = None) -> Optional[
             if file_path.exists():
                 return file_path.read_text(encoding="utf-8")
         except Exception as e:
-            logger.warning(f"Failed to read file {cid_path}: {e}")
+            logger.warning("Failed to read file %s: %s", cid_path, e)
             return None
 
     # Otherwise, try to resolve as CID
@@ -195,7 +195,7 @@ def _get_cid_content(cid_path: str, context: Optional[Dict] = None) -> Optional[
                 return data.decode("utf-8") if isinstance(data, bytes) else data
             return content.decode("utf-8") if isinstance(content, bytes) else content
     except Exception as e:
-        logger.warning(f"Failed to get CID content for {cid_path}: {e}")
+        logger.warning("Failed to get CID content for %s: %s", cid_path, e)
 
     return None
 
@@ -220,10 +220,9 @@ def _handle_mcp_endpoint(server_name: str, mcps: Dict[str, Any], context: Option
 
     if method == "POST":
         return _handle_post_request(server_name, mcps, context)
-    elif method == "GET":
+    if method == "GET":
         return _handle_get_listener(server_name, mcps, context)
-    else:
-        return {"error": "Method not allowed"}, 405
+    return {"error": "Method not allowed"}, 405
 
 
 def _handle_post_request(server_name: str, mcps: Dict[str, Any], context: Optional[Dict] = None):
@@ -321,20 +320,19 @@ def _dispatch_jsonrpc(
     # Dispatch to method handler
     if method == "initialize":
         return _handle_initialize(params, request_id)
-    elif method == "tools/list":
+    if method == "tools/list":
         return _handle_tools_list(server_name, params, request_id, mcps, context)
-    elif method == "tools/call":
+    if method == "tools/call":
         return _handle_tools_call(server_name, params, request_id, mcps, context)
-    elif method == "resources/list":
+    if method == "resources/list":
         return _handle_resources_list(server_name, params, request_id, mcps, context)
-    elif method == "resources/read":
+    if method == "resources/read":
         return _handle_resources_read(server_name, params, request_id, mcps, context)
-    elif method == "prompts/list":
+    if method == "prompts/list":
         return _handle_prompts_list(server_name, params, request_id, mcps, context)
-    elif method == "prompts/get":
+    if method == "prompts/get":
         return _handle_prompts_get(server_name, params, request_id, mcps, context)
-    else:
-        return _jsonrpc_error(-32601, "Method not found", request_id)
+    return _jsonrpc_error(-32601, "Method not found", request_id)
 
 
 def _jsonrpc_error(code: int, message: str, request_id: Any) -> Dict:
@@ -460,7 +458,7 @@ def _handle_tools_call(
             {"content": [{"type": "text", "text": str(result)}], "isError": False}, request_id
         )
     except Exception as e:
-        logger.error(f"Tool execution error: {e}\n{traceback.format_exc()}")
+        logger.error("Tool execution error: %s\n%s", e, traceback.format_exc())
         return _jsonrpc_success(
             {"content": [{"type": "text", "text": str(e)}], "isError": True}, request_id
         )
@@ -630,7 +628,7 @@ def _discover_server_tools(server_name: str, context: Optional[Dict] = None) -> 
     # Check if it's a Python or shell server
     if "def main(" in server_code:
         return _discover_python_tools(server_name, server_code)
-    elif "@bash_command" in server_code:
+    if "@bash_command" in server_code:
         return _discover_shell_tools(server_name, server_code)
 
     return []
@@ -668,7 +666,7 @@ def _discover_python_tools(server_name: str, server_code: str) -> List[Dict]:
                     {"name": node.name, "description": description, "inputSchema": input_schema}
                 )
     except SyntaxError:
-        logger.warning(f"Failed to parse Python server {server_name}")
+        logger.warning("Failed to parse Python server %s", server_name)
 
     return tools
 
@@ -761,10 +759,9 @@ def _execute_tool(server_name: str, tool_name: str, args: Dict, context: Optiona
 
     if result and "output" in result:
         return result["output"]
-    elif result and "error" in result:
+    if result and "error" in result:
         raise Exception(result["error"])
-    else:
-        return str(result)
+    return str(result)
 
 
 def _read_resource(uri: str, context: Optional[Dict] = None) -> str:
