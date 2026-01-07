@@ -108,6 +108,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://docs.googleapis.com/v1/documents"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -132,6 +133,9 @@ def main(
             payload = {"requests": json.loads(requests_payload)}
         except json.JSONDecodeError:
             return validation_error("requests_payload must be valid JSON")
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

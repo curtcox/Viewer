@@ -108,6 +108,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://api.close.com/api/v1"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -159,6 +160,9 @@ def main(
         url = f"{base_url}/opportunity/"
         method = "POST"
         payload = data
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

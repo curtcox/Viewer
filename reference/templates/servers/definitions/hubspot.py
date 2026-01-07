@@ -101,6 +101,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://api.hubapi.com"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -132,6 +133,9 @@ def main(
         url = f"{base_url}/crm/v3/objects/companies"
         method = "POST"
         payload = {"properties": properties}
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

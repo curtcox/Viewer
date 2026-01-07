@@ -109,6 +109,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://forms.googleapis.com/v1/forms"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -132,6 +133,9 @@ def main(
         if not form_id:
             return validation_error("form_id is required for get_response operation")
         url = f"{base_url}/{form_id}/responses"
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
