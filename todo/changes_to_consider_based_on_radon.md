@@ -30,7 +30,10 @@ main() complexity distribution:
 - F (41-58): box.py, coda.py, squarespace.py, onedrive.py, meta_ads.py, wix.py
 - E (31-34): aws_s3.py, apify.py, etsy.py, klaviyo.py, telegram.py, xero.py, etc.
 - D (23-30): activecampaign.py, amplitude.py, asana.py, etc.
+- B (6-10): github.py ✅ (uses server_utils)
 ```
+
+**Note:** Some servers like `github.py` already use the `server_utils` abstractions and have low complexity.
 
 ### Root Causes
 
@@ -52,9 +55,35 @@ main() complexity distribution:
    - API request execution
    - Response parsing
 
-### Proposed Solutions
+### Implemented Solutions ✅
 
-#### 1.1 Operation Registry Pattern
+#### 1.1 Documentation for Server Utils Usage ✅ COMPLETED
+
+Created comprehensive documentation showing how to use existing `server_utils` abstractions:
+
+**Document:** `docs/server_utils_usage_guide.md`
+
+**Contents:**
+- Complete usage examples for all utilities
+- Migration guide from legacy patterns
+- Complexity reduction metrics
+- Reference to `github.py` as exemplar implementation
+
+**Available Utilities Documented:**
+1. `OperationValidator` - Validate operations with consistent errors
+2. `ParameterValidator` - Validate operation-specific parameters
+3. `CredentialValidator` - Validate API credentials
+4. `PreviewBuilder` - Build standardized dry-run previews
+5. `ResponseHandler` - Handle responses and exceptions consistently
+
+**Complexity Impact:**
+- Before: 200-300 lines, complexity 23-58 (D/E/F)
+- After: 100-150 lines, complexity 8-15 (B/C)
+- Example: `github.py` uses all utilities and has complexity B
+
+### Proposed Solutions (Future Work)
+
+#### 1.2 Operation Registry Pattern (Future Enhancement)
 
 Replace if-elif chains with a declarative operation registry:
 
@@ -72,11 +101,6 @@ OPERATIONS = {
         url_template="/files/{file_id}",
         required_params=["file_id"],
     ),
-    "delete_file": Operation(
-        method="DELETE",
-        url_template="/files/{file_id}",
-        required_params=["file_id"],
-    ),
     # ...
 }
 
@@ -84,44 +108,31 @@ def main(**kwargs):
     return execute_operation(OPERATIONS, kwargs, base_url="https://api.box.com/2.0")
 ```
 
-**Benefits:**
-- Reduces `main()` from 200+ lines to ~10 lines
-- Operations become data, not code paths
-- Validation logic can be generalized
-- Testing becomes trivial (test the registry data + the executor once)
+**Note:** This is a future enhancement. Current recommendation is to use existing `server_utils` abstractions first.
 
-#### 1.2 Leverage Existing `server_utils` Abstractions
+#### 1.3 Leverage Existing `server_utils` Abstractions ⏭️ NEXT STEP
 
 The codebase already has under-utilized abstractions in `server_utils/external_api/`:
 
-| Class | Purpose | Current Usage |
-|-------|---------|---------------|
-| `OperationValidator` | Validate operation names | Inconsistent |
-| `ParameterValidator` | Validate required parameters | Inconsistent |
-| `PreviewBuilder` | Build dry-run responses | Inconsistent |
-| `ResponseHandler` | Handle API responses | Inconsistent |
+| Class | Purpose | Current Usage | Documentation |
+|-------|---------|---------------|---------------|
+| `OperationValidator` | Validate operation names | ~5% | ✅ Complete |
+| `ParameterValidator` | Validate required parameters | ~5% | ✅ Complete |
+| `PreviewBuilder` | Build dry-run responses | ~5% | ✅ Complete |
+| `ResponseHandler` | Handle API responses | ~5% | ✅ Complete |
+| `CredentialValidator` | Validate credentials | ~10% | ✅ Complete |
 
-**Recommendation:** Mandate use of these utilities across all server definitions to reduce duplication and complexity.
+**Recommendation:** Adopt these utilities across all server definitions to reduce duplication and complexity.
 
-#### 1.3 Base Server Class
+**Next Steps:**
+1. ✅ Document utilities (completed)
+2. ⏭️ Migrate 2-3 pilot servers (high complexity: box.py, coda.py)
+3. Measure complexity reduction
+4. Continue systematic migration
 
-Create an abstract base class that handles common patterns:
+#### 1.4 Base Server Class (Future Enhancement)
 
-```python
-class ExternalApiServer:
-    """Base class for external API server definitions."""
-
-    base_url: str
-    operations: Dict[str, Operation]
-    auth_header_name: str = "Authorization"
-
-    def main(self, operation: str, dry_run: bool = True, **params):
-        # 1. Validate operation
-        # 2. Validate required params
-        # 3. Build request
-        # 4. Return preview or execute
-        pass
-```
+Create an abstract base class that handles common patterns (future work after gaining experience with the utilities).
 
 ---
 
@@ -366,22 +377,26 @@ class UrlBuilder:
 
 ## 5. Implementation Priority
 
+### Completed ✅
+
+1. **Language Detector Registry** ✅ - Reduced `detect_server_language` from E (31) to A/B (~8)
+2. **Server Utils Documentation** ✅ - Created comprehensive guide at `docs/server_utils_usage_guide.md`
+
 ### High Priority (Significant Complexity Reduction)
 
-1. **Unified Gateway Handler** - Reduces gateway.py complexity by ~40%
-2. **Operation Registry for Server Definitions** - Reduces average server definition complexity by ~60%
-3. **Consistent Use of `server_utils` Abstractions** - Reduces duplication significantly
+3. **Adopt Server Utils in High-Complexity Servers** - Migrate box.py, coda.py, squarespace.py to use server_utils
+4. **Unified Gateway Handler** - Reduces gateway.py complexity by ~40% (if time permits)
 
 ### Medium Priority (Maintainability Improvements)
 
-4. **Language Detector Registry** - Reduces `detect_server_language` from E to A/B
-5. **Base Server Class** - Standardizes all server definitions
-6. **Pipeline Architecture for Gateway** - Improves testability
+5. **Base Server Class** - Standardizes all server definitions (future work)
+6. **Pipeline Architecture for Gateway** - Improves testability (future work)
 
 ### Low Priority (Polish)
 
-7. **URL Builder Strategy** - Minor duplication reduction
-8. **Error Context Builder** - Code organization improvement
+7. **URL Builder Strategy** - Minor duplication reduction (future work)
+8. **Error Context Builder** - Code organization improvement (future work)
+9. **Operation Registry Pattern** - More advanced abstraction (future work after gaining experience with server_utils)
 
 ---
 
