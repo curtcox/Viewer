@@ -338,7 +338,11 @@ jobs:
         if: always()
         run: |
           TEST_STATUS=0
-          python -m coverage run -m pytest --junitxml=test-results.xml || TEST_STATUS=$?
+          python -m coverage run -m pytest \
+            --junitxml=test-results.xml \
+            --html=unit-test-report.html \
+            --self-contained-html \
+            || TEST_STATUS=$?
           echo "test_status=$TEST_STATUS" >> "$GITHUB_OUTPUT"
           exit 0
       - name: Check coverage threshold
@@ -376,12 +380,14 @@ jobs:
           else
             echo "coverage_result=success" >> "$GITHUB_OUTPUT"
           fi
-      - name: Upload test results XML
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-tests-results
-          path: test-results.xml
+          path: |
+            test-results.xml
+            unit-test-report.html
           if-no-files-found: warn
       - name: Upload coverage XML
         if: always() && steps.coverage.outputs.generated == 'true'

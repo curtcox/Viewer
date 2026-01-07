@@ -663,10 +663,11 @@ def _build_property_index(property_dir: Path) -> None:
 
 
 def _build_unit_tests_results_index(results_dir: Path) -> None:
-    """Build an index page for unit test results from JUnit XML."""
+    """Build an index page for unit test results from JUnit XML and pytest-html."""
     results_dir.mkdir(parents=True, exist_ok=True)
 
     xml_path = results_dir / "test-results.xml"
+    html_report_path = results_dir / "unit-test-report.html"
     index_path = results_dir / "index.html"
 
     summary_html = "<p>No JUnit XML report was generated.</p>"
@@ -675,7 +676,13 @@ def _build_unit_tests_results_index(results_dir: Path) -> None:
         summary_html = _build_property_summary(xml_path)
         xml_link = '<p><a href="test-results.xml">Download the JUnit XML report</a></p>'
 
+    # Link to pytest-html report if available
+    html_report_link = ""
+    if html_report_path.exists():
+        html_report_link = '<p><strong><a href="unit-test-report.html">View detailed HTML test report with source code</a></strong></p><p>The HTML report includes test failure messages, stack traces, and the source code of all tests with syntax highlighting.</p>'
+
     body = f"""  <h1>Unit Test Results</h1>
+  {html_report_link}
   {xml_link}
   {summary_html}"""
 
