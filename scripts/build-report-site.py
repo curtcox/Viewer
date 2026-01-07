@@ -662,7 +662,9 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
-def _build_unit_tests_results_index(results_dir: Path) -> None:
+def _build_unit_tests_results_index(
+    results_dir: Path, *, job_status: str | None = None
+) -> None:
     """Build an index page for unit test results from JUnit XML and pytest-html."""
     results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -688,7 +690,27 @@ def _build_unit_tests_results_index(results_dir: Path) -> None:
             'and the source code of all tests with syntax highlighting.</p>'
         )
 
+    warning_html = ""
+    if job_status == "failure" and xml_path.exists():
+        counts = _read_junit_failures_and_errors(xml_path)
+        if counts is not None:
+            failures, errors = counts
+            if failures == 0 and errors == 0:
+                warning_html = """<div class=\"warning\">
+  <p><strong>⚠ Check Failed</strong></p>
+  <p>The <strong>unit-tests-results</strong> CI job reported a failure, but the JUnit XML shows <strong>0 failures</strong> and <strong>0 errors</strong>.</p>
+  <p>This typically means the job failed for reasons other than failing tests, such as:</p>
+  <ul>
+    <li>Timeout or resource limits</li>
+    <li>Crash during report generation or artifact upload</li>
+    <li>Post-test steps failing (coverage/report packaging)</li>
+    <li>Infrastructure/transient CI issues</li>
+  </ul>
+  <p>Use the GitHub Actions job logs to determine the precise cause.</p>
+</div>"""
+
     body = f"""  <h1>Unit Test Results</h1>
+  {warning_html}
   {html_report_link}
   {xml_link}
   {summary_html}"""
@@ -995,6 +1017,47 @@ def _load_job_statuses(job_statuses_path: Path | None) -> dict[str, str]:
         return {}
 
 
+def _read_junit_failures_and_errors(xml_path: Path) -> tuple[int, int] | None:
+    """Read failures/errors counts from a JUnit XML file."""
+
+    def _get_int(attrib: dict[str, str], key: str) -> int:
+        value = attrib.get(key)
+        if value is None:
+            return 0
+        try:
+            return int(float(value))
+        except ValueError:
+            return 0
+
+    if not xml_path.exists():
+        return None
+
+    try:
+        tree = ET.parse(xml_path)
+    except (ET.ParseError, OSError):
+        return None
+
+    root = tree.getroot()
+
+    failures = 0
+    errors = 0
+    if root.tag == "testsuite":
+        failures = _get_int(root.attrib, "failures")
+        errors = _get_int(root.attrib, "errors")
+    elif root.tag == "testsuites":
+        if "failures" in root.attrib or "errors" in root.attrib:
+            failures = _get_int(root.attrib, "failures")
+            errors = _get_int(root.attrib, "errors")
+        else:
+            for suite in root.findall("testsuite"):
+                failures += _get_int(suite.attrib, "failures")
+                errors += _get_int(suite.attrib, "errors")
+    else:
+        return None
+
+    return failures, errors
+
+
 def _get_job_metadata() -> dict[str, JobMetadata]:
     """Define metadata for all CI jobs."""
     return {
@@ -1282,7 +1345,9 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
-    _build_unit_tests_results_index(unit_tests_results_dir)
+    _build_unit_tests_results_index(
+        unit_tests_results_dir, job_status=job_statuses.get("unit-tests-results")
+    )
     _build_linter_index(
         pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint")
     )

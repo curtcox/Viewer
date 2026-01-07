@@ -464,3 +464,24 @@ def test_write_landing_page_applies_background_color(tmp_path) -> None:
 
     # Should have orange background (3 failures)
     assert "background-color: #ffe0b2" in content
+
+
+def test_build_unit_tests_results_index_includes_mismatch_warning(tmp_path) -> None:
+    unit_tests_dir = tmp_path / "unit-tests-results"
+    unit_tests_dir.mkdir(parents=True)
+
+    # JUnit XML indicates no failing tests, but job status is failure.
+    (unit_tests_dir / "test-results.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<testsuite name="pytest" tests="1" failures="0" errors="0" skipped="0">'
+        "</testsuite>",
+        encoding="utf-8",
+    )
+
+    build_report._build_unit_tests_results_index(unit_tests_dir, job_status="failure")
+
+    content = (unit_tests_dir / "index.html").read_text(encoding="utf-8")
+    assert "⚠ Check Failed" in content
+    assert "unit-tests-results" in content
+    assert "0 failures" in content
+    assert "0 errors" in content
