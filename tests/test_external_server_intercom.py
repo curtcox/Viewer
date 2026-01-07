@@ -191,7 +191,7 @@ def test_get_conversation_success():
 
     assert result["output"]["id"] == "123"
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, url, _kwargs = fake_client.calls[0]
     assert method == "GET"
     assert url == "https://api.intercom.io/conversations/123"
 

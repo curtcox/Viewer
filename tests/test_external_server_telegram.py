@@ -120,7 +120,7 @@ def test_get_me_success():
     assert result["output"]["id"] == 123
     assert result["output"]["username"] == "test_bot"
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, url, _kwargs = fake_client.calls[0]
     assert method == "POST"
     assert "/getMe" in url
 
@@ -172,7 +172,7 @@ def test_send_photo_with_caption():
 
     assert result["output"]["message_id"] == 888
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    _method, _url, kwargs = fake_client.calls[0]
     assert kwargs["json"]["photo"] == "https://example.com/photo.jpg"
     assert kwargs["json"]["caption"] == "A nice photo"
 

@@ -509,7 +509,7 @@ def test_response_details_source_server(monkeypatch):
     assert captured_response_details["captured"] is not None
     captured = captured_response_details["captured"]
     assert isinstance(captured, dict)
-    assert captured["source"] == "server"
+    assert captured["source"] == "server"  # pylint: disable=unsubscriptable-object
 
 
 def test_response_details_source_request_transform(monkeypatch):
@@ -539,8 +539,7 @@ def test_response_details_source_request_transform(monkeypatch):
         load_count["count"] += 1
         if load_count["count"] == 1:
             return mock_request_transform
-        else:
-            return mock_response_transform
+        return mock_response_transform
 
     monkeypatch.setattr(gateway_definition, "_load_transform_function", mock_load)
 
@@ -558,7 +557,7 @@ def test_response_details_source_request_transform(monkeypatch):
     assert captured_response_details["captured"] is not None
     captured = captured_response_details["captured"]
     assert isinstance(captured, dict)
-    assert captured["source"] == "request_transform"
+    assert captured["source"] == "request_transform"  # pylint: disable=unsubscriptable-object
 
 
 # Phase 1: Template Resolver Tests
