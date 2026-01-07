@@ -101,7 +101,7 @@ The goal of future work would be to tighten typing around these values (e.g., vi
 - [x] `routes/import_export/cid_utils.py` *(HTTP import/export path boundary)*
   - Import/export helpers normalize CID values as strings, generate CIDs from bytes, and use string CIDs for paths, maps, and payloads while delegating storage to lower-level helpers.
 
-- [ ] `reference_templates/*.cid` and `reference_templates/uploads/*embedded_cid*` *(static content boundary)*
+- [ ] `reference/templates/*.cid` and `reference/templates/uploads/*embedded_cid*` *(static content boundary)*
   - Static template files that embed or reference CIDs as text (string form).
 
 ## Notes for future refactoring

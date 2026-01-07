@@ -76,16 +76,16 @@ The `mcps` variable is a JSON map from server names to CIDs containing the MCP c
 ```json
 {
   "echo": {
-    "config_cid": "reference_templates/mcps/configs/echo.json"
+    "config_cid": "reference/templates/mcps/configs/echo.json"
   },
   "markdown": {
-    "config_cid": "reference_templates/mcps/configs/markdown.json"
+    "config_cid": "reference/templates/mcps/configs/markdown.json"
   },
   "jq": {
-    "config_cid": "reference_templates/mcps/configs/jq.json"
+    "config_cid": "reference/templates/mcps/configs/jq.json"
   },
   "date": {
-    "config_cid": "reference_templates/mcps/configs/date.json"
+    "config_cid": "reference/templates/mcps/configs/date.json"
   }
 }
 ```
@@ -115,7 +115,7 @@ After boot image generation, filenames are replaced with CIDs:
 
 Each server's MCP configuration is stored in a separate JSON file.
 
-**File:** `reference_templates/mcps/configs/echo.json`
+**File:** `reference/templates/mcps/configs/echo.json`
 ```json
 {
   "description": "Echo server - returns input as output",
@@ -146,7 +146,7 @@ Each server's MCP configuration is stored in a separate JSON file.
 }
 ```
 
-**File:** `reference_templates/mcps/configs/markdown.json`
+**File:** `reference/templates/mcps/configs/markdown.json`
 ```json
 {
   "description": "Markdown to HTML converter",
@@ -170,17 +170,17 @@ Each server's MCP configuration is stored in a separate JSON file.
 }
 ```
 
-**File:** `reference_templates/mcps/configs/jq.json`
+**File:** `reference/templates/mcps/configs/jq.json`
 ```json
 {
   "description": "JQ JSON processor",
   "auto_discover": true,
-  "tools_transform_cid": "reference_templates/mcps/transforms/jq_tools.py",
-  "resources_transform_cid": "reference_templates/mcps/transforms/jq_resources.py"
+  "tools_transform_cid": "reference/templates/mcps/transforms/jq_tools.py",
+  "resources_transform_cid": "reference/templates/mcps/transforms/jq_resources.py"
 }
 ```
 
-**File:** `reference_templates/mcps/configs/date.json`
+**File:** `reference/templates/mcps/configs/date.json`
 ```json
 {
   "description": "Date/time utilities",
@@ -306,28 +306,28 @@ Resources represent data that can be read by the MCP client:
 
 #### 1.1 Create mcps.source.json and Config Files
 
-**File:** `reference_templates/mcps.source.json`
+**File:** `reference/templates/mcps.source.json`
 
 Maps server names to CIDs of their MCP configuration files:
 
 ```json
 {
   "echo": {
-    "config_cid": "reference_templates/mcps/configs/echo.json"
+    "config_cid": "reference/templates/mcps/configs/echo.json"
   },
   "markdown": {
-    "config_cid": "reference_templates/mcps/configs/markdown.json"
+    "config_cid": "reference/templates/mcps/configs/markdown.json"
   },
   "jq": {
-    "config_cid": "reference_templates/mcps/configs/jq.json"
+    "config_cid": "reference/templates/mcps/configs/jq.json"
   },
   "date": {
-    "config_cid": "reference_templates/mcps/configs/date.json"
+    "config_cid": "reference/templates/mcps/configs/date.json"
   }
 }
 ```
 
-**Directory:** `reference_templates/mcps/configs/`
+**Directory:** `reference/templates/mcps/configs/`
 
 Create individual configuration files for each MCP-enabled server:
 
@@ -353,14 +353,14 @@ Add processing for `mcps.source.json`:
 #### 1.3 Update Boot Source Files
 
 **Files to update:**
-- `reference_templates/default.boot.source.json`: Add mcp server and mcps variable
-- `reference_templates/readonly.boot.source.json`: Add mcp server and mcps variable
+- `reference/templates/default.boot.source.json`: Add mcp server and mcps variable
+- `reference/templates/readonly.boot.source.json`: Add mcp server and mcps variable
 
 Add to servers array:
 ```json
 {
   "name": "mcp",
-  "definition_cid": "reference_templates/servers/definitions/mcp.py",
+  "definition_cid": "reference/templates/servers/definitions/mcp.py",
   "enabled": true
 }
 ```
@@ -376,7 +376,7 @@ Add to variables array:
 
 #### 1.4 Create MCP Server Definition
 
-**File:** `reference_templates/servers/definitions/mcp.py`
+**File:** `reference/templates/servers/definitions/mcp.py`
 
 Core structure:
 ```python
@@ -537,7 +537,7 @@ def _handle_tools_call(server_name: str, params: dict, request_id: any, context:
 
 #### 3.1 Create HTML Templates
 
-**Directory:** `reference_templates/servers/templates/mcp/`
+**Directory:** `reference/templates/servers/templates/mcp/`
 
 **Files:**
 - `instruction.html` - Main MCP instruction page
@@ -1027,25 +1027,25 @@ def _should_stream_response(request, method: str) -> bool:
 
 | File | Purpose |
 |------|---------|
-| `reference_templates/servers/definitions/mcp.py` | Main MCP server implementation |
-| `reference_templates/servers/templates/mcp.json` | Server template metadata |
-| `reference_templates/servers/templates/mcp/instruction.html` | Instruction page |
-| `reference_templates/servers/templates/mcp/meta.html` | Server meta page |
-| `reference_templates/servers/templates/mcp/error.html` | Error page |
-| `reference_templates/mcps.source.json` | MCP configurations source (server name -> config_cid) |
-| `reference_templates/mcps/configs/echo.json` | MCP config for echo server |
-| `reference_templates/mcps/configs/markdown.json` | MCP config for markdown server |
-| `reference_templates/mcps/configs/jq.json` | MCP config for jq server |
-| `reference_templates/mcps/configs/date.json` | MCP config for date server |
-| `reference_templates/mcps/transforms/` | Directory for transform functions |
+| `reference/templates/servers/definitions/mcp.py` | Main MCP server implementation |
+| `reference/templates/servers/templates/mcp.json` | Server template metadata |
+| `reference/templates/servers/templates/mcp/instruction.html` | Instruction page |
+| `reference/templates/servers/templates/mcp/meta.html` | Server meta page |
+| `reference/templates/servers/templates/mcp/error.html` | Error page |
+| `reference/templates/mcps.source.json` | MCP configurations source (server name -> config_cid) |
+| `reference/templates/mcps/configs/echo.json` | MCP config for echo server |
+| `reference/templates/mcps/configs/markdown.json` | MCP config for markdown server |
+| `reference/templates/mcps/configs/jq.json` | MCP config for jq server |
+| `reference/templates/mcps/configs/date.json` | MCP config for date server |
+| `reference/templates/mcps/transforms/` | Directory for transform functions |
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
 | `generate_boot_image.py` | Add `generate_mcps_json()` method, update `generate_boot_json()` |
-| `reference_templates/default.boot.source.json` | Add mcp server and mcps variable |
-| `reference_templates/readonly.boot.source.json` | Add mcp server and mcps variable |
+| `reference/templates/default.boot.source.json` | Add mcp server and mcps variable |
+| `reference/templates/readonly.boot.source.json` | Add mcp server and mcps variable |
 
 ---
 
@@ -1053,7 +1053,7 @@ def _should_stream_response(request, method: str) -> bool:
 
 - [x] Phase 1: Core Infrastructure
   - [x] Create `mcps.source.json` (server name -> config_cid mapping)
-  - [x] Create `reference_templates/mcps/configs/` directory
+  - [x] Create `reference/templates/mcps/configs/` directory
   - [x] Create individual config files (echo.json, markdown.json, jq.json, date.json)
   - [x] Update `generate_boot_image.py`
   - [x] Update boot source files

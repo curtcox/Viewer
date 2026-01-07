@@ -22,7 +22,7 @@ LOGGER = logging.getLogger(__name__)
 BOOT_IMAGE_PATH = "reference/templates/default.boot.json"
 
 
-REFERENCE_TEMPLATES_DIR = Path("reference") / "templates"
+REF_TEMPLATES_DIR = Path("reference") / "templates"
 CIDS_DIR = Path("cids")
 
 
@@ -105,7 +105,7 @@ def prepare_boot_image_update(
     ):
         raise GitHubPRError("Export payload sections were not in the expected format.")
 
-    ref_dir = base_dir / REFERENCE_TEMPLATES_DIR
+    ref_dir = base_dir / REF_TEMPLATES_DIR
     aliases_dir = ref_dir / "aliases"
     servers_dir = ref_dir / "servers" / "definitions"
     aliases_dir.mkdir(parents=True, exist_ok=True)
@@ -129,7 +129,7 @@ def prepare_boot_image_update(
                 details={"missing_cid": definition_cid, "entity": name},
             )
         filename = f"{_safe_filename(name)}.txt"
-        relative_path = REFERENCE_TEMPLATES_DIR / "aliases" / filename
+        relative_path = REF_TEMPLATES_DIR / "aliases" / filename
         absolute_path = base_dir / relative_path
         absolute_path.write_text(definition_text, encoding="utf-8")
         changed_paths.add(str(relative_path.as_posix()))
@@ -157,7 +157,7 @@ def prepare_boot_image_update(
                 details={"missing_cid": definition_cid, "entity": name},
             )
         filename = f"{_safe_filename(name)}.py"
-        relative_path = REFERENCE_TEMPLATES_DIR / "servers" / "definitions" / filename
+        relative_path = REF_TEMPLATES_DIR / "servers" / "definitions" / filename
         absolute_path = base_dir / relative_path
         absolute_path.write_text(definition_text, encoding="utf-8")
         changed_paths.add(str(relative_path.as_posix()))

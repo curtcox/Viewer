@@ -162,7 +162,7 @@ class TestBootImageGenerator:
         """Test BootImageGenerator initialization."""
         generator = BootImageGenerator(temp_project)
         assert generator.base_dir == temp_project
-        assert generator.reference_templates_dir == temp_project / "reference" / "templates"
+        assert generator.reference_template_dir == temp_project / "reference" / "templates"
         assert generator.cids_dir == temp_project / "cids"
         assert generator.processed_files == set()
         assert not generator.file_to_cid

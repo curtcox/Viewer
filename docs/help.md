@@ -69,7 +69,7 @@ Servers have access to:
 - Secrets (when properly configured)
 - Uploaded files and content
 
-For examples, see the [default boot servers](/source/reference_templates/servers/definitions).
+For examples, see the [default boot servers](/source/reference/templates/servers/definitions).
 
 ## Variables
 
@@ -158,11 +158,11 @@ Start the application with a boot image:
 python main.py --boot-cid <BOOT_CID>
 ```
 
-The boot CID can be found in `reference_templates/*.boot.cid` files.
+The boot CID can be found in `reference/templates/*.boot.cid` files.
 
 ### Creating Boot Images
 
-Boot images are defined in `reference_templates/` and generated using:
+Boot images are defined in `reference/templates/` and generated using:
 
 ```bash
 python generate_boot_image.py

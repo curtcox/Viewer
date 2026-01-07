@@ -1,6 +1,6 @@
 # Add Datasette and SQLite-Utils Servers
  
-Status: Not implemented yet. No `reference_templates/servers/definitions/datasette.py` or `reference_templates/servers/definitions/sqlite_utils.py` present.
+Status: Not implemented yet. No `reference/templates/servers/definitions/datasette.py` or `reference/templates/servers/definitions/sqlite_utils.py` present.
 
 ## Overview
 
@@ -26,11 +26,11 @@ When implementing the datasette and sqlite-utils servers, follow these steps:
 
 1. **Dependencies First**: Add `datasette>=1.0` and `sqlite-utils>=3.36` to `requirements.txt` before any code changes.
 
-2. **Server Definitions**: Create both server definition files in `reference_templates/servers/definitions/`:
+2. **Server Definitions**: Create both server definition files in `reference/templates/servers/definitions/`:
    - `datasette.py` - Use proxy pattern (recommended) to run datasette subprocess
    - `sqlite_utils.py` - Use subprocess pattern similar to existing shell.py server
 
-3. **Boot Template Integration**: Add both servers to `reference_templates/default.boot.source.json` and regenerate boot image.
+3. **Boot Template Integration**: Add both servers to `reference/templates/default.boot.source.json` and regenerate boot image.
 
 4. **Testing Strategy**: Implement tests in this order:
    - Unit tests first (test server logic in isolation)
@@ -139,7 +139,7 @@ sqlite-utils>=3.36
 
 #### 2.1 Create Datasette Server Definition
 
-**File:** `reference_templates/servers/definitions/datasette.py`
+**File:** `reference/templates/servers/definitions/datasette.py`
 
 **Implementation approach:**
 ```python
@@ -269,7 +269,7 @@ def main(
 
 #### 2.2 Create SQLite-Utils Server Definition
 
-**File:** `reference_templates/servers/definitions/sqlite_utils.py`
+**File:** `reference/templates/servers/definitions/sqlite_utils.py`
 
 **Implementation approach:**
 ```python
@@ -480,7 +480,7 @@ def main(
 
 #### 3.1 Add to Default Boot Template
 
-**File:** `reference_templates/default.boot.source.json`
+**File:** `reference/templates/default.boot.source.json`
 
 **Changes:**
 ```json
@@ -490,12 +490,12 @@ def main(
     // ... existing servers ...
     {
       "name": "datasette",
-      "definition_cid": "reference_templates/servers/definitions/datasette.py",
+      "definition_cid": "reference/templates/servers/definitions/datasette.py",
       "enabled": true
     },
     {
       "name": "sqlite-utils",
-      "definition_cid": "reference_templates/servers/definitions/sqlite_utils.py",
+      "definition_cid": "reference/templates/servers/definitions/sqlite_utils.py",
       "enabled": true
     }
   ]
@@ -512,7 +512,7 @@ python generate_boot_image.py
 ```
 
 **Files affected:**
-- `reference_templates/default.boot.json` - Generated with CIDs
+- `reference/templates/default.boot.json` - Generated with CIDs
 - `cids/` - New CID entries for server definitions
 
 #### 3.3 Verify Boot Template
@@ -1207,8 +1207,8 @@ def request_sqlite_utils_with_format(command, format):
 
 - Server execution logic: `server_execution/code_execution.py`
 - Server chaining: `server_execution/server_lookup.py`
-- Existing server examples: `reference_templates/servers/definitions/`
+- Existing server examples: `reference/templates/servers/definitions/`
 - Test patterns: `tests/test_server_*.py`
 - Gauge specs: `specs/server_*.spec`
-- Boot template: `reference_templates/default.boot.source.json`
+- Boot template: `reference/templates/default.boot.source.json`
 - Database config: `db_config.py`

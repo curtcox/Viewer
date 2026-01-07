@@ -63,10 +63,10 @@ CID string → _normalize_cid_lookup() → get_cid_by_path() → file_data bytes
 **Existing documentation:** See `cid_storage.py` and `cid_utils.py` for implementation details.
 
 ### Key Files
-- `reference_templates/servers/definitions/gateway.py` - Main gateway server (1234 lines)
-- `reference_templates/gateways.json` - Gateway configuration with CIDs
-- `reference_templates/gateways/transforms/*.py` - Transform implementations
-- `reference_templates/servers/templates/gateway/*.html` - Gateway UI templates
+- `reference/templates/servers/definitions/gateway.py` - Main gateway server (1234 lines)
+- `reference/templates/gateways.json` - Gateway configuration with CIDs
+- `reference/templates/gateways/transforms/*.py` - Transform implementations
+- `reference/templates/servers/templates/gateway/*.html` - Gateway UI templates
 - `tests/test_gateway_server.py` - Unit tests
 - `tests/integration/test_gateway_server.py` - Integration tests
 
@@ -173,7 +173,7 @@ def _validate_direct_response(direct_response: dict) -> tuple[bool, str | None]:
 
 ### Implementation Changes
 
-**File: `reference_templates/servers/definitions/gateway.py`**
+**File: `reference/templates/servers/definitions/gateway.py`**
 
 Modify `_handle_gateway_request()`:
 
@@ -299,7 +299,7 @@ response_details = {
 
 ### Implementation Changes
 
-**File: `reference_templates/servers/definitions/gateway.py`**
+**File: `reference/templates/servers/definitions/gateway.py`**
 
 When building `response_details` after server execution:
 ```python
@@ -395,7 +395,7 @@ def transform_response(response_details: dict, context: dict) -> dict:
 
 ### Implementation Changes
 
-**File: `reference_templates/servers/definitions/gateway.py`**
+**File: `reference/templates/servers/definitions/gateway.py`**
 
 Add template resolution function factory:
 
@@ -659,7 +659,7 @@ Enhance the gateway meta page to list and preview all templates associated with 
 
 ### Implementation Changes
 
-**File: `reference_templates/servers/definitions/gateway.py`**
+**File: `reference/templates/servers/definitions/gateway.py`**
 
 Update `_handle_meta_page()`:
 
@@ -733,7 +733,7 @@ def _load_and_validate_template(cid, context):
         return None, f"Validation error: {e}", []
 ```
 
-**File: `reference_templates/servers/templates/gateway/meta.html`**
+**File: `reference/templates/servers/templates/gateway/meta.html`**
 
 Add templates section:
 
@@ -971,7 +971,7 @@ All transforms will use external Jinja templates via `resolve_template()`. The i
 
 **When creating new transforms:**
 - Always use external templates
-- Create corresponding `.html` files in `reference_templates/gateways/templates/`
+- Create corresponding `.html` files in `reference/templates/gateways/templates/`
 - Add template CIDs to gateway config
 
 ### Backwards Compatibility Note
@@ -1122,16 +1122,16 @@ Templates containing non-UTF-8 bytes will fail during CID content decoding and p
 
 | File | Changes |
 |------|---------|
-| `reference_templates/servers/definitions/gateway.py` | Add direct response detection, source field, template resolver |
-| `reference_templates/servers/templates/gateway/meta.html` | Add templates section |
-| `reference_templates/gateways/transforms/man_request.py` | Add template support (optional) |
-| `reference_templates/gateways/transforms/man_response.py` | Use external templates |
-| `reference_templates/gateways/transforms/tldr_request.py` | Add template support (optional) |
-| `reference_templates/gateways/transforms/tldr_response.py` | Use external templates |
-| `reference_templates/gateways/transforms/jsonplaceholder_response.py` | Use external templates |
-| `reference_templates/gateways/transforms/hrx_response.py` | Use external templates |
-| `reference_templates/gateways.json` | Add templates config |
-| `reference_templates/gateways.source.json` | Add templates config (source) |
+| `reference/templates/servers/definitions/gateway.py` | Add direct response detection, source field, template resolver |
+| `reference/templates/servers/templates/gateway/meta.html` | Add templates section |
+| `reference/templates/gateways/transforms/man_request.py` | Add template support (optional) |
+| `reference/templates/gateways/transforms/man_response.py` | Use external templates |
+| `reference/templates/gateways/transforms/tldr_request.py` | Add template support (optional) |
+| `reference/templates/gateways/transforms/tldr_response.py` | Use external templates |
+| `reference/templates/gateways/transforms/jsonplaceholder_response.py` | Use external templates |
+| `reference/templates/gateways/transforms/hrx_response.py` | Use external templates |
+| `reference/templates/gateways.json` | Add templates config |
+| `reference/templates/gateways.source.json` | Add templates config (source) |
 | `tests/test_gateway_server.py` | Add unit tests |
 | `tests/integration/test_gateway_server.py` | Add integration tests |
 
@@ -1139,13 +1139,13 @@ Templates containing non-UTF-8 bytes will fail during CID content decoding and p
 
 | File | Purpose |
 |------|---------|
-| `reference_templates/gateways/templates/man_page.html` | Man page main template |
-| `reference_templates/gateways/templates/man_error.html` | Man page error template |
-| `reference_templates/gateways/templates/tldr_page.html` | TLDR page template |
-| `reference_templates/gateways/templates/tldr_error.html` | TLDR error template |
-| `reference_templates/gateways/templates/jsonplaceholder_item.html` | JSONPlaceholder item template |
-| `reference_templates/gateways/templates/jsonplaceholder_list.html` | JSONPlaceholder list template |
-| `reference_templates/gateways/templates/hrx_viewer.html` | HRX archive viewer template |
+| `reference/templates/gateways/templates/man_page.html` | Man page main template |
+| `reference/templates/gateways/templates/man_error.html` | Man page error template |
+| `reference/templates/gateways/templates/tldr_page.html` | TLDR page template |
+| `reference/templates/gateways/templates/tldr_error.html` | TLDR error template |
+| `reference/templates/gateways/templates/jsonplaceholder_item.html` | JSONPlaceholder item template |
+| `reference/templates/gateways/templates/jsonplaceholder_list.html` | JSONPlaceholder list template |
+| `reference/templates/gateways/templates/hrx_viewer.html` | HRX archive viewer template |
 
 ---
 

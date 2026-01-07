@@ -9,8 +9,8 @@ Status: In progress. Multiple phases are marked completed below (Foundation, Goo
 This document outlines the plan for adding server definitions for 100+ external services to the Viewer application. These server definitions will be added to both the default and read-only boot images, enabling users to integrate with popular third-party APIs.
 
 Each external service requires:
-1. A Python definition file in `reference_templates/servers/definitions/`
-2. A JSON template file in `reference_templates/servers/templates/`
+1. A Python definition file in `reference/templates/servers/definitions/`
+2. A JSON template file in `reference/templates/servers/templates/`
 3. An entry in both `default.boot.source.json` and `readonly.boot.source.json`
 4. Unit tests, integration tests, and optionally gauge specs
 
@@ -1905,8 +1905,8 @@ First servers using shared infrastructure as validation:
 ## Acceptance Criteria
 
 ### Per Server
-- [ ] Definition file exists in `reference_templates/servers/definitions/{name}.py`
-- [ ] Template file exists in `reference_templates/servers/templates/{name}.json`
+- [ ] Definition file exists in `reference/templates/servers/definitions/{name}.py`
+- [ ] Template file exists in `reference/templates/servers/templates/{name}.json`
 - [ ] Template documents read vs write operations
 - [ ] Server entry in `default.boot.source.json`
 - [ ] Server entry in `readonly.boot.source.json`
@@ -1942,8 +1942,8 @@ First servers using shared infrastructure as validation:
 
 ## References
 
-- Existing server patterns: `reference_templates/servers/definitions/anthropic_claude.py`
-- Boot image structure: `reference_templates/default.boot.source.json`
+- Existing server patterns: `reference/templates/servers/definitions/anthropic_claude.py`
+- Boot image structure: `reference/templates/default.boot.source.json`
 - Test patterns: `tests/test_server_*.py`
 - Integration test patterns: `tests/integration/test_server_*.py`
 - API documentation links in service tables above

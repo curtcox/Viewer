@@ -2,7 +2,7 @@
  
 ## Overview
  
-Status: ⚠️ Partially implemented. `reference_templates/servers/definitions/io.py`, `server_execution/io_execution.py`, `server_execution/segment_analysis.py`, and `docs/io-requests.md` exist, and `io` is present in `reference_templates/default.boot.source.json`, but `io.py` still falls back to pass-through execution when no executor is provided.
+Status: ⚠️ Partially implemented. `reference/templates/servers/definitions/io.py`, `server_execution/io_execution.py`, `server_execution/segment_analysis.py`, and `docs/io-requests.md` exist, and `io` is present in `reference/templates/default.boot.source.json`, but `io.py` still falls back to pass-through execution when no executor is provided.
  
 Create a new server named "io" that provides bidirectional request/response piping through a chain of servers. Unlike the existing pipeline execution (which flows right-to-left), the io server flows requests left-to-right and responses right-to-left, creating a circular data flow pattern.
 
@@ -82,7 +82,7 @@ Reuse the existing debug detection logic from `server_execution/pipeline_debug.p
 
 #### 2.1 Create Server Definition
 
-**File**: `reference_templates/servers/definitions/io.py`
+**File**: `reference/templates/servers/definitions/io.py`
 
 ```python
 def main(
@@ -112,20 +112,20 @@ When `/io` is accessed directly without additional path segments:
 
 #### 3.1 Update Default Boot Image
 
-**File**: `reference_templates/default.boot.source.json`
+**File**: `reference/templates/default.boot.source.json`
 
 Add entry:
 ```json
 {
   "name": "io",
-  "definition_cid": "reference_templates/servers/definitions/io.py",
+  "definition_cid": "reference/templates/servers/definitions/io.py",
   "enabled": true
 }
 ```
 
 #### 3.2 Update Read-Only Boot Image
 
-**File**: `reference_templates/readonly.boot.source.json`
+**File**: `reference/templates/readonly.boot.source.json`
 
 Add same entry as default.
 
@@ -536,7 +536,7 @@ def main(request, response=None, *, context=None):
 
 1. `server_execution/segment_analysis.py` - Shared segment analysis utilities
 2. `server_execution/io_execution.py` - IO execution engine
-3. `reference_templates/servers/definitions/io.py` - IO server definition
+3. `reference/templates/servers/definitions/io.py` - IO server definition
 4. `docs/io-requests.md` - IO documentation
 5. `tests/test_io_execution.py` - Unit tests
 6. `tests/test_io_server_integration.py` - Integration tests
@@ -544,8 +544,8 @@ def main(request, response=None, *, context=None):
 ## Files to Modify
 
 1. `server_execution/pipeline_execution.py` - Import from shared module
-2. `reference_templates/default.boot.source.json` - Add io server
-3. `reference_templates/readonly.boot.source.json` - Add io server
+2. `reference/templates/default.boot.source.json` - Add io server
+3. `reference/templates/readonly.boot.source.json` - Add io server
 
 ## Estimated Scope
 

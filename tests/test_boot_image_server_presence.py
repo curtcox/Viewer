@@ -8,7 +8,7 @@ from common_commands import COMMON_COMMANDS, group_commands_for_readonly
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
-REFERENCE_TEMPLATES = PROJECT_ROOT / "reference/templates"
+REF_TEMPLATES = PROJECT_ROOT / "reference/templates"
 CIDS_DIR = PROJECT_ROOT / "cids"
 
 
@@ -224,7 +224,7 @@ def _load_generated_boot_payload_from_cid_file(cid_file: Path) -> dict:
 
 
 def _assert_expected_servers_in_source(source_file: str, expected: dict[str, str]) -> None:
-    data = _load_json(REFERENCE_TEMPLATES / source_file)
+    data = _load_json(REF_TEMPLATES / source_file)
     actual = _servers_mapping_from_source(data)
 
     assert set(actual.keys()) == set(expected.keys())
@@ -233,7 +233,7 @@ def _assert_expected_servers_in_source(source_file: str, expected: dict[str, str
 
 
 def _assert_expected_servers_in_generated(cid_file: str, expected: dict[str, str]) -> None:
-    payload = _load_generated_boot_payload_from_cid_file(REFERENCE_TEMPLATES / cid_file)
+    payload = _load_generated_boot_payload_from_cid_file(REF_TEMPLATES / cid_file)
     actual = _servers_mapping_from_source(payload)
 
     assert set(actual.keys()) == set(expected.keys())
@@ -275,7 +275,7 @@ def test_boot_cids_contain_expected_servers(cid_file, expected):
     ],
 )
 def test_boot_source_files_use_reference_template_paths_for_server_definitions(source_file):
-    payload = _load_json(REFERENCE_TEMPLATES / source_file)
+    payload = _load_json(REF_TEMPLATES / source_file)
     _assert_all_server_definitions_are_reference_paths(payload)
 
 
@@ -289,5 +289,5 @@ def test_boot_source_files_use_reference_template_paths_for_server_definitions(s
     ],
 )
 def test_generated_boot_json_files_use_cids_for_server_definitions(boot_file):
-    payload = _load_json(REFERENCE_TEMPLATES / boot_file)
+    payload = _load_json(REF_TEMPLATES / boot_file)
     _assert_all_server_definitions_are_cids(payload)

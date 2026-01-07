@@ -49,7 +49,7 @@ jobs:
         run: |
           # Add all changes in the specific directories/files we care about
           # Using || true to handle cases where glob patterns don't match any files
-          git add reference_templates/*.json reference_templates/*.cid TEST_INDEX.md 2>/dev/null || true
+          git add reference/templates/*.json reference/templates/*.cid TEST_INDEX.md 2>/dev/null || true
           git add cids/ 2>/dev/null || true
 
           if git diff --cached --quiet; then

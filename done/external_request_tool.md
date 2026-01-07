@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The file `reference_templates/servers/definitions/jsonplaceholder.py` contains ~40 lines of code (lines 27-65) dedicated to handling compressed HTTP responses (gzip, deflate, brotli). This logic:
+The file `reference/templates/servers/definitions/jsonplaceholder.py` contains ~40 lines of code (lines 27-65) dedicated to handling compressed HTTP responses (gzip, deflate, brotli). This logic:
 
 1. **Duplicates code** - Any server that contacts an external API and needs to access `response.content` directly must implement the same decompression logic
 2. **Inflates simple proxies** - For jsonplaceholder.py, this compression handling constituted ~25% of the file's code
@@ -219,13 +219,13 @@ def get_decoded_content(self, response: Response) -> bytes:
 ### Must Fix (Bug)
 
 - [x] **`proxy.py`** - Uses `auto_decode_response()` to handle compressed responses
-  - Location: `reference_templates/servers/definitions/proxy.py`
+  - Location: `reference/templates/servers/definitions/proxy.py`
   - Fix: Import and use `auto_decode_response()`
 
 ### Should Refactor (Remove Duplication)
 
 - [x] **`jsonplaceholder.py`** - Uses `auto_decode_response()` (shared helper)
-  - Location: `reference_templates/servers/definitions/jsonplaceholder.py`
+  - Location: `reference/templates/servers/definitions/jsonplaceholder.py`
   - Fix: Replace custom decompression logic with `auto_decode_response(response)`
 
 ### No Changes Needed (Safe)

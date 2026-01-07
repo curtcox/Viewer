@@ -141,7 +141,7 @@ def transform_response(response_details: dict, context: dict) -> dict:
 
 #### 1.1 Create gateways.source.json
 
-**File:** `reference_templates/gateways.source.json`
+**File:** `reference/templates/gateways.source.json`
 
 Parallel to `templates.source.json`, this file defines the gateway configurations with file references that get converted to CIDs during boot image generation.
 
@@ -156,12 +156,12 @@ Add processing for `gateways.source.json` similar to how `templates.source.json`
 #### 1.3 Create External HTML Templates
 
 **Files to create:**
-- `reference_templates/servers/templates/gateway/instruction.html` - Main instruction page
-- `reference_templates/servers/templates/gateway/request_form.html` - Request experimentation form
-- `reference_templates/servers/templates/gateway/response_form.html` - Response experimentation form
-- `reference_templates/servers/templates/gateway/meta.html` - Server meta page
-- `reference_templates/servers/templates/gateway/error.html` - Error page template
-- `reference_templates/servers/templates/gateway/json_response.html` - JSON response formatting
+- `reference/templates/servers/templates/gateway/instruction.html` - Main instruction page
+- `reference/templates/servers/templates/gateway/request_form.html` - Request experimentation form
+- `reference/templates/servers/templates/gateway/response_form.html` - Response experimentation form
+- `reference/templates/servers/templates/gateway/meta.html` - Server meta page
+- `reference/templates/servers/templates/gateway/error.html` - Error page template
+- `reference/templates/servers/templates/gateway/json_response.html` - JSON response formatting
 
 #### 1.4 Refactor gateway.py
 
@@ -735,21 +735,21 @@ test_gateway_respects_readonly_mode
 
 | File | Description |
 |------|-------------|
-| `reference_templates/gateways.source.json` | Gateway configuration source |
-| `reference_templates/gateways/transforms/jsonplaceholder_request.py` | JSONPlaceholder request transform |
-| `reference_templates/gateways/transforms/jsonplaceholder_response.py` | JSONPlaceholder response transform |
-| `reference_templates/gateways/transforms/man_request.py` | Man page request transform |
-| `reference_templates/gateways/transforms/man_response.py` | Man page response transform |
-| `reference_templates/gateways/transforms/tldr_request.py` | TLDR request transform |
-| `reference_templates/gateways/transforms/tldr_response.py` | TLDR response transform |
-| `reference_templates/gateways/transforms/hrx_request.py` | HRX request transform |
-| `reference_templates/gateways/transforms/hrx_response.py` | HRX response transform |
-| `reference_templates/servers/templates/gateway/instruction.html` | Main instruction page |
-| `reference_templates/servers/templates/gateway/request_form.html` | Request form |
-| `reference_templates/servers/templates/gateway/response_form.html` | Response form |
-| `reference_templates/servers/templates/gateway/meta.html` | Meta page |
-| `reference_templates/servers/templates/gateway/error.html` | Error page |
-| `reference_templates/servers/templates/gateway/json_response.html` | JSON formatting |
+| `reference/templates/gateways.source.json` | Gateway configuration source |
+| `reference/templates/gateways/transforms/jsonplaceholder_request.py` | JSONPlaceholder request transform |
+| `reference/templates/gateways/transforms/jsonplaceholder_response.py` | JSONPlaceholder response transform |
+| `reference/templates/gateways/transforms/man_request.py` | Man page request transform |
+| `reference/templates/gateways/transforms/man_response.py` | Man page response transform |
+| `reference/templates/gateways/transforms/tldr_request.py` | TLDR request transform |
+| `reference/templates/gateways/transforms/tldr_response.py` | TLDR response transform |
+| `reference/templates/gateways/transforms/hrx_request.py` | HRX request transform |
+| `reference/templates/gateways/transforms/hrx_response.py` | HRX response transform |
+| `reference/templates/servers/templates/gateway/instruction.html` | Main instruction page |
+| `reference/templates/servers/templates/gateway/request_form.html` | Request form |
+| `reference/templates/servers/templates/gateway/response_form.html` | Response form |
+| `reference/templates/servers/templates/gateway/meta.html` | Meta page |
+| `reference/templates/servers/templates/gateway/error.html` | Error page |
+| `reference/templates/servers/templates/gateway/json_response.html` | JSON formatting |
 | `tests/test_gateway_transforms.py` | Transform function tests |
 | `tests/test_gateway_routes.py` | Route handling tests |
 | `tests/test_gateway_ai_assist.py` | AI assist integration tests |
@@ -762,9 +762,9 @@ test_gateway_respects_readonly_mode
 
 | File | Changes |
 |------|---------|
-| `reference_templates/servers/definitions/gateway.py` | Complete refactor |
-| `reference_templates/default.boot.source.json` | Add gateways variable |
-| `reference_templates/readonly.boot.source.json` | Add gateways variable |
+| `reference/templates/servers/definitions/gateway.py` | Complete refactor |
+| `reference/templates/default.boot.source.json` | Add gateways variable |
+| `reference/templates/readonly.boot.source.json` | Add gateways variable |
 | `generate_boot_image.py` | Add gateways.source.json processing |
 | `tests/test_ai_system_prompts.py` | Add gateway form examples |
 

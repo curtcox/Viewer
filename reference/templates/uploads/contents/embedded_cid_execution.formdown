@@ -8,8 +8,8 @@ Each row shows the literal CID for the command payload and how to embed it betwe
 
 | Tool | Literal CID payload | Example embedded path |
 | ---- | ------------------- | --------------------- |
-| `ls -lah` | `AAAAAAARIyEvYmluL3NoCmxzIC1sYWg` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/reference_templates/uploads/contents/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh` |
-| `grep -n --color=never ''` | `AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/reference_templates/uploads` |
+| `ls -lah` | `AAAAAAARIyEvYmluL3NoCmxzIC1sYWg` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/reference/templates/uploads/contents/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh` |
+| `grep -n --color=never ''` | `AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/reference/templates/uploads` |
 | `sed -n '1,20p'` | `AAAAAAAYIyEvYmluL3NoCnNlZCAtbiAnMSwyMHAn` | `/cids/AAAAAAAYIyEvYmluL3NoCnNlZCAtbiAnMSwyMHAn.sh/logs/app.log/AAAAAAATIyEvYmluL3NoCnRhaWwgLW4gNQ.sh` |
 | `awk '{print NF}'` | `AAAAAAAaIyEvYmluL3NoCmF3ayAne3ByaW50IE5GfSc` | `/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://example.com/metrics.txt/AAAAAAAaIyEvYmluL3NoCmF3ayAne3ByaW50IE5GfSc.sh` |
 | `curl -sS` | `AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT` | `/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq/items` |

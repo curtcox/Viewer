@@ -6,7 +6,7 @@ The HRX gateway is the last gateway requiring template externalization. It prese
 
 ## Current State
 
-**File:** `reference_templates/gateways/transforms/hrx_response.py` (311 lines)
+**File:** `reference/templates/gateways/transforms/hrx_response.py` (311 lines)
 
 **Rendering Functions:**
 1. `_render_error_page()` - Error pages for 404s and failures

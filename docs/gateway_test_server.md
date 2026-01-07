@@ -110,7 +110,7 @@ When enabled, this alias redirects all jsonplaceholder gateway requests to use t
 
 ### Creating Test Aliases
 
-1. Create a file in `reference_templates/aliases/` (e.g., `my_test_alias.txt`)
+1. Create a file in `reference/templates/aliases/` (e.g., `my_test_alias.txt`)
 2. Define the alias mapping using the test pattern
 3. The alias will be disabled by default (as specified by `enabled=False` in the database)
 

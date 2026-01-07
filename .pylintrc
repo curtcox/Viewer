@@ -3,7 +3,7 @@
 jobs=1
 
 # Ignore generated or template directories that shouldn't be linted
-ignore-paths=reference_templates/servers/definitions,venv,.venv,node_modules
+ignore-paths=reference/templates/servers/definitions,venv,.venv,node_modules
 
 [MESSAGES CONTROL]
 # Disable messages that are false positives or design choices

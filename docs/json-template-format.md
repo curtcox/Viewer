@@ -333,14 +333,14 @@ When templates are converted to entity objects, they receive special attributes:
 
 In addition to user-defined templates, the system includes built-in reference templates loaded from the filesystem:
 
-- **Server Templates**: [reference_templates/servers/](../reference_templates/servers/)
-- **Upload Templates**: [reference_templates/uploads/](../reference_templates/uploads/)
+- **Server Templates**: [reference/templates/servers/](../reference/templates/servers/)
+- **Upload Templates**: [reference/templates/uploads/](../reference/templates/uploads/)
 
 These are Python modules that load templates from JSON files and are merged with user-defined templates.
 
 Loaders:
-- [reference_templates/servers/__init__.py:13-72](../reference_templates/servers/__init__.py#L13-L72)
-- [reference_templates/uploads/__init__.py:14-40](../reference_templates/uploads/__init__.py#L14-L40)
+- [reference/templates/servers/__init__.py:13-72](../reference/templates/servers/__init__.py#L13-L72)
+- [reference/templates/uploads/__init__.py:14-40](../reference/templates/uploads/__init__.py#L14-L40)
 
 ## Testing
 
@@ -401,4 +401,4 @@ Entity-specific template tests:
 - Template Manager Implementation: [template_manager.py](../template_manager.py)
 - Database Access Layer: [db_access/](../db_access/)
 - Test Suite: [tests/test_template_manager.py](../tests/test_template_manager.py)
-- Reference Templates: [reference_templates/](../reference_templates/)
+- Reference Templates: [reference/templates/](../reference/templates/)

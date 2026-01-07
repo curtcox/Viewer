@@ -62,11 +62,11 @@ This plan describes the implementation of a generalized JSON API gateway that tr
 
 | File | Purpose |
 |------|---------|
-| `reference_templates/servers/definitions/gateway.py` | Core gateway routing (existing) |
+| `reference/templates/servers/definitions/gateway.py` | Core gateway routing (existing) |
 | `reference/templates/gateways/transforms/json_api_request.py` | Request transform (NEW) |
 | `reference/templates/gateways/transforms/json_api_response.py` | Response transform with link detection (NEW) |
 | `reference/templates/gateways/templates/json_api_data.html` | HTML template for JSON display (NEW) |
-| `reference_templates/gateways/link_detectors/*.py` | Pluggable link detector modules (NEW) |
+| `reference/templates/gateways/link_detectors/*.py` | Pluggable link detector modules (NEW) |
 
 **Note:** `reference/templates/gateways.source.json` now includes a `json_api` entry pointing at these source files so `generate_boot_image.py` can generate `reference/templates/gateways.json` deterministically.
 
@@ -878,9 +878,9 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 ### Phase 1: Core JSON Rendering ✅ COMPLETE
 
 **Files created:**
-- ✅ `reference_templates/gateways/transforms/json_api_response.py` - Core response transform
-- ✅ `reference_templates/gateways/templates/json_api_data.html` - HTML template with syntax highlighting
-- ✅ `reference_templates/gateways/transforms/json_api_request.py` - Pass-through request transform
+- ✅ `reference/templates/gateways/transforms/json_api_response.py` - Core response transform
+- ✅ `reference/templates/gateways/templates/json_api_data.html` - HTML template with syntax highlighting
+- ✅ `reference/templates/gateways/transforms/json_api_request.py` - Pass-through request transform
 
 **Completed Tasks:**
 1. ✅ Create response transform that formats JSON as syntax-highlighted HTML
@@ -939,8 +939,8 @@ ServiceNow records frequently reference records in other tables (e.g., incident.
 4. ✅ Generate CIDs for all transform files and templates
 
 **Configuration added to:**
-- `reference_templates/gateways.source.json` - json_api gateway with link detection config
-- `reference_templates/gateways.json` - Generated with CIDs
+- `reference/templates/gateways.source.json` - json_api gateway with link detection config
+- `reference/templates/gateways.json` - Generated with CIDs
 - All boot files regenerated with new configuration
 
 ---
@@ -1380,16 +1380,16 @@ The test suite includes an automated crawler that validates link integrity:
 
 | File | Purpose |
 |------|---------|
-| `reference_templates/gateways/transforms/json_api_request.py` | Pass-through request transform |
-| `reference_templates/gateways/transforms/json_api_response.py` | JSON→HTML response transform with link detection |
-| `reference_templates/gateways/templates/json_api_data.html` | HTML template for JSON display with debug header/footer |
-| `reference_templates/gateways/templates/json_api_binary.html` | HTML template for binary content wrapper |
-| `reference_templates/gateways/templates/json_api_error.html` | HTML template for non-JSON/error responses |
-| `reference_templates/gateways/link_detectors/__init__.py` | Link detector module |
-| `reference_templates/gateways/link_detectors/full_url.py` | Full URL detection |
-| `reference_templates/gateways/link_detectors/partial_url.py` | Partial URL detection |
-| `reference_templates/gateways/link_detectors/id_reference.py` | ID reference detection (key + value patterns) |
-| `reference_templates/gateways/link_detectors/composite.py` | Composite reference detection |
+| `reference/templates/gateways/transforms/json_api_request.py` | Pass-through request transform |
+| `reference/templates/gateways/transforms/json_api_response.py` | JSON→HTML response transform with link detection |
+| `reference/templates/gateways/templates/json_api_data.html` | HTML template for JSON display with debug header/footer |
+| `reference/templates/gateways/templates/json_api_binary.html` | HTML template for binary content wrapper |
+| `reference/templates/gateways/templates/json_api_error.html` | HTML template for non-JSON/error responses |
+| `reference/templates/gateways/link_detectors/__init__.py` | Link detector module |
+| `reference/templates/gateways/link_detectors/full_url.py` | Full URL detection |
+| `reference/templates/gateways/link_detectors/partial_url.py` | Partial URL detection |
+| `reference/templates/gateways/link_detectors/id_reference.py` | ID reference detection (key + value patterns) |
+| `reference/templates/gateways/link_detectors/composite.py` | Composite reference detection |
 | `tests/test_json_api_gateway.py` | Unit tests |
 | `tests/integration/test_json_api_gateway.py` | Integration tests |
 | `tests/test_json_api_crawler.py` | Recursive crawler tests |
@@ -1398,8 +1398,8 @@ The test suite includes an automated crawler that validates link integrity:
 
 | File | Changes |
 |------|---------|
-| `reference_templates/gateways.json` | Add json_api gateway configuration |
-| `reference_templates/gateways.source.json` | Add json_api gateway source config |
+| `reference/templates/gateways.json` | Add json_api gateway configuration |
+| `reference/templates/gateways.source.json` | Add json_api gateway source config |
 
 ---
 

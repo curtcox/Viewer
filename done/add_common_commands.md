@@ -3,7 +3,7 @@ Status: ✅ Implemented. Command servers, docs (`docs/bash_commands.md`), and bo
 Add a new document in docs/bash_commands.md that lists all commands and their roles.
 
 For each command listed below.
-- Add a bash server to reference_templates
+- Add a bash server to reference/templates
 - Add the command to the dockerfile
 - Include the reference server in the default boot image
 - Only include the reference server in the read-only boot image if the command can't be used to produce side effects on the system

@@ -33,7 +33,7 @@ You can restart Viewer with different boot images:
 - Best for learning and quick start
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/default.boot.cid)
+python main.py --boot-cid $(cat reference/templates/default.boot.cid)
 ```
 
 ### Readonly Boot Image
@@ -43,7 +43,7 @@ python main.py --boot-cid $(cat reference_templates/default.boot.cid)
 - Prevents accidental modifications
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/readonly.boot.cid)
+python main.py --boot-cid $(cat reference/templates/readonly.boot.cid)
 ```
 
 ## Getting Started with Minimal Boot
@@ -140,7 +140,7 @@ If you decide you want examples and templates, consider:
 
 1. **Switch to Default Boot** - Restart with the default boot image
 2. **Import Examples** - Ask for an export containing examples
-3. **View Source** - Browse [reference templates](/source/reference_templates) in the source browser
+3. **View Source** - Browse [reference templates](/source/reference/templates) in the source browser
 
 ---
 

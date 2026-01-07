@@ -45,7 +45,7 @@ You can restart Viewer with different boot images:
 - Use when you want full control over initial state
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/minimal.boot.cid)
+python main.py --boot-cid $(cat reference/templates/minimal.boot.cid)
 ```
 
 ### Readonly Boot Image
@@ -55,7 +55,7 @@ python main.py --boot-cid $(cat reference_templates/minimal.boot.cid)
 - Prevents accidental modifications
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/readonly.boot.cid)
+python main.py --boot-cid $(cat reference/templates/readonly.boot.cid)
 ```
 
 ## Key Features Available

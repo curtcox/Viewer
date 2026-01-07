@@ -62,11 +62,11 @@ The JSON API Gateway has been successfully implemented with core functionality c
 ```json
 {
   "json_api": {
-    "request_transform_cid": "reference_templates/gateways/transforms/json_api_request.py",
-    "response_transform_cid": "reference_templates/gateways/transforms/json_api_response.py",
+    "request_transform_cid": "reference/templates/gateways/transforms/json_api_request.py",
+    "response_transform_cid": "reference/templates/gateways/transforms/json_api_response.py",
     "description": "JSON API Gateway with link detection",
     "templates": {
-      "json_api_data.html": "reference_templates/gateways/templates/json_api_data.html"
+      "json_api_data.html": "reference/templates/gateways/templates/json_api_data.html"
     },
     "link_detection": {
       "full_url": {
@@ -90,7 +90,7 @@ The JSON API Gateway has been successfully implemented with core functionality c
 ## Usage
 
 ### Setup
-1. Configuration is in `reference_templates/gateways.source.json`
+1. Configuration is in `reference/templates/gateways.source.json`
 2. Run `python generate_boot_image.py` to generate CIDs
 3. Gateway is accessible at `/gateway/json_api/{path}`
 
@@ -105,11 +105,11 @@ Run `python demo_json_api_gateway.py` to see examples of:
 ## Files Created
 
 ### Transform Files
-- `reference_templates/gateways/transforms/json_api_request.py` (551 bytes)
-- `reference_templates/gateways/transforms/json_api_response.py` (7,730 bytes)
+- `reference/templates/gateways/transforms/json_api_request.py` (551 bytes)
+- `reference/templates/gateways/transforms/json_api_response.py` (7,730 bytes)
 
 ### Template Files
-- `reference_templates/gateways/templates/json_api_data.html` (1,291 bytes)
+- `reference/templates/gateways/templates/json_api_data.html` (1,291 bytes)
 
 ### Test Files
 - `tests/test_json_api_gateway.py` (6,504 bytes) - Unit tests
@@ -122,8 +122,8 @@ Run `python demo_json_api_gateway.py` to see examples of:
 - `todo/JSON_API_gateway.md` - Updated with implementation status
 
 ### Configuration
-- `reference_templates/gateways.source.json` - Modified to add json_api gateway
-- `reference_templates/gateways.json` - Regenerated with CIDs
+- `reference/templates/gateways.source.json` - Modified to add json_api gateway
+- `reference/templates/gateways.json` - Regenerated with CIDs
 - All boot files (boot.json, default.boot.json, etc.) - Regenerated
 
 ## Future Enhancements

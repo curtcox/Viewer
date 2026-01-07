@@ -25,7 +25,7 @@ reference/templates/
 
 ## Overview
 
-The reference_templates system provides:
+The reference/templates system provides:
 
 1. **Template Definitions**: Reusable templates for aliases, servers, variables, and uploads
 2. **Boot Image**: A bootable configuration that can be loaded on startup
@@ -271,7 +271,7 @@ python -m pytest tests/test_generate_boot_image.py -v
 Run integration tests to verify boot image loading:
 
 ```bash
-python -m pytest tests/integration/test_boot_image_reference_templates.py -v -m integration
+python -m pytest tests/integration -v -m integration
 ```
 
 These tests verify that:
@@ -318,4 +318,4 @@ See `/docs/json-template-format.md` for more details on template format.
 - `/docs/json-template-format.md` - JSON template format documentation
 - `generate_boot_image.py` - Boot image generation script
 - `tests/test_generate_boot_image.py` - Unit tests
-- `tests/integration/test_boot_image_reference_templates.py` - Integration tests
+- `tests/integration` - Integration tests

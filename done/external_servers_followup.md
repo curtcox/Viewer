@@ -77,7 +77,7 @@ This document tracks issues discovered during the comprehensive review of the ex
 ### 1.1 Incomplete AWS Signature V4 Implementation
 
 **Priority:** CRITICAL
-**File:** `reference_templates/servers/definitions/aws_s3.py:16-43`
+**File:** `reference/templates/servers/definitions/aws_s3.py:16-43`
 
 **Issue:** The `_sign_request()` function returns a placeholder authorization header instead of proper AWS Signature V4:
 
@@ -103,7 +103,7 @@ This is missing the actual HMAC-SHA256 signature computation of the canonical re
 ### 1.2 Incomplete Azure Shared Key Signature
 
 **Priority:** CRITICAL
-**File:** `reference_templates/servers/definitions/azure_blob.py:16-35`
+**File:** `reference/templates/servers/definitions/azure_blob.py:16-35`
 
 **Issue:** Similar to AWS, the signature is a placeholder:
 
@@ -126,7 +126,7 @@ This is missing the actual HMAC-SHA256 signature computation of the canonical re
 ### 1.3 SQL Injection Risk in Statement Timeout
 
 **Priority:** HIGH
-**File:** `reference_templates/servers/definitions/postgresql.py:119`
+**File:** `reference/templates/servers/definitions/postgresql.py:119`
 
 **Issue:** Statement timeout is set using f-string interpolation instead of parameterized query:
 
@@ -157,7 +157,7 @@ cursor.execute(f"SET statement_timeout = {query_timeout * 1000}")
 ### 1.4 Connection String Parsing Vulnerabilities
 
 **Priority:** MEDIUM
-**File:** `reference_templates/servers/definitions/azure_blob.py:140-146`
+**File:** `reference/templates/servers/definitions/azure_blob.py:140-146`
 
 **Issue:** Naive connection string parsing doesn't handle edge cases:
 
@@ -187,7 +187,7 @@ except ValueError:
 ### 1.5 Credentials Partially Exposed in Preview Mode
 
 **Priority:** MEDIUM
-**File:** `reference_templates/servers/definitions/mongodb.py:23`
+**File:** `reference/templates/servers/definitions/mongodb.py:23`
 
 **Issue:** MongoDB URI is partially redacted but still exposes host/port:
 

@@ -30,7 +30,7 @@ class BootImageGenerator:
         if base_dir is None:
             base_dir = Path(__file__).parent
         self.base_dir = base_dir
-        self.reference_templates_dir = base_dir / "reference" / "templates"
+        self.reference_template_dir = base_dir / "reference" / "templates"
         self.reference_files_dir = base_dir / "reference" / "files"
         self.reference_archive_cids_dir = base_dir / "reference" / "archive" / "cids"
         self.cids_dir = base_dir / "cids"
@@ -436,7 +436,7 @@ class BootImageGenerator:
         print("=" * 60)
 
         # Read templates.source.json
-        source_path = self.reference_templates_dir / "templates.source.json"
+        source_path = self.reference_template_dir / "templates.source.json"
         with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
@@ -449,7 +449,7 @@ class BootImageGenerator:
         templates_data = self.replace_filenames_with_cids(source_data)
 
         # Write templates.json
-        target_path = self.reference_templates_dir / "templates.json"
+        target_path = self.reference_template_dir / "templates.json"
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(templates_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -479,7 +479,7 @@ class BootImageGenerator:
         print("=" * 60)
 
         # Read uis.source.json
-        source_path = self.reference_templates_dir / "uis.source.json"
+        source_path = self.reference_template_dir / "uis.source.json"
         with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
@@ -492,7 +492,7 @@ class BootImageGenerator:
         uis_data = self.replace_filenames_with_cids(source_data)
 
         # Write uis.json
-        target_path = self.reference_templates_dir / "uis.json"
+        target_path = self.reference_template_dir / "uis.json"
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(uis_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -522,7 +522,7 @@ class BootImageGenerator:
         print("=" * 60)
 
         # Read gateways.source.json
-        source_path = self.reference_templates_dir / "gateways.source.json"
+        source_path = self.reference_template_dir / "gateways.source.json"
         with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
@@ -535,7 +535,7 @@ class BootImageGenerator:
         gateways_data = self.replace_filenames_with_cids(source_data)
 
         # Write gateways.json
-        target_path = self.reference_templates_dir / "gateways.json"
+        target_path = self.reference_template_dir / "gateways.json"
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(gateways_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -565,7 +565,7 @@ class BootImageGenerator:
         print("=" * 60)
 
         # Read mcps.source.json
-        source_path = self.reference_templates_dir / "mcps.source.json"
+        source_path = self.reference_template_dir / "mcps.source.json"
         if not source_path.exists():
             print(f"Skipping: {source_path} does not exist")
             return None
@@ -582,7 +582,7 @@ class BootImageGenerator:
         mcps_data = self.replace_filenames_with_cids(source_data)
 
         # Write mcps.json
-        target_path = self.reference_templates_dir / "mcps.json"
+        target_path = self.reference_template_dir / "mcps.json"
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(mcps_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -637,7 +637,7 @@ class BootImageGenerator:
         print("=" * 60)
 
         # Read boot.source.json
-        source_path = self.reference_templates_dir / source_filename
+        source_path = self.reference_template_dir / source_filename
         with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
@@ -684,7 +684,7 @@ class BootImageGenerator:
                     var["definition"] = mcps_cid
 
         # Write boot.json
-        target_path = self.reference_templates_dir / target_filename
+        target_path = self.reference_template_dir / target_filename
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(boot_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -703,7 +703,7 @@ class BootImageGenerator:
             print(f"Skipped literal CID for {target_filename} -> {boot_cid}")
 
         # Save boot CID to boot.cid file
-        boot_cid_file = self.reference_templates_dir / cid_filename
+        boot_cid_file = self.reference_template_dir / cid_filename
         with open(boot_cid_file, "w", encoding="utf-8") as f:
             f.write(boot_cid)
         print(f"Saved boot CID to: {boot_cid_file}")

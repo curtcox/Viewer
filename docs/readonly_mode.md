@@ -92,7 +92,7 @@ python main.py --read-only --max-cid-memory 512MB  # 512 megabytes
 
 ### readonly.boot.cid
 
-The read-only boot image is generated from `reference_templates/readonly.boot.source.json`.
+The read-only boot image is generated from `reference/templates/readonly.boot.source.json`.
 
 To regenerate all boot images including readonly:
 ```bash
@@ -101,7 +101,7 @@ python generate_boot_image.py
 
 ### Customizing the Readonly Boot Image
 
-Edit `reference_templates/readonly.boot.source.json` to:
+Edit `reference/templates/readonly.boot.source.json` to:
 - Add or remove servers
 - Modify aliases
 - Update variables
@@ -111,7 +111,7 @@ Then regenerate:
 python generate_boot_image.py
 ```
 
-The new CID will be saved to `reference_templates/readonly.boot.cid`.
+The new CID will be saved to `reference/templates/readonly.boot.cid`.
 
 ## Technical Details
 
@@ -233,6 +233,6 @@ For production deployments, combine with:
 
 ## See Also
 
-- [Boot Images](reference_templates/README.md) - Boot image documentation
+- [Boot Images](reference/templates/README.md) - Boot image documentation
 - [Database Configuration](db_config.py) - Database mode management
 - [CLI Arguments](cli_args.py) - All command-line options

@@ -1,16 +1,16 @@
 # AI Assist Server Implementation Plan with Evaluation Suite
- 
+
 ## Overview
- 
-Status: ⚠️ Partially implemented. `reference_templates/servers/definitions/ai_assist.py` exists and `tests/ai_use_cases/` exercises AI features, but `ai_stub` is still present/enabled in the boot templates, so the “replace ai_stub” portion of this plan is not complete.
- 
+
+Status: ⚠️ Partially implemented. `reference/templates/servers/definitions/ai_assist.py` exists and `tests/ai_use_cases/` exercises AI features, but `ai_stub` is still present/enabled in the boot templates, so the “replace ai_stub” portion of this plan is not complete.
+
 This document provides a detailed plan for implementing an `ai_assist` server that uses real AI (via OpenRouter API) to replace the current `ai_stub` server in the default boot template. The plan includes comprehensive use cases for every AI button location in the application, along with automated tests to verify functionality.
 
 ## Implementation Plan
 
 ### 1. Server Implementation (`ai_assist`)
 
-**Location:** `reference_templates/servers/definitions/ai_assist.py`
+**Location:** `reference/templates/servers/definitions/ai_assist.py`
 
 **Requirements:**
 - ✅ Same REST API interface as `ai_stub` (maintains backward compatibility)
@@ -123,14 +123,14 @@ def main(
 
 ### 2. Server Template
 
-**Location:** `reference_templates/servers/templates/ai_assist.json`
+**Location:** `reference/templates/servers/templates/ai_assist.json`
 
 ```json
 {
   "id": "ai-assist",
   "name": "AI Assist",
   "description": "AI-powered text transformation using OpenRouter API. Supports multiple models and providers via configuration variables.",
-  "definition_file": "reference_templates/servers/definitions/ai_assist.py",
+  "definition_file": "reference/templates/servers/definitions/ai_assist.py",
   "category": "ai",
   "tags": ["ai", "text-transformation", "openrouter"],
   "required_secrets": ["OPENROUTER_API_KEY"],
@@ -145,21 +145,21 @@ def main(
 
 ### 3. Boot Template Integration
 
-**Update:** `reference_templates/boot.source.json`
+**Update:** `reference/templates/boot.source.json`
 
 ```json
 {
   "servers": [
     {
       "name": "ai_assist",
-      "definition_cid": "reference_templates/servers/definitions/ai_assist.py",
+      "definition_cid": "reference/templates/servers/definitions/ai_assist.py",
       "enabled": true
     }
   ],
   "aliases": [
     {
       "name": "ai",
-      "definition_cid": "reference_templates/aliases/ai_assist.txt",
+      "definition_cid": "reference/templates/aliases/ai_assist.txt",
       "enabled": true
     }
   ],
@@ -183,7 +183,7 @@ def main(
 }
 ```
 
-**Update Alias:** `reference_templates/aliases/ai_assist.txt`
+**Update Alias:** `reference/templates/aliases/ai_assist.txt`
 ```
 /ai_assist
 ```
@@ -597,7 +597,7 @@ def setup_ai_assist_server(memory_db_app):
         # Create ai_assist server if not exists
         ai_server = db.session.query(Server).filter_by(name='ai_assist').first()
         if not ai_server:
-            with open('reference_templates/servers/definitions/ai_assist.py') as f:
+            with open('reference/templates/servers/definitions/ai_assist.py') as f:
                 definition = f.read()
 
             ai_server = Server(
@@ -1184,7 +1184,7 @@ pytest tests/ai_use_cases/ \
     --junit-xml=test-results/ai-eval-results.xml \
     --html=test-results/ai-eval-report.html \
     --self-contained-html \
-    --cov=reference_templates.servers.definitions.ai_assist \
+    --cov=reference.templates.servers.definitions.ai_assist \
     --cov-report=html:test-results/ai-eval-coverage \
     --cov-report=term-missing
 
@@ -1283,7 +1283,7 @@ jobs:
               --junit-xml=test-results/ai-eval-results.xml \
               --html=test-results/ai-eval-report.html \
               --self-contained-html \
-              --cov=reference_templates.servers.definitions.ai_assist \
+              --cov=reference.templates.servers.definitions.ai_assist \
               --cov-report=html:test-results/ai-eval-coverage \
               --cov-report=xml:test-results/coverage.xml
           else

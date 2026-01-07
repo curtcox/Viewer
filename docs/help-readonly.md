@@ -60,7 +60,7 @@ You can restart Viewer with different boot images:
 - Best for normal operation and development
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/default.boot.cid)
+python main.py --boot-cid $(cat reference/templates/default.boot.cid)
 ```
 
 ### Minimal Boot Image
@@ -70,7 +70,7 @@ python main.py --boot-cid $(cat reference_templates/default.boot.cid)
 - Best for starting from scratch
 
 ```bash
-python main.py --boot-cid $(cat reference_templates/minimal.boot.cid)
+python main.py --boot-cid $(cat reference/templates/minimal.boot.cid)
 ```
 
 ## Use Cases for Readonly Mode
@@ -133,10 +133,10 @@ If you need to make changes:
 2. **Restart with default or minimal boot**:
    ```bash
    # For full features with examples:
-   python main.py --boot-cid $(cat reference_templates/default.boot.cid)
+   python main.py --boot-cid $(cat reference/templates/default.boot.cid)
    
    # For clean slate:
-   python main.py --boot-cid $(cat reference_templates/minimal.boot.cid)
+   python main.py --boot-cid $(cat reference/templates/minimal.boot.cid)
    ```
 3. **Import your configuration** if you exported it
 

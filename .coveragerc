@@ -20,8 +20,6 @@ omit =
     step_impl/*
     reference/templates/*
     reference/templates/**/*
-    reference_templates/*
-    reference_templates/**/*
 
 # Include patterns
 include =
