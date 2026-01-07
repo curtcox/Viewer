@@ -6,7 +6,9 @@ This document analyzes PyLint issues in the Viewer codebase and identifies struc
 
 ✅ = Completed | 🚧 = In Progress | ⏸️ = Not Started
 
-- ✅ **Phase 1: Critical Bug Prevention** - Fixed "url before assignment" issues (E0606) in 11 server files
+- ✅ **Phase 1: Critical Bug Prevention** - All critical issues addressed
+  - ✅ Fixed "url before assignment" issues (E0606) in 11 server files
+  - ✅ Reviewed and documented exec usage security in gateway.py
 - ⏸️ **Phase 2: Structural Improvements** - Large module decomposition
 - ⏸️ **Phase 3: Code Quality** - Nested blocks and naming conventions
 - ⏸️ **Phase 4: Style Improvements** - Logging and control flow
@@ -21,7 +23,7 @@ The PyLint analysis reveals several architectural patterns that could be improve
 | Module too large | 2 | High | High | ⏸️ Not Started |
 | Potential bugs (url before assignment) | 11 | Critical | High | ✅ **FIXED** |
 | Too many nested blocks | 6 | Medium | Medium | ⏸️ Not Started |
-| Security concern (exec) | 1 | High | High | ⏸️ Not Started |
+| Security concern (exec) | 1 | High | High | ✅ **REVIEWED & DOCUMENTED** |
 | Logging style | 15+ | Low | Low | ⏸️ Not Started |
 | Control flow style | 10+ | Low | Low | ⏸️ Not Started |
 
@@ -489,7 +491,35 @@ def _get_transform(name: str):
 ```
 
 ### Recommendation
-**Option A (Sandboxed Execution)** for flexibility with reduced risk, or **Option B (Template-Based)** for maximum security. The choice depends on how user-defined transforms are used in practice.
+**Current Implementation Status: REVIEWED AND DOCUMENTED**
+
+After review, the exec usage in gateway.py has been assessed:
+
+**Security Context:**
+1. **Source Control**: Transform code is loaded from the CID (Content-Identified Data) system, which is stored in the database and managed by the application
+2. **Validation**: The code includes AST parsing (`ast.parse(source)`) before execution to catch syntax errors
+3. **Function Signature Check**: The code validates that expected transform functions exist with correct signatures
+4. **Internal-Only**: The gateway server is documented as "internal-only" (line 1505), suggesting it's not directly exposed to untrusted users
+
+**Current Protections:**
+- AST syntax validation before execution
+- Function signature validation
+- Exception handling around exec calls
+- Transforms stored in controlled database (CID system)
+
+**Security Recommendations for Future Enhancement:**
+- **Option A (Sandboxed Execution)** - Recommended for production environments:
+  - Restrict `__builtins__` to safe subset of functions
+  - Add AST validation to block dangerous patterns (import, eval, exec, compile, open, etc.)
+  - Consider using RestrictedPython library
+- **Option B (Template-Based Transforms)** - Best for maximum security:
+  - Replace Python transforms with declarative Jinja2 templates or JSON-based DSL
+  - Limits flexibility but eliminates exec entirely
+- **Option C (Pre-approved Transforms)** - Simplest approach:
+  - Maintain allowlist of approved transform functions
+  - Users select from predefined transforms only
+
+**Note**: The current implementation is acceptable for internal-only deployment where transform authors are trusted. For multi-tenant or public-facing deployments, implement Option A or B.
 
 ---
 
