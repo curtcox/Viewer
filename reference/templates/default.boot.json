@@ -67,17 +67,17 @@
     },
     {
       "name": "cids",
-      "definition_cid": "AAAAACncBNK_B_g-M1j_a6p-cRcmzmu_7BfovCMN0TgUVBTY4tyaQ7ZFqlsuPGo82rGY54GMWvO2ybpJJo625ikxUS4t2Q",
+      "definition_cid": "AAAAACoqkkQylIOcy6YWgeNb8lYbhmGqwbE8RyjgIsHbWPmzUJ2CHzDO7sfFLz2a4QPEP6nbAmq6_b-YEaIksPwYQZyNcQ",
       "enabled": true
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAUwQ85t1DFYfas8-eOzxVZZifEcNnrS8rpRfNGu2007fdWvZz-3lBqTV8yUZO2f-kRGvvReE_T9lgwTzTg-8Ti-qaA",
+      "definition_cid": "AAAAAUvMgcEF0na5cgGueJ5LznCKf13dQ52Fd7PK-nWKzZwuPp4mc3cKO_pZDdgUq7DDPCJQmDx9WndSz_Erc0JtsMCezw",
       "enabled": true
     },
     {
       "name": "mcp",
-      "definition_cid": "AAAAAH1LBA72ua7GFToErq6olLQdLM74qcN1BhZFiBmwGxJSdJeSsgSnecAEDlivKPwM-0UpOKNlD_6VXuAr9OZd0XvNQg",
+      "definition_cid": "AAAAAH1UP2KK0_08K5SRdxjAbu3X7-f-EAYfFCsIQHuLLovQy5k5L1oRQTchFFEc9tOxRVm8CvfRZFv3WGcNS7QirkicVQ",
       "enabled": true
     },
     {
@@ -987,17 +987,17 @@
     },
     {
       "name": "aws_s3",
-      "definition_cid": "AAAAAB8Por5CBGArIutqo9GJP3yRBQhFaK0Tq5iVMW_-36eubTI1BVbN_qnusZX5Tvn2_d8JyVYirsxOWB0WN2Dnw-7YZg",
+      "definition_cid": "AAAAAB71Iybvci2A3PGyl9UBESsKfK_ULWpQ_KbvPjFS_1OqzJBvZxMrVjEru-1aUbDqwLi4EYgnqdRNcurYqWEBIjd1Sw",
       "enabled": true
     },
     {
       "name": "gcs",
-      "definition_cid": "AAAAACEkVAgiyBIOgNI2xkxxMpsEtAbCmDrPZ4lb_ENko8AQWLm40LxQjnqLscUWYFLONqDMRRBIQzRjBJDMkYFHT-WvUQ",
+      "definition_cid": "AAAAACEMZVxxNj_1LbZSJQ4pwkPzGeUr8KZf0DIILYdzGTdiJL_vG1pF5VNGpt4MFDikB0rd0l377MN3UITR4NMF0b4lxg",
       "enabled": true
     },
     {
       "name": "azure_blob",
-      "definition_cid": "AAAAACNhDg3BSDFhPJbCfxR4OFHj4bcZNThnLy9jurkN8_G3H9yt8cCVcUREgVIyuFuseb1P1xjgOxdoAPGDVCZYC4xUqQ",
+      "definition_cid": "AAAAACNHU91RYlIThN2HfaLfZiIrFo3e1zLIkWQfadEznCyyDFPkcu8DMa5yQwFZ0KkSV_a_3JZxlLKcTjBGk0-rImgMIw",
       "enabled": true
     },
     {
@@ -1052,17 +1052,17 @@
     },
     {
       "name": "webflow",
-      "definition_cid": "AAAAACdW68fmjpXNNjPxplX63uyB74cwzqp1Y4p6Sk3RcBDnZ94vLrKbDYRCC12lsR3RBxCnDWoE5BiW4Fw8p17ATRSyJw",
+      "definition_cid": "AAAAACdSjv78kYyHEeeCsFyFyu1YycfVgVGQ_upUz1M4yS4kT9-OHe6BXoNH-XdxwSjlutuvW8sQWmmgZd1Hl3lLGXj8gA",
       "enabled": true
     },
     {
       "name": "wordpress",
-      "definition_cid": "AAAAACmclcZGfjxMQaOULjlf-eCMRupkIcLgE9UJCpF2Ypfp5wvcngOKUbqwSLFD_75mZd9KreYdAs5bCDmCZuuNcPFArA",
+      "definition_cid": "AAAAACmYCuHKEOXG6yWo6AoeK3upvWiUEc-KfnT1lVZWw4CrYtCcKPediXY5xi5vpwA8nY5Xi1QVihrxBQW5_8ixKVlx7Q",
       "enabled": true
     },
     {
       "name": "wix",
-      "definition_cid": "AAAAACCplmKFHjkmC4RSTDdX69UFQc7wyFdE8a4ax71NcaxmU7vR9CeekrMtGpDMcM_Nvam15khCFCrvJuyW1fZriQpEYA",
+      "definition_cid": "AAAAACCl_rU3gUoLKw_qWzBvTLc3Sven6jh7IfNtAoC6aKFEJX-R0G8OwXDnGXk-Tb9BFwxVqQfkqT9dPpltr7HpKu7AQw",
       "enabled": true
     },
     {
