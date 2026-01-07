@@ -7,10 +7,95 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_ENDPOINT_MAP = {
+    "list_folder": "files/list_folder",
+    "get_metadata": "files/get_metadata",
+    "download": "files/download",
+    "upload": "files/upload",
+    "delete": "files/delete_v2",
+    "create_folder": "files/create_folder_v2",
+    "move": "files/move_v2",
+    "copy": "files/copy_v2",
+    "search": "files/search_v2",
+    "get_account": "users/get_current_account",
+}
+
+_OPERATIONS = {
+    "list_folder": OperationDefinition(
+        payload_builder=lambda path, **_: {"path": path or "", "recursive": False}
+    ),
+    "get_metadata": OperationDefinition(
+        required=(RequiredField("path"),),
+        payload_builder=lambda path, **_: {"path": path},
+    ),
+    "download": OperationDefinition(
+        required=(RequiredField("path"),),
+        payload_builder=lambda path, **_: {"path": path},
+    ),
+    "upload": OperationDefinition(
+        required=(RequiredField("path"), RequiredField("content")),
+        payload_builder=lambda path, mode, autorename, mute, **_: {
+            "path": path,
+            "mode": mode,
+            "autorename": autorename,
+            "mute": mute,
+        },
+    ),
+    "delete": OperationDefinition(
+        required=(RequiredField("path"),),
+        payload_builder=lambda path, **_: {"path": path},
+    ),
+    "create_folder": OperationDefinition(
+        required=(RequiredField("path"),),
+        payload_builder=lambda path, autorename, **_: {"path": path, "autorename": autorename},
+    ),
+    "move": OperationDefinition(
+        required=(
+            RequiredField("path", "Missing required path (from_path)"),
+            RequiredField("to_path", "Missing required to_path"),
+        ),
+        payload_builder=lambda path, to_path, autorename, **_: {
+            "from_path": path,
+            "to_path": to_path,
+            "autorename": autorename,
+        },
+    ),
+    "copy": OperationDefinition(
+        required=(
+            RequiredField("path", "Missing required path (from_path)"),
+            RequiredField("to_path", "Missing required to_path"),
+        ),
+        payload_builder=lambda path, to_path, autorename, **_: {
+            "from_path": path,
+            "to_path": to_path,
+            "autorename": autorename,
+        },
+    ),
+    "search": OperationDefinition(
+        required=(RequiredField("query"),),
+        payload_builder=lambda query, path, **_: {
+            "query": query,
+            "options": {
+                "path": path or "",
+                "max_results": 100,
+            },
+        },
+    ),
+    "get_account": OperationDefinition(),
+}
 
 
 def _build_preview(
@@ -20,20 +105,7 @@ def _build_preview(
     params: Optional[Dict[str, Any]],
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    endpoint_map = {
-        "list_folder": "files/list_folder",
-        "get_metadata": "files/get_metadata",
-        "download": "files/download",
-        "upload": "files/upload",
-        "delete": "files/delete_v2",
-        "create_folder": "files/create_folder_v2",
-        "move": "files/move_v2",
-        "copy": "files/copy_v2",
-        "search": "files/search_v2",
-        "get_account": "users/get_current_account",
-    }
-
-    endpoint = endpoint_map.get(operation, operation)
+    endpoint = _ENDPOINT_MAP.get(operation, operation)
     url = f"https://api.dropboxapi.com/2/{endpoint}"
 
     method = "POST"  # Most Dropbox API v2 endpoints use POST
@@ -82,23 +154,6 @@ def main(
     - get_account: Get current account information
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_folder",
-        "get_metadata",
-        "download",
-        "upload",
-        "delete",
-        "create_folder",
-        "move",
-        "copy",
-        "search",
-        "get_account",
-    }
-
-    if normalized_operation not in valid_operations:
-        return validation_error("Unsupported operation", field="operation")
-
     if not DROPBOX_ACCESS_TOKEN:
         return error_output(
             "Missing DROPBOX_ACCESS_TOKEN",
@@ -114,70 +169,24 @@ def main(
     }
 
     params: Optional[Dict[str, Any]] = None
-    payload: Optional[Dict[str, Any]] = None
-
-    # Validate and build payload based on operation
-    if normalized_operation == "list_folder":
-        if not path:
-            path = ""  # Empty string means root folder
-        payload = {"path": path if path else "", "recursive": False}
-    elif normalized_operation == "get_metadata":
-        if not path:
-            return validation_error("Missing required path", field="path")
-        payload = {"path": path}
-    elif normalized_operation == "download":
-        if not path:
-            return validation_error("Missing required path", field="path")
-        payload = {"path": path}
-        headers["Content-Type"] = "text/plain"
-        headers["Dropbox-API-Arg"] = f'{{"path": "{path}"}}'
-    elif normalized_operation == "upload":
-        if not path:
-            return validation_error("Missing required path", field="path")
-        if not content:
-            return validation_error("Missing required content", field="content")
-        payload = {
-            "path": path,
-            "mode": mode,
-            "autorename": autorename,
-            "mute": mute,
-        }
-    elif normalized_operation == "delete":
-        if not path:
-            return validation_error("Missing required path", field="path")
-        payload = {"path": path}
-    elif normalized_operation == "create_folder":
-        if not path:
-            return validation_error("Missing required path", field="path")
-        payload = {"path": path, "autorename": autorename}
-    elif normalized_operation == "move":
-        if not path:
-            return validation_error("Missing required path (from_path)", field="path")
-        if not to_path:
-            return validation_error("Missing required to_path", field="to_path")
-        payload = {"from_path": path, "to_path": to_path, "autorename": autorename}
-    elif normalized_operation == "copy":
-        if not path:
-            return validation_error("Missing required path (from_path)", field="path")
-        if not to_path:
-            return validation_error("Missing required to_path", field="to_path")
-        payload = {"from_path": path, "to_path": to_path, "autorename": autorename}
-    elif normalized_operation == "search":
-        if not query:
-            return validation_error("Missing required query", field="query")
-        payload = {
-            "query": query,
-            "options": {
-                "path": path if path else "",
-                "max_results": 100,
-            }
-        }
-    elif normalized_operation == "get_account":
-        payload = None  # No payload needed
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        path=path,
+        to_path=to_path,
+        query=query,
+        mode=mode,
+        autorename=autorename,
+        mute=mute,
+        content=content,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
 
     if dry_run:
         preview = _build_preview(
-            operation=normalized_operation,
+            operation=operation,
             path=path,
             params=params,
             payload=payload,
@@ -185,47 +194,56 @@ def main(
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
     # Build URL based on operation
-    endpoint_map = {
-        "list_folder": "files/list_folder",
-        "get_metadata": "files/get_metadata",
-        "download": "files/download",
-        "upload": "files/upload",
-        "delete": "files/delete_v2",
-        "create_folder": "files/create_folder_v2",
-        "move": "files/move_v2",
-        "copy": "files/copy_v2",
-        "search": "files/search_v2",
-        "get_account": "users/get_current_account",
-    }
-
-    endpoint = endpoint_map.get(normalized_operation, normalized_operation)
+    endpoint = _ENDPOINT_MAP.get(operation, operation)
     url = f"https://api.dropboxapi.com/2/{endpoint}"
 
-    try:
-        if normalized_operation == "download":
-            # Download uses content download endpoint
-            url = f"https://content.dropboxapi.com/2/{endpoint}"
+    if operation == "download":
+        headers["Content-Type"] = "text/plain"
+        headers["Dropbox-API-Arg"] = f'{{"path": "{path}"}}'
 
-        response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Dropbox request failed", status_code=status, details=str(exc))
-
-    # Handle binary download
-    if normalized_operation == "download" and response.ok:
-        return {"output": {"file": "Binary file data", "content_type": "application/octet-stream"}}
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        error_msg = data.get("error_summary", data.get("error", {}).get(".tag", "Dropbox API error"))
+    if operation == "download":
+        url = f"https://content.dropboxapi.com/2/{endpoint}"
+        try:
+            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
+        except requests.RequestException as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            return error_output(
+                "Dropbox request failed",
+                status_code=status,
+                details=str(exc),
+            )
+        if response.ok:
+            return {
+                "output": {
+                    "file": "Binary file data",
+                    "content_type": "application/octet-stream",
+                }
+            }
+        try:
+            data = response.json()
+        except ValueError:
+            return error_output(
+                "Invalid JSON response",
+                status_code=getattr(response, "status_code", None),
+                details=getattr(response, "text", None),
+            )
+        error_msg = _dropbox_error_message(response, data)
         return error_output(error_msg, status_code=response.status_code, response=data)
 
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        "POST",
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_dropbox_error_message,
+        request_error_message="Dropbox request failed",
+        include_exception_in_message=False,
+    )
+
+
+def _dropbox_error_message(_response: requests.Response, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("error_summary", data.get("error", {}).get(".tag", "Dropbox API error"))
+    return "Dropbox API error"

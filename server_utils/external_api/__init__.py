@@ -2,6 +2,7 @@
 
 from .content_decoder import auto_decode_response, decode_content
 from .credential_validator import CredentialValidator
+from .executor import execute_json_request
 from .error_response import (
     api_error,
     error_output,
@@ -20,6 +21,7 @@ from .limit_validator import (
 from .microsoft_auth import MicrosoftAuthManager
 from .oauth_manager import OAuthManager, OAuthTokens
 from .operation_validator import OperationValidator
+from .operation_dispatch import OperationDefinition, RequiredField, validate_and_build_payload
 from .parameter_validator import ParameterValidator
 from .preview_builder import PreviewBuilder
 from .response_handler import ResponseHandler
@@ -36,6 +38,7 @@ __all__ = [
     "validation_error",
     "ExternalApiClient",
     "HttpClientConfig",
+    "execute_json_request",
     "OAuthManager",
     "OAuthTokens",
     "GoogleAuthManager",
@@ -51,6 +54,9 @@ __all__ = [
     "WebhookReceiver",
     "CredentialValidator",
     "OperationValidator",
+    "OperationDefinition",
+    "RequiredField",
+    "validate_and_build_payload",
     "ParameterValidator",
     "PreviewBuilder",
     "ResponseHandler",

@@ -2,6 +2,14 @@
 
 This document proposes concrete structural changes to reduce cyclomatic complexity in the codebase, favoring simplicity over backward compatibility.
 
+## Progress
+
+- ✅ Phase 1: Added structural Pylint checks for complexity gates (max branches/statements/locals/args, McCabe). (Updated `.pylintrc`.)
+- ✅ Phase 1: Extracted duplicate endpoint maps to module-level constants for Dropbox.
+- ✅ Phase 2: Added shared `OperationDefinition`/`validate_and_build_payload` helper and migrated Dropbox, Telegram, and Salesforce to dispatch tables.
+- ✅ Phase 3: Added shared `execute_json_request` helper and migrated Dropbox, Telegram, and Salesforce to use it.
+- ⏳ Remaining servers: Apply the same endpoint map extraction + dispatch table + executor refactor across other high-complexity server definitions.
+
 ## Current State
 
 The Radon analysis shows 25 server definitions with E-grade complexity (31-35):

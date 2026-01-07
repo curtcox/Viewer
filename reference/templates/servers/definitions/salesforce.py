@@ -7,19 +7,73 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
 
 
-_SUPPORTED_OPERATIONS = {
-    "query",
-    "get_record",
-    "create_record",
-    "update_record",
-    "delete_record",
-    "describe_object",
+_OPERATIONS = {
+    "query": OperationDefinition(
+        required=(RequiredField("soql_query"),),
+        payload_builder=lambda base_url, soql_query, **_: {
+            "url": f"{base_url}/query?q={soql_query}",
+            "method": "GET",
+            "payload": None,
+        },
+    ),
+    "get_record": OperationDefinition(
+        required=(RequiredField("sobject_type"), RequiredField("record_id")),
+        payload_builder=lambda base_url, sobject_type, record_id, **_: {
+            "url": f"{base_url}/sobjects/{sobject_type}/{record_id}",
+            "method": "GET",
+            "payload": None,
+        },
+    ),
+    "create_record": OperationDefinition(
+        required=(RequiredField("sobject_type"), RequiredField("data")),
+        payload_builder=lambda base_url, sobject_type, data, **_: {
+            "url": f"{base_url}/sobjects/{sobject_type}",
+            "method": "POST",
+            "payload": data,
+        },
+    ),
+    "update_record": OperationDefinition(
+        required=(
+            RequiredField("sobject_type"),
+            RequiredField("record_id"),
+            RequiredField("data"),
+        ),
+        payload_builder=lambda base_url, sobject_type, record_id, data, **_: {
+            "url": f"{base_url}/sobjects/{sobject_type}/{record_id}",
+            "method": "PATCH",
+            "payload": data,
+        },
+    ),
+    "delete_record": OperationDefinition(
+        required=(RequiredField("sobject_type"), RequiredField("record_id")),
+        payload_builder=lambda base_url, sobject_type, record_id, **_: {
+            "url": f"{base_url}/sobjects/{sobject_type}/{record_id}",
+            "method": "DELETE",
+            "payload": None,
+        },
+    ),
+    "describe_object": OperationDefinition(
+        required=(RequiredField("sobject_type"),),
+        payload_builder=lambda base_url, sobject_type, **_: {
+            "url": f"{base_url}/sobjects/{sobject_type}/describe",
+            "method": "GET",
+            "payload": None,
+        },
+    ),
 }
 
 
@@ -43,15 +97,13 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _salesforce_error_message(_response: requests.Response, data: Any) -> str:
+    error_msg = "Salesforce API error"
+    if isinstance(data, list) and data:
+        return data[0].get("message", error_msg)
+    if isinstance(data, dict):
+        return data.get("message", error_msg)
+    return error_msg
 
 
 def main(
@@ -87,8 +139,6 @@ def main(
     Returns:
         Dict with 'output' containing the API response or preview.
     """
-    api_client = client or _DEFAULT_CLIENT
-
     if not SALESFORCE_ACCESS_TOKEN:
         return error_output(
             "Missing SALESFORCE_ACCESS_TOKEN",
@@ -103,101 +153,43 @@ def main(
             details="Provide your Salesforce instance URL.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
-        )
-
-    # Build URL and method based on operation
     base_url = f"{SALESFORCE_INSTANCE_URL.rstrip('/')}/services/data/v59.0"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        base_url=base_url,
+        soql_query=soql_query,
+        sobject_type=sobject_type,
+        record_id=record_id,
+        data=data,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    if operation == "query":
-        if not soql_query:
-            return validation_error("soql_query is required for query operation")
-        url = f"{base_url}/query?q={soql_query}"
-    elif operation == "get_record":
-        if not sobject_type or not record_id:
-            return validation_error(
-                "sobject_type and record_id are required for get_record operation"
-            )
-        url = f"{base_url}/sobjects/{sobject_type}/{record_id}"
-    elif operation == "create_record":
-        if not sobject_type or not data:
-            return validation_error(
-                "sobject_type and data are required for create_record operation"
-            )
-        url = f"{base_url}/sobjects/{sobject_type}"
-        method = "POST"
-        payload = data
-    elif operation == "update_record":
-        if not sobject_type or not record_id or not data:
-            return validation_error(
-                "sobject_type, record_id, and data are required for update_record operation"
-            )
-        url = f"{base_url}/sobjects/{sobject_type}/{record_id}"
-        method = "PATCH"
-        payload = data
-    elif operation == "delete_record":
-        if not sobject_type or not record_id:
-            return validation_error(
-                "sobject_type and record_id are required for delete_record operation"
-            )
-        url = f"{base_url}/sobjects/{sobject_type}/{record_id}"
-        method = "DELETE"
-    elif operation == "describe_object":
-        if not sobject_type:
-            return validation_error("sobject_type is required for describe_object operation")
-        url = f"{base_url}/sobjects/{sobject_type}/describe"
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    url = result["url"]
+    method = result["method"]
+    payload = result["payload"]
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
+
+    api_client = client or _DEFAULT_CLIENT
 
     headers = {
         "Authorization": f"Bearer {SALESFORCE_ACCESS_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Salesforce request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if isinstance(parsed, dict) and "error" in parsed.get("output", {}):
-            return parsed
-        # Salesforce returns errors as a list
-        error_msg = "Salesforce API error"
-        if isinstance(parsed, list) and len(parsed) > 0:
-            error_msg = parsed[0].get("message", error_msg)
-        elif isinstance(parsed, dict):
-            error_msg = parsed.get("message", error_msg)
-        return error_output(
-            error_msg,
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    # DELETE returns 204 with no content
-    if response.status_code == 204:
-        return {"output": {"success": True}}
-
-    parsed = _parse_json_response(response)
-    if isinstance(parsed, dict) and "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_salesforce_error_message,
+        request_error_message="Salesforce request failed",
+        include_exception_in_message=False,
+        empty_response_statuses=(204,),
+        empty_response_output={"success": True},
+    )
