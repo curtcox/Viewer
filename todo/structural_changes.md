@@ -8,6 +8,7 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 1: Extracted duplicate endpoint maps to module-level constants for Dropbox.
 - ✅ Phase 2: Added shared `OperationDefinition`/`validate_and_build_payload` helper and migrated Dropbox, Telegram, and Salesforce to dispatch tables.
 - ✅ Phase 3: Added shared `execute_json_request` helper and migrated Dropbox, Telegram, and Salesforce to use it.
+- ✅ Phase 4: Migrated xero.py (complexity 34→15, reduced by 19 branches)
 - ⏳ Remaining servers: Apply the same endpoint map extraction + dispatch table + executor refactor across other high-complexity server definitions.
 
 ## Current State
