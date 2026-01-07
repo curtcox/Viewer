@@ -92,7 +92,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     log_file_path = env.get("GAUGE_LOG_FILE")
     if log_file_path:
         from datetime import datetime
-        import io
 
         log_path = Path(log_file_path)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -100,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         # Write log header
         with log_path.open("w", encoding="utf-8") as log_file:
             timestamp = datetime.utcnow().isoformat() + "Z"
-            log_file.write(f"Gauge Specification Execution Log\n")
+            log_file.write("Gauge Specification Execution Log\n")
             log_file.write(f"Started: {timestamp}\n")
             log_file.write(f"Command: {' '.join(command)}\n")
             log_file.write(f"{'=' * 80}\n\n")

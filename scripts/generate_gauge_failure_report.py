@@ -290,7 +290,7 @@ def generate_failure_report(
             for i, failure in enumerate(failed, 1):
                 f.write(f"### {i}. {failure.scenario_name}\n\n")
                 f.write(f"**Spec File:** `{failure.spec_file}`\n\n")
-                f.write(f"**Status:** ❌ FAILED\n\n")
+                f.write("**Status:** ❌ FAILED\n\n")
 
                 if failure.step_text:
                     f.write(f"**Failed Step:**\n```\n{failure.step_text}\n```\n\n")
@@ -313,7 +313,7 @@ def generate_failure_report(
             for i, failure in enumerate(skipped, 1):
                 f.write(f"### {i}. {failure.scenario_name}\n\n")
                 f.write(f"**Spec File:** `{failure.spec_file}`\n\n")
-                f.write(f"**Status:** ⚠️ SKIPPED\n\n")
+                f.write("**Status:** ⚠️ SKIPPED\n\n")
                 f.write("---\n\n")
 
         # Investigation tips
