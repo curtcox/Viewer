@@ -3,10 +3,13 @@
 
 from typing import Optional
 from server_utils.external_api import (
+    CredentialValidator,
     ExternalApiClient,
     HttpClientConfig,
-    error_response,
-    missing_secret_error,
+    OperationValidator,
+    ParameterValidator,
+    PreviewBuilder,
+    ResponseHandler,
     generate_form,
     FormField,
 )
@@ -14,6 +17,32 @@ from server_utils.external_api import (
 
 API_BASE_URL = "https://coda.io/apis/v1"
 DOCUMENTATION_URL = "https://coda.io/developers/apis/v1"
+
+_OPERATIONS = {
+    "list_docs",
+    "get_doc",
+    "list_tables",
+    "get_table",
+    "list_rows",
+    "get_row",
+    "create_row",
+    "update_row",
+    "delete_row",
+    "list_columns",
+}
+_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+_PARAMETER_REQUIREMENTS = {
+    "get_doc": ["doc_id"],
+    "list_tables": ["doc_id"],
+    "get_table": ["doc_id", "table_id"],
+    "list_rows": ["doc_id", "table_id"],
+    "get_row": ["doc_id", "table_id", "row_id"],
+    "create_row": ["doc_id", "table_id", "data"],
+    "update_row": ["doc_id", "table_id", "row_id", "data"],
+    "delete_row": ["doc_id", "table_id", "row_id"],
+    "list_columns": ["doc_id", "table_id"],
+}
+_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
 
 
 def main(
@@ -55,8 +84,8 @@ def main(
         Dict with 'output' containing the API response or preview
     """
     # Validate secrets first
-    if not CODA_API_TOKEN:
-        return missing_secret_error("CODA_API_TOKEN")
+    if error := CredentialValidator.require_secret(CODA_API_TOKEN, "CODA_API_TOKEN"):
+        return error
 
     # Show form if no operation provided
     if not operation:
@@ -165,130 +194,77 @@ def main(
         )
 
     # Validate operation
-    valid_operations = [
-        "list_docs",
-        "get_doc",
-        "list_tables",
-        "get_table",
-        "list_rows",
-        "get_row",
-        "create_row",
-        "update_row",
-        "delete_row",
-        "list_columns",
-    ]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
-        )
+    if error := _OPERATION_VALIDATOR.validate(operation):
+        return error
+    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
+
+    # Validate operation-specific parameters
+    if error := _PARAMETER_VALIDATOR.validate_required(
+        normalized_operation,
+        {
+            "doc_id": doc_id,
+            "table_id": table_id,
+            "row_id": row_id,
+            "data": data,
+        },
+    ):
+        return error
+
+    # Parse JSON data for create/update operations
+    payload = None
+    if normalized_operation in {"create_row", "update_row"}:
+        try:
+            import json
+            payload = json.loads(data) if isinstance(data, str) else data
+        except json.JSONDecodeError as e:
+            from server_utils.external_api import validation_error
+            return validation_error(
+                f"Invalid JSON in data parameter: {str(e)}",
+                field="data",
+            )
 
     # Build request based on operation
     method = "GET"
     url = API_BASE_URL
-    payload = None
     params = {"limit": limit}
 
-    if operation == "list_docs":
+    if normalized_operation == "list_docs":
         url = f"{url}/docs"
-    elif operation == "get_doc":
-        if not doc_id:
-            return error_response(
-                "doc_id is required for get_doc operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_doc":
         url = f"{url}/docs/{doc_id}"
-    elif operation == "list_tables":
-        if not doc_id:
-            return error_response(
-                "doc_id is required for list_tables operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_tables":
         url = f"{url}/docs/{doc_id}/tables"
-    elif operation == "get_table":
-        if not doc_id or not table_id:
-            return error_response(
-                "doc_id and table_id are required for get_table operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_table":
         url = f"{url}/docs/{doc_id}/tables/{table_id}"
-    elif operation == "list_rows":
-        if not doc_id or not table_id:
-            return error_response(
-                "doc_id and table_id are required for list_rows operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_rows":
         url = f"{url}/docs/{doc_id}/tables/{table_id}/rows"
         if query:
             params["query"] = query
-    elif operation == "get_row":
-        if not doc_id or not table_id or not row_id:
-            return error_response(
-                "doc_id, table_id, and row_id are required for get_row operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "get_row":
         url = f"{url}/docs/{doc_id}/tables/{table_id}/rows/{row_id}"
-    elif operation == "create_row":
-        if not doc_id or not table_id or not data:
-            return error_response(
-                "doc_id, table_id, and data are required for create_row operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "create_row":
         method = "POST"
         url = f"{url}/docs/{doc_id}/tables/{table_id}/rows"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "update_row":
-        if not doc_id or not table_id or not row_id or not data:
-            return error_response(
-                "doc_id, table_id, row_id, and data are required for update_row operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "update_row":
         method = "PUT"
         url = f"{url}/docs/{doc_id}/tables/{table_id}/rows/{row_id}"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "delete_row":
-        if not doc_id or not table_id or not row_id:
-            return error_response(
-                "doc_id, table_id, and row_id are required for delete_row operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "delete_row":
         method = "DELETE"
         url = f"{url}/docs/{doc_id}/tables/{table_id}/rows/{row_id}"
-    elif operation == "list_columns":
-        if not doc_id or not table_id:
-            return error_response(
-                "doc_id and table_id are required for list_columns operation",
-                error_type="validation_error",
-            )
+    elif normalized_operation == "list_columns":
         url = f"{url}/docs/{doc_id}/tables/{table_id}/columns"
 
     # Dry run: return preview
     if dry_run:
-        preview = {
-            "operation": operation,
-            "method": method,
-            "url": url,
-            "headers": {"Authorization": "Bearer [REDACTED]"},
-        }
-        if params and method == "GET":
-            preview["params"] = params
-        if payload:
-            preview["payload"] = payload
-        return {"output": preview}
+        preview = PreviewBuilder.build(
+            operation=normalized_operation,
+            url=url,
+            method=method,
+            auth_type="Bearer Token",
+            params=params if method == "GET" else None,
+            payload=payload,
+        )
+        return PreviewBuilder.dry_run_response(preview)
 
     # Create client with configured timeout
     if client is None:
@@ -311,25 +287,13 @@ def main(
             params=params if method == "GET" else None,
             timeout=timeout,
         )
+    except Exception as exc:
+        return ResponseHandler.handle_request_exception(exc)
 
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
+    # Extract error message from Coda API response
+    def extract_error(data):
+        if isinstance(data, dict):
+            return data.get("message", "Coda API error")
+        return "Coda API error"
 
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return ResponseHandler.handle_json_response(response, extract_error)
