@@ -174,7 +174,7 @@ def test_get_ticket_success():
 
     assert result["output"]["id"] == 123
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, url, _kwargs = fake_client.calls[0]
     assert method == "GET"
     assert url == "https://example.freshdesk.com/api/v2/tickets/123"
 
@@ -199,7 +199,7 @@ def test_create_ticket_success():
 
     assert result["output"]["id"] == 456
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, _url, kwargs = fake_client.calls[0]
     assert method == "POST"
     assert kwargs["json"]["subject"] == "New ticket"
 
@@ -223,7 +223,7 @@ def test_update_ticket_success():
 
     assert result["output"]["subject"] == "Updated ticket"
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, url, _kwargs = fake_client.calls[0]
     assert method == "PUT"
     assert url == "https://example.freshdesk.com/api/v2/tickets/789"
 
