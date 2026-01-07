@@ -205,7 +205,7 @@ def main(
     if operation == "download":
         url = f"https://content.dropboxapi.com/2/{endpoint}"
         try:
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
+            response = api_client.post(url, headers=headers, timeout=timeout)
         except requests.RequestException as exc:
             status = getattr(getattr(exc, "response", None), "status_code", None)
             return error_output(
