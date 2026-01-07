@@ -32,6 +32,44 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     return args
 
 
+def _generate_failure_report(log_path: Path | None, exit_code: int) -> None:
+    """Generate a comprehensive failure report if specs failed or were skipped."""
+    # Determine report paths
+    reports_dir = ROOT_DIR / "reports" / "html-report"
+    html_report_path = reports_dir / "index.html"
+    failure_report_path = reports_dir / "gauge-failures.md"
+
+    # Only generate if we have a log file or HTML report to parse
+    if not log_path and not html_report_path.exists():
+        return
+
+    # Run the failure report generation script
+    script_path = ROOT_DIR / "scripts" / "generate_gauge_failure_report.py"
+    if not script_path.exists():
+        return
+
+    cmd = [sys.executable, str(script_path), "--output", str(failure_report_path)]
+
+    if log_path and log_path.exists():
+        cmd.extend(["--log", str(log_path)])
+
+    if html_report_path.exists():
+        cmd.extend(["--html-report", str(html_report_path)])
+
+    # Run the script quietly
+    try:
+        subprocess.run(
+            cmd,
+            cwd=str(ROOT_DIR),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.SubprocessError, OSError):
+        # Don't fail the main test run if report generation fails
+        pass
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -121,9 +159,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             log_file.write(f"Completed: {timestamp}\n")
             log_file.write(f"Exit code: {return_code}\n")
 
+        # Generate comprehensive failure report
+        _generate_failure_report(log_path, return_code)
+
         return return_code
 
-    return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
+    # When not logging to file, still generate failure report if there are failures
+    result = subprocess.call(command, cwd=str(ROOT_DIR), env=env)
+    _generate_failure_report(None, result)
+    return result
 
 
 if __name__ == "__main__":
