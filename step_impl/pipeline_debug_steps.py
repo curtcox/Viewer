@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 from getgauge.python import step
 
+from cid_storage import store_cid_from_bytes
 from step_impl.shared_app import get_shared_app
 from step_impl.shared_state import get_scenario_state
 
@@ -34,6 +35,22 @@ def _get_debug_response_json() -> Optional[Dict[str, Any]]:
         return None
 
 
+@step(
+    [
+        'Given a CID containing "<content>"',
+        'And a CID containing "<content>"',
+    ]
+)
+def and_a_cid_containing(content: str) -> None:
+    """Store a CID with the given content and remember it for later steps."""
+    app = get_shared_app()
+    with app.app_context():
+        cid_value = store_cid_from_bytes(content.encode("utf-8"))
+
+    state = get_scenario_state()
+    state["last_cid"] = cid_value
+
+
 @step("And the response should be valid JSON")
 def and_response_should_be_valid_json() -> None:
     """Assert the stored debug response body is valid JSON."""
@@ -50,13 +67,15 @@ def when_request_with_debug_true(path: str) -> None:
     """Request a path with debug=true query parameter."""
     state = get_scenario_state()
 
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
+        path = path.replace("\\{stored CID\\}", cid)
 
-    if "{echo server}" in path:
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
 
     _request_debug_path_and_store_response(f"/{path}?debug=true")
 
@@ -65,12 +84,14 @@ def when_request_with_debug_true(path: str) -> None:
 def when_request_with_debug_1(path: str) -> None:
     """Request a path with debug=1 query parameter."""
     state = get_scenario_state()
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
-    if "{echo server}" in path:
+        path = path.replace("\\{stored CID\\}", cid)
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
     _request_debug_path_and_store_response(f"/{path}?debug=1")
 
 
@@ -78,12 +99,14 @@ def when_request_with_debug_1(path: str) -> None:
 def when_request_with_debug_yes(path: str) -> None:
     """Request a path with debug=yes query parameter."""
     state = get_scenario_state()
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
-    if "{echo server}" in path:
+        path = path.replace("\\{stored CID\\}", cid)
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
     _request_debug_path_and_store_response(f"/{path}?debug=yes")
 
 
@@ -91,12 +114,14 @@ def when_request_with_debug_yes(path: str) -> None:
 def when_request_with_debug_on(path: str) -> None:
     """Request a path with debug=on query parameter."""
     state = get_scenario_state()
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
-    if "{echo server}" in path:
+        path = path.replace("\\{stored CID\\}", cid)
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
     _request_debug_path_and_store_response(f"/{path}?debug=on")
 
 
@@ -104,12 +129,14 @@ def when_request_with_debug_on(path: str) -> None:
 def when_request_with_debug_true_upper(path: str) -> None:
     """Request a path with debug=TRUE query parameter."""
     state = get_scenario_state()
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
-    if "{echo server}" in path:
+        path = path.replace("\\{stored CID\\}", cid)
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
     _request_debug_path_and_store_response(f"/{path}?debug=TRUE")
 
 
@@ -117,12 +144,14 @@ def when_request_with_debug_true_upper(path: str) -> None:
 def when_request_with_debug_random(path: str) -> None:
     """Request a path with debug=random query parameter."""
     state = get_scenario_state()
-    if "{stored CID}" in path:
+    if "{stored CID}" in path or "\\{stored CID\\}" in path:
         cid = state.get("last_cid")
         assert cid, "No CID stored. Use 'And a CID containing' first."
         path = path.replace("{stored CID}", cid)
-    if "{echo server}" in path:
+        path = path.replace("\\{stored CID\\}", cid)
+    if "{echo server}" in path or "\\{echo server\\}" in path:
         path = path.replace("{echo server}", "echo")
+        path = path.replace("\\{echo server\\}", "echo")
     _request_debug_path_and_store_response(f"/{path}?debug=random")
 
 

@@ -25,7 +25,7 @@ and chain input from subsequent path segments.
 * Given the awk server is available
 * And a wrapping server named "awk-wrapper" that wraps payload with "AWK:"
 * And a CID containing "hello world"
-* When I request the resource /awk-wrapper/awk/%7Bprint%20$1%7D/<stored_cid>
+* When I request the resource /awk-wrapper/awk/%7Bprint%20$1%7D/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "AWK:hello"
 
@@ -42,7 +42,7 @@ and chain input from subsequent path segments.
 * Given the sed server is available
 * And a wrapping server named "sed-wrapper" that wraps payload with "SED:"
 * And a CID containing "foo bar"
-* When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/<stored_cid>
+* When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "SED:foo baz"
 
@@ -60,7 +60,7 @@ and chain input from subsequent path segments.
 * Given the grep server is available
 * And a wrapping server named "grep-wrapper" that wraps payload with "GREP:"
 * And a CID containing multiline grep test data
-* When I request the resource /grep-wrapper/grep/apple/<stored_cid>
+* When I request the resource /grep-wrapper/grep/apple/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "GREP:"
 * And the CID content should contain "apple"
@@ -78,7 +78,7 @@ and chain input from subsequent path segments.
 * Given the jq server is available
 * And a wrapping server named "jq-wrapper" that wraps payload with "JQ:"
 * And a CID containing JSON data '\{"key": "secret"\}'
-* When I request the resource /jq-wrapper/jq/.key/<stored_cid>
+* When I request the resource /jq-wrapper/jq/.key/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "JQ:"
 * And the CID content should contain "secret"

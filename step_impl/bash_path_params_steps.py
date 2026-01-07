@@ -16,6 +16,11 @@ from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import get_scenario_state
 
 
+def _unescape_braced_text(value: str) -> str:
+    """Convert spec-escaped braces (\{, \}) back into literal braces."""
+    return value.replace("\\{", "{").replace("\\}", "}")
+
+
 def _store_server(name: str, definition: str) -> None:
     """Persist a server definition."""
     app = get_shared_app()
@@ -122,7 +127,8 @@ cat
 def and_cid_as_pattern(content: str) -> None:
     """Store a CID with the given content as pattern_cid."""
     state = get_scenario_state()
-    cid_value = _store_cid(content.encode("utf-8"))
+    normalized = _unescape_braced_text(content)
+    cid_value = _store_cid(normalized.encode("utf-8"))
     state["pattern_cid"] = cid_value
     state["last_cid"] = cid_value
 
@@ -140,7 +146,8 @@ def and_multiline_grep_data() -> None:
 def and_json_cid(json_content: str) -> None:
     """Store a CID with JSON content."""
     state = get_scenario_state()
-    cid_value = _store_cid(json_content.encode("utf-8"))
+    normalized = _unescape_braced_text(json_content)
+    cid_value = _store_cid(normalized.encode("utf-8"))
     state["last_cid"] = cid_value
 
 
@@ -155,7 +162,8 @@ def when_request_awk_with_pattern(pattern: str) -> None:
     assert cid_value, "No CID stored."
 
     # URL-encode the pattern
-    encoded_pattern = quote(pattern, safe="")
+    normalized = _unescape_braced_text(pattern)
+    encoded_pattern = quote(normalized, safe="")
     request_path = f"/awk/{encoded_pattern}/{cid_value}"
 
     client = get_shared_client()
@@ -221,25 +229,6 @@ def when_request_jq_with_filter(jq_filter: str) -> None:
     # URL-encode the filter
     encoded_filter = quote(jq_filter, safe="")
     request_path = f"/jq/{encoded_filter}/{cid_value}"
-
-    client = get_shared_client()
-    response = client.get(request_path)
-    state["response"] = response
-
-
-@step("When I request the resource /<path>/<stored_cid>")
-def when_request_path_with_stored_cid(path: str, stored_cid: str) -> None:
-    """Request a path with the stored CID appended."""
-    state = get_scenario_state()
-    cid_value = state.get("last_cid")
-    assert cid_value, "No CID stored."
-
-    if stored_cid:
-        assert stored_cid == cid_value, (
-            f"Expected stored CID '{cid_value}' but got '{stored_cid}'"
-        )
-
-    request_path = f"/{path}/{cid_value}"
 
     client = get_shared_client()
     response = client.get(request_path)

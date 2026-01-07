@@ -233,12 +233,20 @@ def when_i_request_resource(path: str) -> None:
     _perform_get_request(normalized_path)
 
 
+def _unescape_payload_text(payload: str) -> str:
+    return (
+        payload.replace("\\\"", '"')
+        .replace("\\{", "{")
+        .replace("\\}", "}")
+    )
+
+
 @step("When I submit a form post to <path> with payload <payload>")
 def when_i_submit_form_post(path: str, payload: str) -> None:
     """POST a payload string to the specified path."""
 
     normalized_path = _normalize_path(path)
-    payload_text = payload.strip().strip("\"'")
+    payload_text = _unescape_payload_text(payload.strip().strip("\"'"))
     _perform_post_request(normalized_path, data={"payload": payload_text})
 
 

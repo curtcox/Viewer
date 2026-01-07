@@ -8,7 +8,7 @@ is included in the request URL.
 
 * Given a server named "echo" that echoes its input with prefix "received:"
 * And a CID containing "test-input"
-* When I request /{echo server}/{stored CID}?debug=true
+* When I request /\{echo server\}/\{stored CID\}?debug=true
 * Then the response should be JSON
 * And the response should contain 2 segment entries
 * And segment 0 should have type "server"
@@ -92,7 +92,7 @@ is included in the request URL.
 ## Debug shows errors for invalid segments
 
 * Given a CID containing "some content"
-* When I request /nonexistent-server/{stored CID}?debug=true
+* When I request /nonexistent-server/\{stored CID\}?debug=true
 * Then the response should be JSON
 * And segment 0 should have type "server"
 * And segment 0 should have errors containing "server not found"
@@ -135,7 +135,7 @@ is included in the request URL.
 ## CID literal with debug shows execution type
 
 * Given a CID containing python server code that returns "literal-result"
-* When I request /{stored CID}.py/next?debug=true
+* When I request /\{stored CID\}.py/next?debug=true
 * Then the response should be JSON
 * And segment 0 should have resolution_type "execution"
 
