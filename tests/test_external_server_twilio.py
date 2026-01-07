@@ -177,7 +177,7 @@ def test_list_messages_success():
 
     assert "messages" in result["output"]
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, _url, kwargs = fake_client.calls[0]
     assert method == "GET"
     assert kwargs["params"]["PageSize"] == 10
 

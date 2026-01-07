@@ -210,8 +210,6 @@ def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
 
     # Try filesystem path resolution (e.g. reference/templates/...)
     try:
-        from pathlib import Path
-
         candidate = str(cid_value) if cid_value is not None else ""
         if candidate:
             normalized = candidate.lstrip("/")
@@ -227,8 +225,6 @@ def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
     try:
         # Remove leading slash if present for filesystem lookup
         bare_cid = cid_value.lstrip("/")
-        from pathlib import Path
-
         cid_file = Path("cids") / bare_cid
         if cid_file.exists():
             if as_bytes:

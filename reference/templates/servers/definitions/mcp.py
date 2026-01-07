@@ -945,17 +945,17 @@ def _handle_meta_page(server_name: str, mcps: Dict[str, Any], context: Optional[
     </div>
 """
 
-    html += """
+    html += f"""
     <h2>Connection Example</h2>
     <p>Connect to this MCP server using the following endpoint:</p>
     <pre>POST /mcp/{server}</pre>
     <p>Send JSON-RPC 2.0 messages with method calls like:</p>
-    <pre>{{
+    <pre>{{{{
   "jsonrpc": "2.0",
   "id": 1,
   "method": "tools/list",
-  "params": {{}}
-}}</pre>
+  "params": {{{{}}}}
+}}}}</pre>
 </body>
 </html>
 """.format(

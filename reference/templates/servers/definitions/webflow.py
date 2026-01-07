@@ -223,12 +223,12 @@ def main(
                 "Invalid or expired WEBFLOW_API_TOKEN. Check your API token in Webflow Account Settings",
                 status_code=401
             )
-        elif response.status_code == 403:
+        if response.status_code == 403:
             return error_output(
                 "Insufficient permissions for this operation. Check your API token has the required scopes",
                 status_code=403
             )
-        elif response.status_code == 404:
+        if response.status_code == 404:
             return error_output(
                 f"Resource not found (site_id={site_id}, collection_id={collection_id}, item_id={item_id})",
                 status_code=404

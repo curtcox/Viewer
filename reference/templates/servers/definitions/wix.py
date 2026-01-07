@@ -227,12 +227,12 @@ def main(
             "Invalid or expired WIX_API_KEY. Check your API key in the Wix dashboard",
             status_code=401
         )
-    elif response.status_code == 403:
+    if response.status_code == 403:
         return error_output(
             "Insufficient permissions for this operation. Check your API key has the required permissions",
             status_code=403
         )
-    elif response.status_code == 404:
+    if response.status_code == 404:
         return error_output(
             f"Resource not found (collection_id={collection_id}, item_id={item_id})",
             status_code=404

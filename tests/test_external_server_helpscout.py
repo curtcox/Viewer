@@ -165,7 +165,7 @@ def test_list_conversations_success():
 
     assert "_embedded" in result["output"]
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, url, _kwargs = fake_client.calls[0]
     assert method == "GET"
     assert url == "https://api.helpscout.net/v2/conversations"
 
@@ -209,7 +209,7 @@ def test_create_conversation_success():
 
     assert result["output"]["id"] == 456
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, _url, _kwargs = fake_client.calls[0]
     assert method == "POST"
 
 

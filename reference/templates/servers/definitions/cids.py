@@ -77,6 +77,17 @@ def _build_error_response(
     }
 
 
+def _find_snippet_line(archive: str, normalized_path: str):
+    """Find the line number in the archive for a given path."""
+    for line_num, line in enumerate(archive.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.split(None, 1)[0].lstrip("/") == normalized_path:
+            return line_num
+    return None
+
+
 def main(archive=None, path=None, *, context=None):
     """Parse and serve CIDS archive files.
 
@@ -106,7 +117,7 @@ def main(archive=None, path=None, *, context=None):
 
     # Parse the archive
     try:
-        cids_map, directories = _parse_cids_archive(archive)
+        cids_map, _directories = _parse_cids_archive(archive)
     except ValueError as e:
         line_number = _extract_line_number(str(e))
         return _build_error_response(
@@ -124,7 +135,7 @@ def main(archive=None, path=None, *, context=None):
             normalized += "/"
 
         entries: set[str] = set()
-        for file_path in cids_map.keys():
+        for file_path in cids_map:
             if normalized and not file_path.startswith(normalized):
                 continue
 
@@ -160,13 +171,7 @@ def main(archive=None, path=None, *, context=None):
             if content is None:
                 snippet_line = None
                 if isinstance(archive, str):
-                    for line_num, line in enumerate(archive.splitlines(), start=1):
-                        stripped = line.strip()
-                        if not stripped:
-                            continue
-                        if stripped.split(None, 1)[0].lstrip("/") == normalized_requested:
-                            snippet_line = line_num
-                            break
+                    snippet_line = _find_snippet_line(archive, normalized_requested)
 
                 payload = {
                     "error": "CID not found",

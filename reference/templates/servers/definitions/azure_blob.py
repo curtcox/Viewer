@@ -258,13 +258,12 @@ def main(
         # Parse response based on operation
         if normalized_operation in ("upload_blob", "delete_blob", "create_container", "delete_container", "copy_blob"):
             return {"output": {"status": "success", "status_code": response.status_code}}
-        elif normalized_operation == "get_blob":
+        if normalized_operation == "get_blob":
             return {"output": response.text}
-        elif normalized_operation in ("get_blob_properties", "get_container_properties"):
+        if normalized_operation in ("get_blob_properties", "get_container_properties"):
             return {"output": dict(response.headers)}
-        else:
-            # List operations return XML
-            return {"output": response.text}
+        # List operations return XML
+        return {"output": response.text}
 
     except Exception as e:
         return error_output(str(e), status_code=500)

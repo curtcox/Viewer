@@ -261,12 +261,12 @@ def main(
                 "Invalid WordPress credentials. Check your username and Application Password",
                 status_code=401
             )
-        elif response.status_code == 403:
+        if response.status_code == 403:
             return error_output(
                 "Insufficient permissions for this operation. Check your user role has permission for this action",
                 status_code=403
             )
-        elif response.status_code == 404:
+        if response.status_code == 404:
             return error_output(
                 f"Resource not found (id={resource_id})",
                 status_code=404

@@ -242,11 +242,10 @@ def main(
                 except Exception:
                     return {"output": {"status": "success", "status_code": response.status_code}}
             return {"output": {"status": "success", "status_code": response.status_code}}
-        elif normalized_operation == "get_object":
+        if normalized_operation == "get_object":
             return {"output": response.text}
-        else:
-            # List and get operations return JSON
-            return {"output": response.json()}
+        # List and get operations return JSON
+        return {"output": response.json()}
 
     except Exception as e:
         return error_output(str(e), status_code=500)

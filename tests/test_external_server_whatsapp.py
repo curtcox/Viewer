@@ -172,7 +172,7 @@ def test_send_template_success():
 
     assert result["output"]["messaging_product"] == "whatsapp"
     assert len(fake_client.calls) == 1
-    method, url, kwargs = fake_client.calls[0]
+    method, _url, kwargs = fake_client.calls[0]
     assert method == "POST"
     assert kwargs["json"]["template"]["name"] == "hello_world"
 
