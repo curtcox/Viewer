@@ -311,6 +311,9 @@ jobs:
       SESSION_SECRET: test-secret-key
       TESTING: "True"
       HYPOTHESIS_PROFILE: ci
+    outputs:
+      test_result: ${{ steps.determine_results.outputs.test_result }}
+      coverage_result: ${{ steps.determine_results.outputs.coverage_result }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -329,22 +332,57 @@ jobs:
       - name: Run impacted tests first (testmon)
         id: run_impacted_tests
         run: ./scripts/checks/run_unit_tests_impacted.sh
+        continue-on-error: true
       - name: Run full unit tests with coverage
         id: run_tests
         if: always()
         run: |
-          STATUS=0
-          ./scripts/checks/run_unit_tests_full.sh || STATUS=$?
-          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          TEST_STATUS=0
+          python -m coverage run -m pytest --junitxml=test-results.xml || TEST_STATUS=$?
+          echo "test_status=$TEST_STATUS" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Publish coverage summary
+      - name: Check coverage threshold
+        id: check_coverage
+        if: always()
+        run: |
+          COVERAGE_STATUS=0
+          python -m coverage report --fail-under=75 || COVERAGE_STATUS=$?
+          echo "coverage_status=$COVERAGE_STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Generate coverage reports
         id: coverage
         if: always()
         run: |
+          python -m coverage html
+          python -m coverage xml
+          python -m coverage report > coverage-report.txt || true
           scripts/publish-coverage-summary.sh \
             coverage-report.txt \
             "${GITHUB_STEP_SUMMARY:-}" \
             "${GITHUB_OUTPUT:-}"
+      - name: Determine final results
+        id: determine_results
+        if: always()
+        run: |
+          # Determine test result
+          if [[ "${{ steps.run_impacted_tests.outcome }}" == "failure" ]] || [[ "${{ steps.run_tests.outputs.test_status }}" != "0" ]]; then
+            echo "test_result=failure" >> "$GITHUB_OUTPUT"
+          else
+            echo "test_result=success" >> "$GITHUB_OUTPUT"
+          fi
+          # Determine coverage result
+          if [[ "${{ steps.check_coverage.outputs.coverage_status }}" != "0" ]]; then
+            echo "coverage_result=failure" >> "$GITHUB_OUTPUT"
+          else
+            echo "coverage_result=success" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload test results XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-tests-results
+          path: test-results.xml
+          if-no-files-found: warn
       - name: Upload coverage XML
         if: always() && steps.coverage.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
@@ -358,8 +396,8 @@ jobs:
           name: unit-tests-html
           path: htmlcov
           if-no-files-found: warn
-      - name: Fail if tests failed
-        if: steps.run_impacted_tests.outcome == 'failure' || steps.run_tests.outputs.status != '0'
+      - name: Fail if tests or coverage failed
+        if: steps.determine_results.outputs.test_result == 'failure' || steps.determine_results.outputs.coverage_result == 'failure'
         run: exit 1
 
   db-equivalence:
@@ -644,18 +682,25 @@ jobs:
           TEST_INDEX_STATUS: ${{ needs.test-index.result }}
           CID_VALIDATION_STATUS: ${{ needs['cid-validation'].result }}
           DEAD_FIXTURES_STATUS: ${{ needs.dead-fixtures.result }}
-          UNIT_TESTS_STATUS: ${{ needs.unit-tests.result }}
+          UNIT_TESTS_RESULTS_STATUS: ${{ needs.unit-tests.outputs.test_result }}
+          UNIT_TESTS_COVERAGE_STATUS: ${{ needs.unit-tests.outputs.coverage_result }}
           PROPERTY_TESTS_STATUS: ${{ needs.property-tests.result }}
           INTEGRATION_TESTS_STATUS: ${{ needs.integration-tests.result }}
           GAUGE_SPECS_STATUS: ${{ needs.gauge-specs.result }}
           AI_EVAL_STATUS: ${{ needs.ai-eval.result }}
         run: ./scripts/ci/capture_job_statuses.sh
-      - name: Download unit test report
+      - name: Download unit test results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: unit-tests-results
+          path: site/unit-tests-results
+      - name: Download unit test coverage report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: unit-tests-html
-          path: site/unit-tests
+          path: site/unit-tests-coverage
       - name: Download Gauge report
         uses: actions/download-artifact@v4
         continue-on-error: true
