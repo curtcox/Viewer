@@ -1,19 +1,95 @@
 # ruff: noqa: F821, F706
 """Call the Xero API for accounting operations."""
 
-from typing import Optional
+from __future__ import annotations
+
+import json
+from typing import Any, Optional
+
 from server_utils.external_api import (
     ExternalApiClient,
     HttpClientConfig,
+    OperationDefinition,
+    RequiredField,
     error_response,
-    missing_secret_error,
+    execute_json_request,
     generate_form,
+    missing_secret_error,
+    validate_and_build_payload,
     FormField,
 )
 
 
 API_BASE_URL = "https://api.xero.com/api.xro/2.0"
 DOCUMENTATION_URL = "https://developer.xero.com/documentation/api/accounting/overview"
+
+
+def _parse_json_or_error(value: str | dict, field_name: str) -> dict[str, Any] | tuple[str, str]:
+    """Parse JSON string or return error tuple (error_message, field_name)."""
+    if isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as e:
+        return (f"Invalid JSON in {field_name} parameter: {str(e)}", field_name)
+
+
+_OPERATIONS = {
+    "list": OperationDefinition(
+        required=(RequiredField("endpoint"),),
+        payload_builder=lambda endpoint, params, **_: {
+            "method": "GET",
+            "url_path": endpoint,
+            "entity_id": None,
+            "payload": None,
+            "params": params,
+        },
+    ),
+    "get": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("entity_id")),
+        payload_builder=lambda endpoint, entity_id, **_: {
+            "method": "GET",
+            "url_path": endpoint,
+            "entity_id": entity_id,
+            "payload": None,
+            "params": None,
+        },
+    ),
+    "create": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("data")),
+        payload_builder=lambda endpoint, data, **_: {
+            "method": "PUT",  # Xero uses PUT for create
+            "url_path": endpoint,
+            "entity_id": None,
+            "payload": data,
+            "params": None,
+        },
+    ),
+    "update": OperationDefinition(
+        required=(
+            RequiredField("endpoint"),
+            RequiredField("entity_id"),
+            RequiredField("data"),
+        ),
+        payload_builder=lambda endpoint, entity_id, data, **_: {
+            "method": "POST",
+            "url_path": endpoint,
+            "entity_id": entity_id,
+            "payload": data,
+            "params": None,
+        },
+    ),
+    "delete": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("entity_id")),
+        payload_builder=lambda endpoint, entity_id, **_: {
+            "method": "DELETE",
+            "url_path": endpoint,
+            "entity_id": entity_id,
+            "payload": None,
+            "params": None,
+        },
+    ),
+}
 
 
 def main(
@@ -148,90 +224,56 @@ def main(
         )
 
     # Validate operation
-    valid_operations = ["list", "get", "create", "update", "delete"]
-    if operation not in valid_operations:
+    if operation not in _OPERATIONS:
+        valid_ops = list(_OPERATIONS.keys())
         return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
+            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_ops)}",
             error_type="validation_error",
         )
-
-    # Validate endpoint is provided
-    if not endpoint:
-        return error_response(
-            "endpoint is required for all operations",
-            error_type="validation_error",
-        )
-
-    # Build request based on operation
-    method = "GET"
-    url = f"{API_BASE_URL}/{endpoint}"
-    payload = None
-    query_params = {}
 
     # Parse params if provided
+    query_params = None
     if params:
-        try:
-            import json
-            query_params = json.loads(params) if isinstance(params, str) else params
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in params parameter: {str(e)}",
-                error_type="validation_error",
-            )
+        parsed = _parse_json_or_error(params, "params")
+        if isinstance(parsed, tuple):
+            return error_response(parsed[0], error_type="validation_error")
+        query_params = parsed
 
-    if operation == "list":
-        # List operation uses GET with optional query params
-        pass
-    elif operation == "get":
-        if not entity_id:
-            return error_response(
-                "entity_id is required for get operation",
-                error_type="validation_error",
-            )
-        url = f"{url}/{entity_id}"
-    elif operation == "create":
-        if not data:
-            return error_response(
-                "data is required for create operation",
-                error_type="validation_error",
-            )
-        method = "PUT"  # Xero uses PUT for create
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "update":
-        if not entity_id or not data:
-            return error_response(
-                "entity_id and data are required for update operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{url}/{entity_id}"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "delete":
-        if not entity_id:
-            return error_response(
-                "entity_id is required for delete operation",
-                error_type="validation_error",
-            )
-        method = "DELETE"
-        url = f"{url}/{entity_id}"
+    # Parse data if provided
+    parsed_data = None
+    if data:
+        parsed = _parse_json_or_error(data, "data")
+        if isinstance(parsed, tuple):
+            return error_response(parsed[0], error_type="validation_error")
+        parsed_data = parsed
+
+    # Validate and build request configuration
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        endpoint=endpoint,
+        entity_id=entity_id,
+        data=parsed_data,
+        params=query_params,
+    )
+    if isinstance(result, tuple):
+        return error_response(result[0], error_type="validation_error")
+
+    # Extract request configuration
+    method = result["method"]
+    url_path = result["url_path"]
+    entity_id_part = result["entity_id"]
+    payload = result["payload"]
+    params_dict = result["params"]
+
+    # Build URL
+    url = f"{API_BASE_URL}/{url_path}"
+    if entity_id_part:
+        url = f"{url}/{entity_id_part}"
 
     # Dry run: return preview
     if dry_run:
-        preview = {
+        preview: dict[str, Any] = {
             "operation": operation,
             "method": method,
             "url": url,
@@ -240,8 +282,8 @@ def main(
                 "Xero-tenant-id": "[REDACTED]",
             },
         }
-        if query_params:
-            preview["params"] = query_params
+        if params_dict:
+            preview["params"] = params_dict
         if payload:
             preview["payload"] = payload
         return {"output": preview}
@@ -251,6 +293,7 @@ def main(
         config = HttpClientConfig(timeout=timeout)
         client = ExternalApiClient(config)
 
+    # Build headers
     headers = {
         "Authorization": f"Bearer {XERO_ACCESS_TOKEN}",
         "Xero-tenant-id": effective_tenant_id,
@@ -259,34 +302,13 @@ def main(
     if method in ["PUT", "POST"]:
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            params=query_params if query_params else None,
-            timeout=timeout,
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    # Execute request
+    return execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        params=params_dict,
+        timeout=timeout,
+    )
