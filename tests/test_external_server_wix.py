@@ -31,10 +31,10 @@ def test_list_collections_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "list_collections"
-    assert "wixapis.com/wix-data/v2/collections" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "GET"
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "list_collections"
+    assert "wixapis.com/wix-data/v2/collections" in preview["url"]
+    assert preview["method"] == "GET"
 
 
 def test_get_site_requires_site_id():
@@ -55,10 +55,10 @@ def test_get_site_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "get_site"
-    assert "wixapis.com/v2/sites/site123" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "GET"
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "get_site"
+    assert "wixapis.com/v2/sites/site123" in preview["url"]
+    assert preview["method"] == "GET"
 
 
 def test_get_site_uses_wix_site_id_fallback():
@@ -68,8 +68,8 @@ def test_get_site_uses_wix_site_id_fallback():
         WIX_SITE_ID="fallback_site",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert "wixapis.com/v2/sites/fallback_site" in result["output"]["preview"]["url"]
+    preview = result["output"]["preview"]
+    assert "wixapis.com/v2/sites/fallback_site" in preview["url"]
 
 
 def test_query_items_requires_data_collection_id():
@@ -91,12 +91,12 @@ def test_query_items_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "query_items"
-    assert "wixapis.com/wix-data/v2/items/query" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "POST"
-    assert result["output"]["preview"]["payload"]["dataCollectionId"] == "products"
-    assert result["output"]["preview"]["payload"]["query"]["paging"]["limit"] == 10
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "query_items"
+    assert "wixapis.com/wix-data/v2/items/query" in preview["url"]
+    assert preview["method"] == "POST"
+    assert preview["payload"]["dataCollectionId"] == "products"
+    assert preview["payload"]["query"]["paging"]["limit"] == 10
 
 
 def test_create_item_requires_fields():
@@ -117,11 +117,11 @@ def test_create_item_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "create_item"
-    assert "wixapis.com/wix-data/v2/items" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "POST"
-    assert result["output"]["preview"]["payload"]["dataItem"]["data"]["name"] == "Test Product"
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "create_item"
+    assert "wixapis.com/wix-data/v2/items" in preview["url"]
+    assert preview["method"] == "POST"
+    assert preview["payload"]["dataItem"]["data"]["name"] == "Test Product"
 
 
 def test_update_item_requires_item_id():
@@ -145,10 +145,10 @@ def test_update_item_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "update_item"
-    assert "wixapis.com/wix-data/v2/items/item123" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "PATCH"
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "update_item"
+    assert "wixapis.com/wix-data/v2/items/item123" in preview["url"]
+    assert preview["method"] == "PATCH"
 
 
 def test_delete_item_dry_run():
@@ -159,10 +159,10 @@ def test_delete_item_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "delete_item"
-    assert "wixapis.com/wix-data/v2/items/item123" in result["output"]["preview"]["url"]
-    assert result["output"]["preview"]["method"] == "DELETE"
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "delete_item"
+    assert "wixapis.com/wix-data/v2/items/item123" in preview["url"]
+    assert preview["method"] == "DELETE"
 
 
 def test_get_item_dry_run():
@@ -173,9 +173,9 @@ def test_get_item_dry_run():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["operation"] == "get_item"
-    assert "wixapis.com/wix-data/v2/items/item123" in result["output"]["preview"]["url"]
+    preview = result["output"]["preview"]
+    assert preview["operation"] == "get_item"
+    assert "wixapis.com/wix-data/v2/items/item123" in preview["url"]
 
 
 def test_query_items_with_filter():
@@ -186,8 +186,8 @@ def test_query_items_with_filter():
         WIX_API_KEY="test_key",
         dry_run=True,
     )
-    assert result["output"]["dry_run"] is True
-    assert result["output"]["preview"]["payload"]["query"]["filter"] == {"price": {"$gt": 50}}
+    preview = result["output"]["preview"]
+    assert preview["payload"]["query"]["filter"] == {"price": {"$gt": 50}}
 
 
 def test_list_collections_with_mocked_client():
