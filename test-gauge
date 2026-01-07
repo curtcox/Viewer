@@ -91,14 +91,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     # If GAUGE_LOG_FILE is set, capture verbose output to log file
     log_file_path = env.get("GAUGE_LOG_FILE")
     if log_file_path:
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         log_path = Path(log_file_path)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write log header
         with log_path.open("w", encoding="utf-8") as log_file:
-            timestamp = datetime.utcnow().isoformat() + "Z"
+            timestamp = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
             log_file.write("Gauge Specification Execution Log\n")
             log_file.write(f"Started: {timestamp}\n")
             log_file.write(f"Command: {' '.join(command)}\n")
@@ -153,7 +153,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return_code = process.wait()
 
             # Write log footer
-            timestamp = datetime.utcnow().isoformat() + "Z"
+            timestamp = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
             log_file.write(f"\n{'=' * 80}\n")
             log_file.write(f"Completed: {timestamp}\n")
             log_file.write(f"Exit code: {return_code}\n")

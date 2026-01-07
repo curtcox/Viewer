@@ -767,7 +767,7 @@
     },
     {
       "name": "salesforce",
-      "definition_cid": "AAAAABo5_3lJ1TvztMkTKEaTkZJOcl1Gs5n6F49LaikJq0nbv7xNJYLEWStMsoNZ51LpcEYJjsNf8UU-TM6r9pnaVJY6OA",
+      "definition_cid": "AAAAABfSJFbD5eVCWMG_xKAsCib35n2qBjhroNl-cajCMbsydgzfFrIwa8oBtNO6TpErjYaG0x7jBlVqVQnRLCrSh4WyHQ",
       "enabled": true
     },
     {
@@ -962,7 +962,7 @@
     },
     {
       "name": "telegram",
-      "definition_cid": "AAAAABmksiDFhMDZX7y3uO-AmbjSW3Ljtvd38xx28SXMbrn6Em6RzWRW-mIqPLib3rMLY9gfP20nWQFoga6Rt9nKaPQNag",
+      "definition_cid": "AAAAABa1qZIIdX95qX9rnzXDJW_d4mVzxP094TOBKDVd19dQLBiaOyKRzAd3pkfGvgMaMB5SuBCXf1ud9d4XDLPU53aSAw",
       "enabled": true
     },
     {
@@ -977,7 +977,7 @@
     },
     {
       "name": "dropbox",
-      "definition_cid": "AAAAAB4fj6Knf09yIqMQ8DQ6elZ0MT_fHSIrq7YTZ2tgctZLD1NJFdLOd6IU62_KwbNR_UM7TYb1c4VYYejjrEbmbxGK1g",
+      "definition_cid": "AAAAAB1Ue3QnsJ4m90KlSQBAcut2zXjsXIzj6aeYhxPLJE5egPdEP9mdQUfi0zlF0WGkxSeGv14K8OZpgfbEQjnjVelNZA",
       "enabled": true
     },
     {
@@ -1179,7 +1179,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACaSBM8cMfWp0TqVjtuXcytGphqNQV909TMS8SXw8yDw96sdmfZBaqsVR0GWbUwzVG7x4_C_qCXFgoRGvavxYsBGnA",
+      "definition": "AAAAACaS3pXEtnJuVTabGYjMyygzIvhY8puXN8_2jt8DE_tbo8lbqBDdPsYg4gkbXGExPbGg6y59yGRNGh6WhOUoURXVQA",
       "enabled": true
     },
     {
