@@ -3,7 +3,7 @@
 source = .
 
 # Omit files from coverage analysis
-omit = 
+omit =
     venv/*
     */venv/*
     .venv/*
@@ -18,9 +18,13 @@ omit =
     */migrations/*
     specs/*
     step_impl/*
+    reference/templates/*
+    reference/templates/**/*
+    reference_templates/*
+    reference_templates/**/*
 
 # Include patterns
-include = 
+include =
     *.py
     app.py
     main.py
