@@ -739,6 +739,182 @@ def _create_template_resolver(config: dict, context: dict):
     return resolve_template
 
 
+def _apply_response_transform_for_test(
+    response_cid: str,
+    response_details: dict,
+    enhanced_context: dict,
+    server_name: str,
+    test_server_path: str,
+    gateways: dict,
+    gateway_archive: Optional[str],
+    gateway_path: Optional[str],
+) -> Optional[dict]:
+    """Apply response transform in test mode with path rewriting.
+    
+    Args:
+        response_cid: CID of the response transform function
+        response_details: Response details from target server
+        enhanced_context: Context with template resolver
+        server_name: Gateway server name
+        test_server_path: Test server path for URL rewriting
+        gateways: All gateway configurations
+        gateway_archive: HRX archive name if applicable
+        gateway_path: HRX path if applicable
+        
+    Returns:
+        Transformed result dict with 'output' key, or None if no transform or not applicable.
+        Returns error response dict on failure.
+    """
+    transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), enhanced_context)
+    if not transform_fn:
+        return _render_error(
+            "Response Transform Not Found",
+            f"Could not load response transform: {escape(str(response_cid))}",
+            gateways,
+            exception_summary=f"ResponseTransformNotFoundError: Could not load response transform: {escape(str(response_cid))}",
+            error_detail=json.dumps(
+                {
+                    "gateway": server_name,
+                    "response_transform_cid": response_cid,
+                    "test_mode": True,
+                },
+                indent=2,
+            ),
+            gateway_archive=gateway_archive,
+            gateway_path=gateway_path,
+        )
+    
+    result = transform_fn(response_details, enhanced_context)
+    if not isinstance(result, dict) or "output" not in result:
+        return None
+    
+    # Rewrite URLs for test mode
+    content_type = str(result.get("content_type") or "")
+    if "html" in content_type.lower():
+        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
+        old_prefix = f"/gateway/{server_name}"
+        output = result.get("output")
+        if isinstance(output, str):
+            result["output"] = output.replace(old_prefix, prefix)
+        elif isinstance(output, (bytes, bytearray)):
+            decoded = bytes(output).decode("utf-8", errors="replace")
+            result["output"] = decoded.replace(old_prefix, prefix)
+    
+    return result
+
+
+def _build_direct_response_details(direct_response: dict, rest_path: str) -> dict:
+    """Build response_details dict from a direct response returned by request transform.
+    
+    Args:
+        direct_response: Direct response dict with 'output', 'status_code', 'content_type', 'headers'
+        rest_path: Request path for context
+        
+    Returns:
+        response_details dict suitable for response transform processing
+    """
+    output = direct_response.get("output", "")
+    content = output.encode("utf-8") if isinstance(output, str) else output
+    text = output if isinstance(output, str) else output.decode("utf-8", errors="replace")
+
+    return {
+        "status_code": direct_response.get("status_code", 200),
+        "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
+        "content": content,
+        "text": text,
+        "json": None,
+        "request_path": rest_path,
+        "source": "request_transform",
+        "_original_output": output,  # Keep original output type for default return
+        "_original_content_type": direct_response.get("content_type", "text/html"),
+    }
+
+
+def _apply_request_transform(
+    request_cid: str,
+    request_details: dict,
+    enhanced_context: dict,
+    rest_path: str,
+    server_name: str,
+    gateways: dict,
+    debug_context: dict,
+    gateway_archive: Optional[str],
+    gateway_path: Optional[str],
+) -> tuple[Optional[dict], Optional[dict]]:
+    """Apply request transform and return updated request_details and optional response_details.
+    
+    Args:
+        request_cid: CID of the request transform function
+        request_details: Current request details
+        enhanced_context: Context with template resolver
+        rest_path: Request path
+        server_name: Gateway server name
+        gateways: All gateway configurations
+        debug_context: Debug information
+        gateway_archive: HRX archive name if applicable
+        gateway_path: HRX path if applicable
+        
+    Returns:
+        Tuple of (request_details, response_details). response_details is set if transform
+        returns a direct response, otherwise None.
+        
+    Raises:
+        Returns error response dict on failure
+    """
+    transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), enhanced_context)
+    if not transform_fn:
+        return _render_error(
+            "Request Transform Not Found",
+            f"Could not load request transform: {escape(str(request_cid))}",
+            gateways,
+            exception_summary=f"RequestTransformNotFoundError: Could not load request transform: {escape(str(request_cid))}",
+            error_detail=json.dumps(
+                {
+                    "gateway": server_name,
+                    "request_transform_cid": request_cid,
+                },
+                indent=2,
+            ),
+            gateway_archive=gateway_archive,
+            gateway_path=gateway_path,
+        ), None
+    
+    transformed = transform_fn(request_details, enhanced_context)
+    if not isinstance(transformed, dict):
+        return request_details, None
+    
+    # Check if this is a direct response
+    if "response" not in transformed:
+        # Normal request transformation
+        return transformed, None
+    
+    direct_response = transformed["response"]
+    # Validate the direct response
+    is_valid, error_msg = _validate_direct_response(direct_response)
+    if not is_valid:
+        return _render_error(
+            "Invalid Direct Response",
+            f"Request transform returned invalid direct response: {error_msg}",
+            gateways,
+            exception_summary=f"InvalidDirectResponseError: {error_msg}",
+            error_detail=json.dumps(
+                {
+                    "gateway": server_name,
+                    "request_transform_cid": request_cid,
+                    "validation_error": error_msg,
+                    "direct_response": str(direct_response)[:500],
+                },
+                indent=2,
+            ),
+            gateway_archive=gateway_archive,
+            gateway_path=gateway_path,
+        ), None
+
+    # Build response_details from direct response
+    response_details = _build_direct_response_details(direct_response, rest_path)
+    return request_details, response_details
+
+
 def _handle_gateway_request(server_name, rest_path, gateways, context):
     """Handle an actual gateway request to a configured server."""
     if server_name not in gateways:
@@ -806,69 +982,22 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
 
     if request_cid:
         try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), enhanced_context)
-            if not transform_fn:
-                return _render_error(
-                    "Request Transform Not Found",
-                    f"Could not load request transform: {escape(str(request_cid))}",
-                    gateways,
-                    exception_summary=f"RequestTransformNotFoundError: Could not load request transform: {escape(str(request_cid))}",
-                    error_detail=json.dumps(
-                        {
-                            "gateway": server_name,
-                            "request_transform_cid": request_cid,
-                        },
-                        indent=2,
-                    ),
-                    gateway_archive=gateway_archive,
-                    gateway_path=gateway_path,
-                )
-            if transform_fn:
-                transformed = transform_fn(request_details, enhanced_context)
-                if isinstance(transformed, dict):
-                    # Check if this is a direct response
-                    if "response" in transformed:
-                        direct_response = transformed["response"]
-                        # Validate the direct response
-                        is_valid, error_msg = _validate_direct_response(direct_response)
-                        if not is_valid:
-                            return _render_error(
-                                "Invalid Direct Response",
-                                f"Request transform returned invalid direct response: {error_msg}",
-                                gateways,
-                                exception_summary=f"InvalidDirectResponseError: {error_msg}",
-                                error_detail=json.dumps(
-                                    {
-                                        "gateway": server_name,
-                                        "request_transform_cid": request_cid,
-                                        "validation_error": error_msg,
-                                        "direct_response": str(direct_response)[:500],
-                                    },
-                                    indent=2,
-                                ),
-                                gateway_archive=gateway_archive,
-                                gateway_path=gateway_path,
-                            )
-
-                        # Build response_details from direct response
-                        output = direct_response.get("output", "")
-                        content = output.encode("utf-8") if isinstance(output, str) else output
-                        text = output if isinstance(output, str) else output.decode("utf-8", errors="replace")
-
-                        response_details = {
-                            "status_code": direct_response.get("status_code", 200),
-                            "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
-                            "content": content,
-                            "text": text,
-                            "json": None,
-                            "request_path": rest_path,
-                            "source": "request_transform",
-                            "_original_output": output,  # Keep original output type for default return
-                            "_original_content_type": direct_response.get("content_type", "text/html"),
-                        }
-                    else:
-                        # Normal request transformation
-                        request_details = transformed
+            result = _apply_request_transform(
+                request_cid,
+                request_details,
+                enhanced_context,
+                rest_path,
+                server_name,
+                gateways,
+                debug_context,
+                gateway_archive,
+                gateway_path,
+            )
+            # Check if it's an error response (dict with specific keys)
+            if isinstance(result, dict) and "output" in result:
+                return result
+            # Otherwise it's a tuple (request_details, response_details)
+            request_details, response_details = result
         except Exception as e:
             logger.error("Request transform error: %s", e)
             return _render_error(
@@ -1083,71 +1212,22 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
 
     if request_cid:
         try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), enhanced_context)
-            if not transform_fn:
-                return _render_error(
-                    "Request Transform Not Found",
-                    f"Could not load request transform: {escape(str(request_cid))}",
-                    gateways,
-                    exception_summary=f"RequestTransformNotFoundError: Could not load request transform: {escape(str(request_cid))}",
-                    error_detail=json.dumps(
-                        {
-                            "gateway": server_name,
-                            "request_transform_cid": request_cid,
-                            "test_mode": True,
-                        },
-                        indent=2,
-                    ),
-                    gateway_archive=gateway_archive,
-                    gateway_path=gateway_path,
-                )
-            if transform_fn:
-                transformed = transform_fn(request_details, enhanced_context)
-                if isinstance(transformed, dict):
-                    # Check if this is a direct response
-                    if "response" in transformed:
-                        direct_response = transformed["response"]
-                        # Validate the direct response
-                        is_valid, error_msg = _validate_direct_response(direct_response)
-                        if not is_valid:
-                            return _render_error(
-                                "Invalid Direct Response",
-                                f"Request transform returned invalid direct response: {error_msg}",
-                                gateways,
-                                exception_summary=f"InvalidDirectResponseError: {error_msg}",
-                                error_detail=json.dumps(
-                                    {
-                                        "gateway": server_name,
-                                        "request_transform_cid": request_cid,
-                                        "validation_error": error_msg,
-                                        "direct_response": str(direct_response)[:500],
-                                        "test_mode": True,
-                                    },
-                                    indent=2,
-                                ),
-                                gateway_archive=gateway_archive,
-                                gateway_path=gateway_path,
-                            )
-
-                        # Build response_details from direct response
-                        output = direct_response.get("output", "")
-                        content = output.encode("utf-8") if isinstance(output, str) else output
-                        text = output if isinstance(output, str) else output.decode("utf-8", errors="replace")
-
-                        response_details = {
-                            "status_code": direct_response.get("status_code", 200),
-                            "headers": direct_response.get("headers", {"Content-Type": direct_response.get("content_type", "text/html")}),
-                            "content": content,
-                            "text": text,
-                            "json": None,
-                            "request_path": rest_path,
-                            "source": "request_transform",
-                            "_original_output": output,
-                            "_original_content_type": direct_response.get("content_type", "text/html"),
-                        }
-                    else:
-                        # Normal request transformation
-                        request_details = transformed
+            result = _apply_request_transform(
+                request_cid,
+                request_details,
+                enhanced_context,
+                rest_path,
+                server_name,
+                gateways,
+                debug_context,
+                gateway_archive,
+                gateway_path,
+            )
+            # Check if it's an error response (dict with specific keys)
+            if isinstance(result, dict) and "output" in result:
+                return result
+            # Otherwise it's a tuple (request_details, response_details)
+            request_details, response_details = result
         except Exception as e:
             logger.error("Request transform error: %s", e)
             return _render_error(
@@ -1236,38 +1316,18 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
     response_cid = config.get("response_transform_cid")
     if response_cid:
         try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), enhanced_context)
-            if not transform_fn:
-                return _render_error(
-                    "Response Transform Not Found",
-                    f"Could not load response transform: {escape(str(response_cid))}",
-                    gateways,
-                    exception_summary=f"ResponseTransformNotFoundError: Could not load response transform: {escape(str(response_cid))}",
-                    error_detail=json.dumps(
-                        {
-                            "gateway": server_name,
-                            "response_transform_cid": response_cid,
-                            "test_mode": True,
-                        },
-                        indent=2,
-                    ),
-                    gateway_archive=gateway_archive,
-                    gateway_path=gateway_path,
-                )
-            if transform_fn:
-                result = transform_fn(response_details, enhanced_context)
-                if isinstance(result, dict) and "output" in result:
-                    content_type = str(result.get("content_type") or "")
-                    if "html" in content_type.lower():
-                        prefix = f"/gateway/test/{test_server_path}/as/{server_name}"
-                        old_prefix = f"/gateway/{server_name}"
-                        output = result.get("output")
-                        if isinstance(output, str):
-                            result["output"] = output.replace(old_prefix, prefix)
-                        elif isinstance(output, (bytes, bytearray)):
-                            decoded = bytes(output).decode("utf-8", errors="replace")
-                            result["output"] = decoded.replace(old_prefix, prefix)
-                    return result
+            result = _apply_response_transform_for_test(
+                response_cid,
+                response_details,
+                enhanced_context,
+                server_name,
+                test_server_path,
+                gateways,
+                gateway_archive,
+                gateway_path,
+            )
+            if result is not None:
+                return result
         except Exception as e:
             logger.error("Response transform error: %s", e)
             return _render_error(

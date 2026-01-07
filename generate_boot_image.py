@@ -247,6 +247,41 @@ class BootImageGenerator:
 
         return cid
 
+    def _process_template_entry(self, template_name: str, template_value: Any) -> None:
+        """Process a single template entry.
+        
+        Args:
+            template_name: Name of the template
+            template_value: Value of the template (expected to be a file path string)
+        """
+        if not isinstance(template_value, str):
+            return
+        if not template_value.startswith("reference/templates/"):
+            return
+            
+        file_path = self.base_dir / template_value
+        if file_path.exists():
+            self.generate_and_store_cid(file_path, template_value)
+        else:
+            print(f"  WARNING: File not found: {template_value} (template {template_name})")
+
+    def _process_file_reference(self, value: Any) -> None:
+        """Process a file reference value (from keys ending in _cid or _file).
+        
+        Args:
+            value: Value to process (expected to be a file path string)
+        """
+        if not isinstance(value, str):
+            return
+        if not value.startswith("reference/templates/"):
+            return
+            
+        file_path = self.base_dir / value
+        if file_path.exists():
+            self.generate_and_store_cid(file_path, value)
+        else:
+            print(f"  WARNING: File not found: {value}")
+
     def process_referenced_files(self, data: Any, parent_path: str = "") -> None:
         """Recursively process all files referenced in JSON data.
 
@@ -258,27 +293,11 @@ class BootImageGenerator:
             for key, value in data.items():
                 if key == "templates" and isinstance(value, dict):
                     for template_name, template_value in value.items():
-                        if isinstance(template_value, str) and template_value.startswith(
-                            "reference/templates/"
-                        ):
-                            file_path = self.base_dir / template_value
-                            if file_path.exists():
-                                self.generate_and_store_cid(file_path, template_value)
-                            else:
-                                print(
-                                    f"  WARNING: File not found: {template_value} (template {template_name})"
-                                )
+                        self._process_template_entry(template_name, template_value)
                     continue
                 if key.endswith("_cid") or key.endswith("_file"):
                     # This is a file reference
-                    if isinstance(value, str) and value.startswith(
-                        "reference/templates/"
-                    ):
-                        file_path = self.base_dir / value
-                        if file_path.exists():
-                            self.generate_and_store_cid(file_path, value)
-                        else:
-                            print(f"  WARNING: File not found: {value}")
+                    self._process_file_reference(value)
                 elif isinstance(value, (dict, list)):
                     self.process_referenced_files(value, f"{parent_path}.{key}")
         elif isinstance(data, list):
