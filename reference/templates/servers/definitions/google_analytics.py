@@ -113,6 +113,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = f"https://analyticsdata.googleapis.com/v1beta/properties/{property_id}"
+    url: Optional[str] = None
     method = "POST"
     payload = None
 
@@ -138,6 +139,9 @@ def main(
     elif operation == "get_metadata":
         url = f"{base_url}/metadata"
         method = "GET"
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

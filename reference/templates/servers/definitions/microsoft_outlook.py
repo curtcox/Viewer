@@ -66,7 +66,7 @@ def main(
     message_id: Optional[str] = None,
     folder: str = "inbox",
     top: int = 10,
-    filter: Optional[str] = None,
+    filter_query: Optional[str] = None,
     to_recipients: Optional[str] = None,
     subject: Optional[str] = None,
     body: Optional[str] = None,
@@ -87,7 +87,7 @@ def main(
         message_id: Message ID (required for get_message, delete_message).
         folder: Folder to list messages from (default: inbox).
         top: Maximum number of messages to return (default: 10).
-        filter: OData filter expression for list_messages.
+        filter_query: OData filter expression for list_messages.
         to_recipients: Comma-separated email addresses for send_message.
         subject: Email subject for send_message.
         body: Email body for send_message.
@@ -150,8 +150,8 @@ def main(
     if operation == "list_messages":
         url = f"{_GRAPH_API_BASE}/me/mailFolders/{folder}/messages"
         params = {"$top": top}
-        if filter:
-            params["$filter"] = filter
+        if filter_query:
+            params["$filter"] = filter_query
         method = "GET"
         payload = None
         if dry_run:

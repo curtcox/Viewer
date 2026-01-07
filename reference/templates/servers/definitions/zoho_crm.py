@@ -121,6 +121,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://www.zohoapis.com/crm/v3"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -153,6 +154,9 @@ def main(
         if not criteria:
             return validation_error("criteria is required for search_records operation")
         url = f"{base_url}/{module}/search?criteria={criteria}&page={page}&per_page={per_page}"
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

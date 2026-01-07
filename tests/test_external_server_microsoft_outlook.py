@@ -80,7 +80,7 @@ def test_dry_run_returns_preview_for_send_message():
 def test_list_messages_with_filter():
     result = microsoft_outlook.main(
         operation="list_messages",
-        filter="isRead eq false",
+        filter_query="isRead eq false",
         MICROSOFT_ACCESS_TOKEN="test-token",
         dry_run=True,
     )

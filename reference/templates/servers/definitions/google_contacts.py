@@ -116,6 +116,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = "https://people.googleapis.com/v1"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -158,6 +159,9 @@ def main(
             return validation_error("resource_name is required for delete_contact operation")
         url = f"{base_url}/{resource_name}:deleteContact"
         method = "DELETE"
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}

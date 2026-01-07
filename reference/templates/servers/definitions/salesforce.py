@@ -110,6 +110,7 @@ def main(
 
     # Build URL and method based on operation
     base_url = f"{SALESFORCE_INSTANCE_URL.rstrip('/')}/services/data/v59.0"
+    url: Optional[str] = None
     method = "GET"
     payload = None
 
@@ -150,6 +151,9 @@ def main(
         if not sobject_type:
             return validation_error("sobject_type is required for describe_object operation")
         url = f"{base_url}/sobjects/{sobject_type}/describe"
+
+    if url is None:
+        return error_output(f"Internal error: unhandled operation '{operation}'")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
