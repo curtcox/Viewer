@@ -662,6 +662,29 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
+def _build_unit_tests_results_index(results_dir: Path) -> None:
+    """Build an index page for unit test results from JUnit XML."""
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    xml_path = results_dir / "test-results.xml"
+    index_path = results_dir / "index.html"
+
+    summary_html = "<p>No JUnit XML report was generated.</p>"
+    xml_link = ""
+    if xml_path.exists():
+        summary_html = _build_property_summary(xml_path)
+        xml_link = '<p><a href="test-results.xml">Download the JUnit XML report</a></p>'
+
+    body = f"""  <h1>Unit Test Results</h1>
+  {xml_link}
+  {summary_html}"""
+
+    index_path.write_text(
+        _render_html_page("Unit Test Results", body, COMMON_CSS),
+        encoding="utf-8",
+    )
+
+
 def _enhance_pylint_output(
     output_text: str, github_repo: str = "curtcox/Viewer", github_branch: str = "main"
 ) -> str:
@@ -1036,11 +1059,17 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="CID Consistency Check",
             report_link="cid-validation/index.html",
         ),
-        "unit-tests": JobMetadata(
+        "unit-tests-results": JobMetadata(
             name="Unit Tests",
             icon="🧪",
-            check_type="Unit Tests & Coverage",
-            report_link="unit-tests/index.html",
+            check_type="Unit Test Results",
+            report_link="unit-tests-results/index.html",
+        ),
+        "unit-tests-coverage": JobMetadata(
+            name="Coverage",
+            icon="📊",
+            check_type="Code Coverage (75% threshold)",
+            report_link="unit-tests-coverage/index.html",
         ),
         "property-tests": JobMetadata(
             name="Property Tests",
@@ -1173,7 +1202,8 @@ def _write_landing_page(
 
 def build_site(
     *,
-    unit_tests_artifacts: Path | None,
+    unit_tests_results_artifacts: Path | None,
+    unit_tests_coverage_artifacts: Path | None,
     gauge_artifacts: Path | None,
     integration_artifacts: Path | None,
     property_artifacts: Path | None,
@@ -1193,7 +1223,8 @@ def build_site(
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    unit_tests_dir = output_dir / "unit-tests"
+    unit_tests_results_dir = output_dir / "unit-tests-results"
+    unit_tests_coverage_dir = output_dir / "unit-tests-coverage"
     gauge_dir = output_dir / "gauge-specs"
     integration_dir = output_dir / "integration-tests"
     property_dir = output_dir / "property-tests"
@@ -1208,7 +1239,8 @@ def build_site(
     cid_validation_dir = output_dir / "cid-validation"
     ai_eval_dir = output_dir / "ai-eval"
 
-    _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
+    _copy_artifacts(unit_tests_results_artifacts, unit_tests_results_dir)
+    _copy_artifacts(unit_tests_coverage_artifacts, unit_tests_coverage_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
     _copy_artifacts(integration_artifacts, integration_dir)
     _copy_artifacts(property_artifacts, property_dir)
@@ -1223,7 +1255,7 @@ def build_site(
     _copy_artifacts(cid_validation_artifacts, cid_validation_dir)
     _copy_artifacts(ai_eval_artifacts, ai_eval_dir)
 
-    _flatten_htmlcov(unit_tests_dir)
+    _flatten_htmlcov(unit_tests_coverage_dir)
     _flatten_gauge_reports(gauge_dir)
 
     # Load job statuses early so we can pass them to report builders for context-aware messaging
@@ -1236,6 +1268,7 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
+    _build_unit_tests_results_index(unit_tests_results_dir)
     _build_linter_index(
         pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint")
     )
@@ -1268,10 +1301,16 @@ def build_site(
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build the static test report site.")
     parser.add_argument(
-        "--unit-tests-artifacts",
+        "--unit-tests-results-artifacts",
         type=Path,
         default=None,
-        help="Directory containing the unit test coverage artifact.",
+        help="Directory containing the unit test results artifact (JUnit XML).",
+    )
+    parser.add_argument(
+        "--unit-tests-coverage-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the unit test coverage artifact (htmlcov).",
     )
     parser.add_argument(
         "--gauge-artifacts",
@@ -1375,7 +1414,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parsed = parse_args(argv)
 
     build_site(
-        unit_tests_artifacts=parsed.unit_tests_artifacts,
+        unit_tests_results_artifacts=parsed.unit_tests_results_artifacts,
+        unit_tests_coverage_artifacts=parsed.unit_tests_coverage_artifacts,
         gauge_artifacts=parsed.gauge_artifacts,
         integration_artifacts=parsed.integration_artifacts,
         property_artifacts=parsed.property_artifacts,

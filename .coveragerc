@@ -59,7 +59,7 @@ exclude_lines =
 show_missing = True
 
 # Set minimum coverage percentage (optional)
-fail_under = 0
+fail_under = 75
 
 # Skip covered files in report
 skip_covered = False

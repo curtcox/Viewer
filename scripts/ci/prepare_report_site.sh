@@ -2,7 +2,8 @@
 set -e
 
 python scripts/build-report-site.py \
-  --unit-tests-artifacts site/unit-tests \
+  --unit-tests-results-artifacts site/unit-tests-results \
+  --unit-tests-coverage-artifacts site/unit-tests-coverage \
   --gauge-artifacts site/gauge-specs \
   --integration-artifacts site/integration-tests \
   --property-artifacts site/property-tests \
