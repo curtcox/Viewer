@@ -578,6 +578,13 @@ jobs:
           python scripts/publish_gauge_summary.py \
             --log "${{ github.workspace }}/reports/html-report/gauge-execution.log" \
             --html-report "${{ github.workspace }}/reports/html-report/index.html"
+      - name: Generate Gauge failure report
+        if: always()
+        run: |
+          python scripts/generate_gauge_failure_report.py \
+            --log "${{ github.workspace }}/reports/html-report/gauge-execution.log" \
+            --html-report "${{ github.workspace }}/reports/html-report/index.html" \
+            --output "${{ github.workspace }}/reports/html-report/gauge-failures.md"
       - name: Capture Gauge debug log
         if: always()
         run: |

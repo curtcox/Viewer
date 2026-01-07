@@ -7,6 +7,7 @@ import argparse
 import subprocess
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from tests.test_support import ROOT_DIR, build_test_environment, locate_gauge
 
@@ -32,6 +33,44 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
     return args
 
 
+def _generate_failure_report(log_path: Path | None, exit_code: int) -> None:
+    """Generate a comprehensive failure report if specs failed or were skipped."""
+    # Determine report paths
+    reports_dir = ROOT_DIR / "reports" / "html-report"
+    html_report_path = reports_dir / "index.html"
+    failure_report_path = reports_dir / "gauge-failures.md"
+
+    # Only generate if we have a log file or HTML report to parse
+    if not log_path and not html_report_path.exists():
+        return
+
+    # Run the failure report generation script
+    script_path = ROOT_DIR / "scripts" / "generate_gauge_failure_report.py"
+    if not script_path.exists():
+        return
+
+    cmd = [sys.executable, str(script_path), "--output", str(failure_report_path)]
+
+    if log_path and log_path.exists():
+        cmd.extend(["--log", str(log_path)])
+
+    if html_report_path.exists():
+        cmd.extend(["--html-report", str(html_report_path)])
+
+    # Run the script quietly
+    try:
+        subprocess.run(
+            cmd,
+            cwd=str(ROOT_DIR),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.SubprocessError, OSError):
+        # Don't fail the main test run if report generation fails
+        pass
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -52,9 +91,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # If GAUGE_LOG_FILE is set, capture verbose output to log file
     log_file_path = env.get("GAUGE_LOG_FILE")
     if log_file_path:
-        from pathlib import Path
         from datetime import datetime
-        import io
 
         log_path = Path(log_file_path)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -62,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         # Write log header
         with log_path.open("w", encoding="utf-8") as log_file:
             timestamp = datetime.utcnow().isoformat() + "Z"
-            log_file.write(f"Gauge Specification Execution Log\n")
+            log_file.write("Gauge Specification Execution Log\n")
             log_file.write(f"Started: {timestamp}\n")
             log_file.write(f"Command: {' '.join(command)}\n")
             log_file.write(f"{'=' * 80}\n\n")
@@ -121,9 +158,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             log_file.write(f"Completed: {timestamp}\n")
             log_file.write(f"Exit code: {return_code}\n")
 
+        # Generate comprehensive failure report
+        _generate_failure_report(log_path, return_code)
+
         return return_code
 
-    return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
+    # When not logging to file, still generate failure report if there are failures
+    result = subprocess.call(command, cwd=str(ROOT_DIR), env=env)
+    _generate_failure_report(None, result)
+    return result
 
 
 if __name__ == "__main__":
