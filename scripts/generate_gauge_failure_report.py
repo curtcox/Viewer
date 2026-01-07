@@ -80,10 +80,10 @@ def parse_gauge_log_failures(log_path: Path) -> list[SpecFailure]:
                     # Stop if we hit another spec/scenario or summary
                     if (
                         next_line.endswith(".spec")
-                        or " :: " in next_line and "->" in next_line
+                        or (" :: " in next_line and "->" in next_line)
                         or next_line.startswith("Total scenarios:")
                         or next_line.startswith("Summary:")
-                        or next_line.startswith("=" * 20)
+                        or re.match(r"^={10,}", next_line)
                     ):
                         break
 
