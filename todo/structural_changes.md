@@ -10,6 +10,7 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 3: Added shared `execute_json_request` helper and migrated Dropbox, Telegram, and Salesforce to use it.
 - ✅ Phase 4: Migrated xero.py (complexity 34→15, reduced by 19 branches)
 - ✅ Phase 5: Migrated docusign.py (complexity 30→9, reduced by 21 branches)
+- ✅ Phase 6: Migrated linkedin_ads.py (complexity 28→9, reduced by 19 branches)
 - ⏳ Remaining servers: Apply the same endpoint map extraction + dispatch table + executor refactor across other high-complexity server definitions.
 
 ## Current State

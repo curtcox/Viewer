@@ -1,19 +1,152 @@
 # ruff: noqa: F821, F706
 """Call the LinkedIn Marketing API for ads management."""
 
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Optional
+
 from server_utils.external_api import (
     ExternalApiClient,
     HttpClientConfig,
+    OperationDefinition,
+    RequiredField,
     error_response,
-    missing_secret_error,
+    execute_json_request,
     generate_form,
+    missing_secret_error,
+    validate_and_build_payload,
     FormField,
 )
 
 
 API_BASE_URL = "https://api.linkedin.com/v2"
 DOCUMENTATION_URL = "https://docs.microsoft.com/en-us/linkedin/marketing/"
+
+
+_OPERATIONS = {
+    "list_accounts": OperationDefinition(
+        payload_builder=lambda count, **_: {
+            "method": "GET",
+            "url_path": "adAccounts",
+            "params": {"q": "search", "count": count},
+            "payload": None,
+            "account_id": None,
+            "campaign_id": None,
+            "campaign_group_id": None,
+        },
+    ),
+    "get_account": OperationDefinition(
+        required=(RequiredField("account_id"),),
+        payload_builder=lambda account_id, **_: {
+            "method": "GET",
+            "url_path": f"adAccounts/{account_id.split(':')[-1]}",
+            "params": None,
+            "payload": None,
+            "account_id": account_id,
+            "campaign_id": None,
+            "campaign_group_id": None,
+        },
+    ),
+    "list_campaigns": OperationDefinition(
+        required=(RequiredField("account_id"),),
+        payload_builder=lambda account_id, count, **_: {
+            "method": "GET",
+            "url_path": "adCampaigns",
+            "params": {
+                "q": "search",
+                "search.account.values[0]": account_id,
+                "count": count,
+            },
+            "payload": None,
+            "account_id": account_id,
+            "campaign_id": None,
+            "campaign_group_id": None,
+        },
+    ),
+    "get_campaign": OperationDefinition(
+        required=(RequiredField("campaign_id"),),
+        payload_builder=lambda campaign_id, **_: {
+            "method": "GET",
+            "url_path": f"adCampaigns/{campaign_id}",
+            "params": None,
+            "payload": None,
+            "account_id": None,
+            "campaign_id": campaign_id,
+            "campaign_group_id": None,
+        },
+    ),
+    "create_campaign": OperationDefinition(
+        required=(
+            RequiredField("account_id"),
+            RequiredField("name"),
+            RequiredField("campaign_group_id"),
+        ),
+        payload_builder=lambda account_id, name, campaign_group_id, campaign_type, status, start_date, end_date, **_: {
+            "method": "POST",
+            "url_path": "adCampaigns",
+            "params": None,
+            "payload": {
+                "account": account_id,
+                "name": name,
+                "type": campaign_type,
+                "status": status,
+                "campaignGroup": f"urn:li:sponsoredCampaignGroup:{campaign_group_id}",
+                **({} if not start_date else {
+                    "runSchedule": {
+                        "start": start_date,
+                        **({} if not end_date else {"end": end_date}),
+                    }
+                }),
+            },
+            "account_id": account_id,
+            "campaign_id": None,
+            "campaign_group_id": campaign_group_id,
+        },
+    ),
+    "list_campaign_groups": OperationDefinition(
+        required=(RequiredField("account_id"),),
+        payload_builder=lambda account_id, count, **_: {
+            "method": "GET",
+            "url_path": "adCampaignGroups",
+            "params": {
+                "q": "search",
+                "search.account.values[0]": account_id,
+                "count": count,
+            },
+            "payload": None,
+            "account_id": account_id,
+            "campaign_id": None,
+            "campaign_group_id": None,
+        },
+    ),
+    "get_campaign_group": OperationDefinition(
+        required=(RequiredField("campaign_group_id"),),
+        payload_builder=lambda campaign_group_id, **_: {
+            "method": "GET",
+            "url_path": f"adCampaignGroups/{campaign_group_id}",
+            "params": None,
+            "payload": None,
+            "account_id": None,
+            "campaign_id": None,
+            "campaign_group_id": campaign_group_id,
+        },
+    ),
+    "get_analytics": OperationDefinition(
+        required=(RequiredField("campaign_id"),),
+        payload_builder=lambda campaign_id, **_: {
+            "method": "GET",
+            "url_path": "adAnalytics",
+            "params": {
+                "q": "analytics",
+                "campaigns[0]": f"urn:li:sponsoredCampaign:{campaign_id}",
+            },
+            "payload": None,
+            "account_id": None,
+            "campaign_id": campaign_id,
+            "campaign_group_id": None,
+        },
+    ),
+}
 
 
 def main(
@@ -165,107 +298,42 @@ def main(
         )
 
     # Validate operation
-    valid_operations = [
-        "list_accounts",
-        "get_account",
-        "list_campaigns",
-        "get_campaign",
-        "create_campaign",
-        "list_campaign_groups",
-        "get_campaign_group",
-        "get_analytics",
-    ]
-    if operation not in valid_operations:
+    if operation not in _OPERATIONS:
+        valid_ops = list(_OPERATIONS.keys())
         return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
+            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_ops)}",
             error_type="validation_error",
         )
 
-    # Build request based on operation
-    method = "GET"
-    url = API_BASE_URL
-    payload = None
-    params = {}
+    # Validate and build request configuration
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        account_id=account_id,
+        campaign_id=campaign_id,
+        campaign_group_id=campaign_group_id,
+        name=name,
+        campaign_type=campaign_type,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        count=count,
+    )
+    if isinstance(result, tuple):
+        return error_response(result[0], error_type="validation_error")
 
-    if operation == "list_accounts":
-        url = f"{API_BASE_URL}/adAccounts"
-        params["q"] = "search"
-        params["count"] = count
-    elif operation == "get_account":
-        if not account_id:
-            return error_response(
-                "account_id is required for get_account operation",
-                error_type="validation_error",
-            )
-        # Extract the numeric ID from URN format
-        numeric_id = account_id.split(":")[-1]
-        url = f"{API_BASE_URL}/adAccounts/{numeric_id}"
-    elif operation == "list_campaigns":
-        if not account_id:
-            return error_response(
-                "account_id is required for list_campaigns operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/adCampaigns"
-        params["q"] = "search"
-        params["search.account.values[0]"] = account_id
-        params["count"] = count
-    elif operation == "get_campaign":
-        if not campaign_id:
-            return error_response(
-                "campaign_id is required for get_campaign operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/adCampaigns/{campaign_id}"
-    elif operation == "create_campaign":
-        if not account_id or not name or not campaign_group_id:
-            return error_response(
-                "account_id, name, and campaign_group_id are required for create_campaign",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/adCampaigns"
-        payload = {
-            "account": account_id,
-            "name": name,
-            "type": campaign_type,
-            "status": status,
-            "campaignGroup": f"urn:li:sponsoredCampaignGroup:{campaign_group_id}",
-        }
-        if start_date:
-            payload["runSchedule"] = {"start": start_date}
-            if end_date:
-                payload["runSchedule"]["end"] = end_date
-    elif operation == "list_campaign_groups":
-        if not account_id:
-            return error_response(
-                "account_id is required for list_campaign_groups operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/adCampaignGroups"
-        params["q"] = "search"
-        params["search.account.values[0]"] = account_id
-        params["count"] = count
-    elif operation == "get_campaign_group":
-        if not campaign_group_id:
-            return error_response(
-                "campaign_group_id is required for get_campaign_group operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/adCampaignGroups/{campaign_group_id}"
-    elif operation == "get_analytics":
-        if not campaign_id:
-            return error_response(
-                "campaign_id is required for get_analytics operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/adAnalytics"
-        params["q"] = "analytics"
-        params["campaigns[0]"] = f"urn:li:sponsoredCampaign:{campaign_id}"
+    # Extract request configuration
+    method = result["method"]
+    url_path = result["url_path"]
+    params = result["params"]
+    payload = result["payload"]
+
+    # Build URL
+    url = f"{API_BASE_URL}/{url_path}"
 
     # Dry run: return preview
     if dry_run:
-        preview = {
+        preview: dict[str, Any] = {
             "operation": operation,
             "method": method,
             "url": url,
@@ -282,6 +350,7 @@ def main(
         config = HttpClientConfig(timeout=timeout)
         client = ExternalApiClient(config)
 
+    # Build headers
     headers = {
         "Authorization": f"Bearer {LINKEDIN_ACCESS_TOKEN}",
         "Accept": "application/json",
@@ -290,34 +359,13 @@ def main(
     if method in ["POST", "PUT", "PATCH"]:
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload if payload else None,
-            params=params if params else None,
-            timeout=timeout,
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    # Execute request
+    return execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        params=params,
+        timeout=timeout,
+    )
