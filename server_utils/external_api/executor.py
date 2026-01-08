@@ -69,7 +69,16 @@ def execute_json_request(
             message = f"{request_error_message}: {exc}"
         return error_output(message, status_code=_get_status(exc), details=str(exc))
 
-    if empty_response_statuses and response.status_code in empty_response_statuses:
+    status_code = getattr(response, "status_code", None)
+    ok_attr = getattr(response, "ok", None)
+    if isinstance(ok_attr, bool):
+        ok = ok_attr
+    elif status_code is not None:
+        ok = status_code < 400
+    else:
+        ok = True
+
+    if empty_response_statuses and status_code in empty_response_statuses:
         return {"output": empty_response_output}
 
     try:
@@ -77,11 +86,11 @@ def execute_json_request(
     except ValueError:
         return error_output(
             "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
+            status_code=status_code,
             details=getattr(response, "text", None),
         )
 
-    if not response.ok:
+    if not ok:
         message = "API error"
         if error_parser:
             message = error_parser(response, data)
