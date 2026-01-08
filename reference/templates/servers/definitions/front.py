@@ -25,7 +25,7 @@ _OPERATIONS = {
     "send_message": OperationDefinition(
         required=(
             RequiredField("channel_id"),
-            RequiredField("to"),
+            RequiredField("to", message="Missing required to (list of emails)"),
             RequiredField("body"),
         ),
         payload_builder=lambda to, body, subject, **_: {
