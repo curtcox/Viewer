@@ -73,7 +73,7 @@ def execute_json_request(
     ok_attr = getattr(response, "ok", None)
     if isinstance(ok_attr, bool):
         ok = ok_attr
-    elif status_code is not None:
+    elif isinstance(status_code, int):
         ok = status_code < 400
     else:
         ok = True
