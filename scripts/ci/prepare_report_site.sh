@@ -2,20 +2,20 @@
 set -e
 
 python scripts/build-report-site.py \
-  --unit-tests-results-artifacts site/unit-tests-results \
-  --unit-tests-coverage-artifacts site/unit-tests-coverage \
-  --gauge-artifacts site/gauge-specs \
-  --integration-artifacts site/integration-tests \
-  --hypothesis-artifacts site/hypothesis-tests \
-  --radon-artifacts site/radon \
-  --vulture-artifacts site/vulture \
-  --python-smells-artifacts site/python-smells \
-  --pylint-artifacts site/pylint \
-  --pydoclint-artifacts site/pydoclint \
-  --shellcheck-artifacts site/shellcheck \
-  --hadolint-artifacts site/hadolint \
-  --test-index-artifacts site/test-index \
-  --cid-validation-artifacts site/cid-validation \
-  --ai-eval-artifacts site/ai-eval \
+  --unit-tests-results-artifacts artifacts/unit-tests-results \
+  --unit-tests-coverage-artifacts artifacts/unit-tests-coverage \
+  --gauge-artifacts artifacts/gauge-specs \
+  --integration-artifacts artifacts/integration-tests \
+  --hypothesis-artifacts artifacts/hypothesis-tests \
+  --radon-artifacts artifacts/radon \
+  --vulture-artifacts artifacts/vulture \
+  --python-smells-artifacts artifacts/python-smells \
+  --pylint-artifacts artifacts/pylint \
+  --pydoclint-artifacts artifacts/pydoclint \
+  --shellcheck-artifacts artifacts/shellcheck \
+  --hadolint-artifacts artifacts/hadolint \
+  --test-index-artifacts artifacts/test-index \
+  --cid-validation-artifacts artifacts/cid-validation \
+  --ai-eval-artifacts artifacts/ai-eval \
   --job-statuses job-statuses.json \
   --output site
