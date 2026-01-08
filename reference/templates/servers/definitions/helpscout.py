@@ -180,4 +180,5 @@ def main(
         timeout=timeout,
         error_parser=_helpscout_error_message,
         request_error_message="Help Scout request failed",
+        include_exception_in_message=False,
     )
