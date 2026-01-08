@@ -708,97 +708,97 @@ jobs:
         continue-on-error: true
         with:
           name: unit-tests-results
-          path: site/unit-tests-results
+          path: artifacts/unit-tests-results
       - name: Download unit test coverage report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: unit-tests-html
-          path: site/unit-tests-coverage
+          path: artifacts/unit-tests-coverage
       - name: Download Gauge report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: gauge-html
-          path: site/gauge-specs
+          path: artifacts/gauge-specs
       - name: Download integration test results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: integration-tests-results
-          path: site/integration-tests
+          path: artifacts/integration-tests
       - name: Download hypothesis test results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: hypothesis-tests-results
-          path: site/hypothesis-tests
+          path: artifacts/hypothesis-tests
       - name: Download Radon report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: radon-report
-          path: site/radon
+          path: artifacts/radon
       - name: Download Vulture report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: vulture-report
-          path: site/vulture
+          path: artifacts/vulture
       - name: Download Python Smells report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: python-smells-report
-          path: site/python-smells
+          path: artifacts/python-smells
       - name: Download Pylint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: pylint-report
-          path: site/pylint
+          path: artifacts/pylint
       - name: Download Pydoclint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: pydoclint-report
-          path: site/pydoclint
+          path: artifacts/pydoclint
       - name: Download ShellCheck report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: shellcheck-report
-          path: site/shellcheck
+          path: artifacts/shellcheck
       - name: Download Hadolint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: hadolint-report
-          path: site/hadolint
+          path: artifacts/hadolint
       - name: Download Test Index report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: test-index-report
-          path: site/test-index
+          path: artifacts/test-index
       - name: Download CID validation report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: cid-validation-report
-          path: site/cid-validation
+          path: artifacts/cid-validation
       - name: Download Dead Fixtures report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: dead-fixtures-report
-          path: site/dead-fixtures
+          path: artifacts/dead-fixtures
       - name: Download AI eval results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: ai-eval-results
-          path: site/ai-eval
+          path: artifacts/ai-eval
       - name: Prepare site content
         run: ./scripts/ci/prepare_report_site.sh
       - name: Upload artifact for GitHub Pages
