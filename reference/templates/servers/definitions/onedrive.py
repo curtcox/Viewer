@@ -210,7 +210,7 @@ def main(
             "payload": payload,
             "data": "[REDACTED]" if data else None,
         }
-        return {"output": preview}
+        return {"output": {"preview": preview}}
 
     def extract_error(response_data: Dict[str, Any]) -> str:
         if isinstance(response_data, dict) and "error" in response_data:
