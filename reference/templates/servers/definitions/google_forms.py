@@ -6,12 +6,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
     GoogleAuthManager,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
@@ -21,11 +23,38 @@ _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = GoogleAuthManager()
 
 
-_SUPPORTED_OPERATIONS = {
-    "get_form",
-    "create_form",
-    "list_responses",
-    "get_response",
+_OPERATIONS = {
+    "get_form": OperationDefinition(
+        required=(RequiredField("form_id", "form_id is required for get_form operation"),),
+    ),
+    "create_form": OperationDefinition(
+        required=(RequiredField("title", "title is required for create_form operation"),),
+        payload_builder=lambda title, document_title, **_: {
+            "info": {
+                "title": title,
+                **({"documentTitle": document_title} if document_title else {}),
+            }
+        },
+    ),
+    "list_responses": OperationDefinition(
+        required=(
+            RequiredField("form_id", "form_id is required for list_responses operation"),
+        ),
+    ),
+    "get_response": OperationDefinition(
+        required=(RequiredField("form_id", "form_id is required for get_response operation"),),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "get_form": lambda base_url, form_id, **_: f"{base_url}/{form_id}",
+    "create_form": lambda base_url, **_: base_url,
+    "list_responses": lambda base_url, form_id, **_: f"{base_url}/{form_id}/responses",
+    "get_response": lambda base_url, form_id, **_: f"{base_url}/{form_id}/responses",
+}
+
+_METHODS = {
+    "create_form": "POST",
 }
 
 
@@ -49,15 +78,12 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _google_forms_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        error = data.get("error", {})
+        if isinstance(error, dict):
+            return error.get("message", "Google Forms API error")
+    return "Google Forms API error"
 
 
 def main(
@@ -102,40 +128,25 @@ def main(
             details="Provide either a service account JSON or an access token.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
+            f"Invalid operation: {operation}. Valid operations: {', '.join(_OPERATIONS)}"
         )
 
-    # Build URL and method based on operation
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        form_id=form_id,
+        title=title,
+        document_title=document_title,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
+
     base_url = "https://forms.googleapis.com/v1/forms"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
-
-    if operation == "get_form":
-        if not form_id:
-            return validation_error("form_id is required for get_form operation")
-        url = f"{base_url}/{form_id}"
-    elif operation == "create_form":
-        if not title:
-            return validation_error("title is required for create_form operation")
-        url = base_url
-        method = "POST"
-        payload = {"info": {"title": title}}
-        if document_title:
-            payload["info"]["documentTitle"] = document_title
-    elif operation == "list_responses":
-        if not form_id:
-            return validation_error("form_id is required for list_responses operation")
-        url = f"{base_url}/{form_id}/responses"
-    elif operation == "get_response":
-        if not form_id:
-            return validation_error("form_id is required for get_response operation")
-        url = f"{base_url}/{form_id}/responses"
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    url = _ENDPOINT_BUILDERS[operation](base_url=base_url, form_id=form_id)
+    method = _METHODS.get(operation, "GET")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
@@ -167,31 +178,13 @@ def main(
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Google Forms request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("error", {}).get("message", "Google Forms API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_google_forms_error_message,
+        request_error_message="Google Forms request failed",
+    )
