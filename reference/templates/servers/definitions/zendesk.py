@@ -4,12 +4,51 @@ from __future__ import annotations
 import base64
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+
+_OPERATIONS = {
+    "list_tickets": OperationDefinition(),
+    "get_ticket": OperationDefinition(
+        required=(RequiredField("ticket_id"),),
+    ),
+    "create_ticket": OperationDefinition(
+        required=(
+            RequiredField("subject"),
+            RequiredField("comment"),
+        ),
+        payload_builder=lambda subject, comment, status, priority, tags, **_: {
+            "ticket": {
+                "subject": subject,
+                "comment": {"body": comment},
+                **({"status": status} if status else {}),
+                **({"priority": priority} if priority else {}),
+                **({"tags": tags} if tags else {}),
+            }
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_tickets": lambda **_: "tickets.json",
+    "get_ticket": lambda ticket_id, **_: f"tickets/{ticket_id}.json",
+    "create_ticket": lambda **_: "tickets.json",
+}
+
+_METHODS = {
+    "create_ticket": "POST",
+}
 
 
 def _build_auth_header(email: str, api_token: str) -> str:
@@ -19,20 +58,11 @@ def _build_auth_header(email: str, api_token: str) -> str:
 
 def _build_preview(
     *,
-    subdomain: str,
     operation: str,
-    ticket_id: Optional[int],
+    url: str,
+    method: str,
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = f"https://{subdomain}.zendesk.com/api/v2/tickets"
-    url = f"{base_url}.json"
-    method = "GET"
-
-    if operation == "get_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}.json"
-    elif operation == "create_ticket":
-        method = "POST"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -43,6 +73,12 @@ def _build_preview(
         preview["payload"] = payload
 
     return preview
+
+
+def _zendesk_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("error") or data.get("description") or "Zendesk API error"
+    return "Zendesk API error"
 
 
 def main(
@@ -75,17 +111,21 @@ def main(
             details="Provide a Zendesk API token for Basic authentication",
         )
 
-    normalized_operation = operation.lower()
-    if normalized_operation not in {"list_tickets", "get_ticket", "create_ticket"}:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
-    if normalized_operation == "create_ticket":
-        if not subject:
-            return validation_error("Missing required subject", field="subject")
-        if not comment:
-            return validation_error("Missing required comment", field="comment")
-    if normalized_operation == "get_ticket" and ticket_id is None:
-        return validation_error("Missing required ticket_id", field="ticket_id")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        ticket_id=ticket_id,
+        subject=subject,
+        comment=comment,
+        status=status,
+        priority=priority,
+        tags=tags,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     headers = {
         "Authorization": _build_auth_header(email, ZENDESK_API_TOKEN),
@@ -93,57 +133,31 @@ def main(
         "Accept": "application/json",
     }
 
-    base_url = f"https://{subdomain}.zendesk.com/api/v2/tickets"
-    url = f"{base_url}.json"
-    payload: Optional[Dict[str, Any]] = None
-
-    if normalized_operation == "get_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}.json"
-    elif normalized_operation == "create_ticket":
-        payload = {
-            "ticket": {
-                "subject": subject,
-                "comment": {"body": comment},
-            }
-        }
-        if status:
-            payload["ticket"]["status"] = status
-        if priority:
-            payload["ticket"]["priority"] = priority
-        if tags:
-            payload["ticket"]["tags"] = tags
+    base_url = f"https://{subdomain}.zendesk.com/api/v2"
+    endpoint = _ENDPOINT_BUILDERS[operation](ticket_id=ticket_id)
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         preview = _build_preview(
-            subdomain=subdomain,
-            operation=normalized_operation,
-            ticket_id=ticket_id,
+            operation=operation,
+            url=url,
+            method=method,
             payload=payload,
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
     api_client = client or _DEFAULT_CLIENT
 
-    try:
-        if normalized_operation == "create_ticket":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Zendesk request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        message = data.get("error") or data.get("description") or "Zendesk API error"
-        return error_output(message, status_code=response.status_code, response=data)
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_zendesk_error_message,
+        request_error_message="Zendesk request failed",
+        include_exception_in_message=False,
+    )
