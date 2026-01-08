@@ -20,16 +20,31 @@ API_BASE_URL = "https://api.hunter.io/v2"
 DOCUMENTATION_URL = "https://hunter.io/api-documentation"
 
 _OPERATIONS = {
-    "domain_search": OperationDefinition(required=(RequiredField("domain"),)),
+    "domain_search": OperationDefinition(
+        required=(RequiredField("domain", message="domain is required"),),
+    ),
     "email_finder": OperationDefinition(
         required=(
-            RequiredField("domain"),
-            RequiredField("first_name"),
-            RequiredField("last_name"),
+            RequiredField(
+                "domain",
+                message="domain, first_name, and last_name are required for email_finder",
+            ),
+            RequiredField(
+                "first_name",
+                message="domain, first_name, and last_name are required for email_finder",
+            ),
+            RequiredField(
+                "last_name",
+                message="domain, first_name, and last_name are required for email_finder",
+            ),
         )
     ),
-    "email_verifier": OperationDefinition(required=(RequiredField("email"),)),
-    "email_count": OperationDefinition(required=(RequiredField("domain"),)),
+    "email_verifier": OperationDefinition(
+        required=(RequiredField("email", message="email is required"),),
+    ),
+    "email_count": OperationDefinition(
+        required=(RequiredField("domain", message="domain is required"),),
+    ),
 }
 
 _ENDPOINTS = {
@@ -54,16 +69,25 @@ _PARAMETER_BUILDERS = {
 def _build_preview(
     *,
     operation: str,
-    url: str,
-    params: Dict[str, Any],
+    domain: str,
+    first_name: str,
+    last_name: str,
+    email: str,
 ) -> Dict[str, Any]:
-    return {
+    preview = {
         "operation": operation,
-        "url": url,
-        "method": "GET",
-        "auth": "api_key",
-        "params": params,
+        "api_endpoint": API_BASE_URL,
+        "dry_run": True,
     }
+    if domain:
+        preview["domain"] = domain
+    if first_name:
+        preview["first_name"] = first_name
+    if last_name:
+        preview["last_name"] = last_name
+    if email:
+        preview["email"] = email
+    return preview
 
 
 def main(operation: str = "", domain: str = "", first_name: str = "", last_name: str = "",
@@ -111,7 +135,13 @@ def main(operation: str = "", domain: str = "", first_name: str = "", last_name:
     params["api_key"] = HUNTER_API_KEY
 
     if dry_run:
-        preview = _build_preview(operation=operation, url=url, params=params)
+        preview = _build_preview(
+            operation=operation,
+            domain=domain,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+        )
         return {"output": preview, "content_type": "application/json"}
 
     if client is None:
