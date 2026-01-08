@@ -17,7 +17,9 @@ The following modules already have hypothesis tests:
 
 ## High Priority Opportunities
 
-### 1. HRX Parser (`hrx_parser.py`)
+### 1. HRX Parser (`hrx_parser.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_hrx_parser_properties.py`
 
 **Test: HRX parse-serialize idempotence**
 - **What it tests**: Parsing an HRX archive and reconstructing it should preserve file paths and content
@@ -41,7 +43,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 2. MIME Utils (`mime_utils.py`)
+### 2. MIME Utils (`mime_utils.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_mime_utils_properties.py`
 
 **Test: Extension-MIME round-trip consistency**
 - **What it tests**: For any known MIME type, converting to extension and back should be stable
@@ -158,7 +162,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 7. CLI Arguments (`cli_args.py`)
+### 7. CLI Arguments (`cli_args.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_cli_args_properties.py`
 
 **Test: Memory size parsing**
 - **What it tests**: `parse_memory_size()` should handle various formats correctly
@@ -179,7 +185,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 8. CID Core (`cid_core.py`)
+### 8. CID Core (`cid_core.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_cid_core_properties.py`
 
 **Test: Base64url encode/decode round-trip**
 - **What it tests**: Encoding bytes and decoding back should yield original data
