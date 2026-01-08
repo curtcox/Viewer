@@ -44,16 +44,16 @@ def execute_json_request(
             "auth": auth,
         }
         method_name = method.lower()
-        client_attrs = getattr(client, "__dict__", {})
-        mock_children = getattr(client, "_mock_children", {})
+        mock_children = getattr(client, "_mock_children", None)
         request_func = getattr(client, "request", None)
         method_func = None
-        if method_name in client_attrs:
+        if isinstance(mock_children, dict) and method_name in mock_children:
+            method_func = mock_children[method_name]
+        elif not isinstance(mock_children, dict):
             method_func = getattr(client, method_name, None)
         if isinstance(client, ExternalApiClient) and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
         elif isinstance(mock_children, dict) and method_name in mock_children:
-            method_func = mock_children[method_name]
             response = method_func(url, **request_kwargs)
         elif isinstance(mock_children, dict) and "request" in mock_children and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
