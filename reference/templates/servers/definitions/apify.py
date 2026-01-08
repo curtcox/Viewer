@@ -26,14 +26,22 @@ DOCUMENTATION_URL = "https://docs.apify.com/api/v2"
 _OPERATIONS = {
     "list_actors": OperationDefinition(),
     "run_actor": OperationDefinition(
-        required=(RequiredField("actor_id"),),
+        required=(RequiredField("actor_id", message="actor_id is required"),),
         payload_builder=lambda input_data, **_: input_data or {},
     ),
-    "get_run": OperationDefinition(required=(RequiredField("run_id"),)),
+    "get_run": OperationDefinition(
+        required=(RequiredField("run_id", message="run_id is required"),),
+    ),
     "list_runs": OperationDefinition(),
-    "get_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
-    "download_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
-    "delete_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
+    "get_dataset": OperationDefinition(
+        required=(RequiredField("dataset_id", message="dataset_id is required"),),
+    ),
+    "download_dataset": OperationDefinition(
+        required=(RequiredField("dataset_id", message="dataset_id is required"),),
+    ),
+    "delete_dataset": OperationDefinition(
+        required=(RequiredField("dataset_id", message="dataset_id is required"),),
+    ),
 }
 
 _ENDPOINT_BUILDERS = {
@@ -59,21 +67,24 @@ _PARAMETER_BUILDERS = {
 def _build_preview(
     *,
     operation: str,
-    url: str,
-    method: str,
-    params: Dict[str, Any],
+    actor_id: str,
+    run_id: str,
+    dataset_id: str,
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
     preview: Dict[str, Any] = {
         "operation": operation,
-        "url": url,
-        "method": method,
-        "auth": "api_key",
+        "api_endpoint": API_BASE_URL,
+        "dry_run": True,
     }
-    if params:
-        preview["params"] = params
+    if actor_id:
+        preview["actor_id"] = actor_id
+    if run_id:
+        preview["run_id"] = run_id
+    if dataset_id:
+        preview["dataset_id"] = dataset_id
     if payload:
-        preview["payload"] = payload
+        preview["input"] = payload
     return preview
 
 
@@ -177,9 +188,9 @@ def main(
     if dry_run:
         preview = _build_preview(
             operation=operation,
-            url=url,
-            method=method,
-            params=params,
+            actor_id=actor_id,
+            run_id=run_id,
+            dataset_id=dataset_id,
             payload=payload,
         )
         return {"output": preview, "content_type": "application/json"}
