@@ -6,12 +6,51 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 from urllib.parse import quote
 
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    validate_and_build_payload,
+    validation_error,
+)
 from server_utils.external_api.limit_validator import AWS_S3_MAX_KEYS, get_limit_info, validate_limit
 from server_utils.external_api.aws_signature import sign_request
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+_METHOD_MAP = {
+    "list_buckets": "GET",
+    "list_objects": "GET",
+    "get_object": "GET",
+    "put_object": "PUT",
+    "delete_object": "DELETE",
+    "create_bucket": "PUT",
+    "delete_bucket": "DELETE",
+    "copy_object": "PUT",
+    "head_object": "HEAD",
+}
+
+_OPERATIONS = {
+    "list_buckets": OperationDefinition(),
+    "list_objects": OperationDefinition(required=(RequiredField("bucket"),)),
+    "get_object": OperationDefinition(required=(RequiredField("key"),)),
+    "put_object": OperationDefinition(
+        required=(RequiredField("key"), RequiredField("content"))
+    ),
+    "delete_object": OperationDefinition(required=(RequiredField("key"),)),
+    "create_bucket": OperationDefinition(required=(RequiredField("bucket"),)),
+    "delete_bucket": OperationDefinition(required=(RequiredField("bucket"),)),
+    "copy_object": OperationDefinition(required=(RequiredField("to_key"),)),
+    "head_object": OperationDefinition(required=(RequiredField("key"),)),
+}
+
+_SUCCESS_OPERATIONS = {
+    "put_object",
+    "delete_object",
+    "create_bucket",
+    "delete_bucket",
+}
 
 
 def _sign_request(
@@ -49,20 +88,7 @@ def _build_preview(
 ) -> Dict[str, Any]:
     """Build a preview of the S3 API call."""
     host = f"{bucket}.s3.{region}.amazonaws.com" if bucket else f"s3.{region}.amazonaws.com"
-
-    method_map = {
-        "list_buckets": "GET",
-        "list_objects": "GET",
-        "get_object": "GET",
-        "put_object": "PUT",
-        "delete_object": "DELETE",
-        "create_bucket": "PUT",
-        "delete_bucket": "DELETE",
-        "copy_object": "PUT",
-        "head_object": "HEAD",
-    }
-
-    method = method_map.get(operation, "GET")
+    method = _METHOD_MAP.get(operation, "GET")
 
     if operation == "list_buckets":
         url = f"https://s3.{region}.amazonaws.com/"
@@ -87,6 +113,41 @@ def _build_preview(
         preview["limit_constraint"] = get_limit_info(max_keys, AWS_S3_MAX_KEYS, "max_keys")
 
     return preview
+
+
+def _build_url(*, operation: str, bucket: str, key: str, region: str) -> str:
+    host = f"{bucket}.s3.{region}.amazonaws.com" if bucket else f"s3.{region}.amazonaws.com"
+    if operation == "list_buckets":
+        return f"https://s3.{region}.amazonaws.com/"
+    if bucket and key:
+        return f"https://{host}/{quote(key)}"
+    if bucket:
+        return f"https://{host}/"
+    return f"https://s3.{region}.amazonaws.com/"
+
+
+def _success_response(status_code: int) -> Dict[str, Any]:
+    return {"output": {"status": "success", "status_code": status_code}}
+
+
+def _build_params(operation: str, prefix: str, max_keys: int) -> Dict[str, Any] | None:
+    if operation != "list_objects":
+        return None
+    params: Dict[str, Any] = {}
+    if prefix:
+        params["prefix"] = prefix
+    params["max-keys"] = str(max_keys)
+    return params
+
+
+def _build_output(operation: str, response: Any) -> Dict[str, Any]:
+    if operation in _SUCCESS_OPERATIONS:
+        return _success_response(response.status_code)
+    if operation == "get_object":
+        return {"output": response.text}
+    if operation == "head_object":
+        return {"output": dict(response.headers)}
+    return {"output": response.text}
 
 
 def main(
@@ -121,23 +182,17 @@ def main(
     - head_object: Get object metadata
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_buckets",
-        "list_objects",
-        "get_object",
-        "put_object",
-        "delete_object",
-        "create_bucket",
-        "delete_bucket",
-        "copy_object",
-        "head_object",
-    }
+    payload_result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        bucket=bucket,
+        key=key,
+        to_key=to_key,
+        content=content,
+    )
+    if isinstance(payload_result, tuple):
+        return validation_error(payload_result[0], field=payload_result[1])
 
-    if normalized_operation not in valid_operations:
-        return validation_error("Unsupported operation", field="operation")
-
-    # Validate credentials
     if not AWS_ACCESS_KEY_ID:
         return error_output("Missing AWS_ACCESS_KEY_ID", status_code=401)
 
@@ -149,36 +204,19 @@ def main(
     if error := validate_limit(max_keys, AWS_S3_MAX_KEYS, "max_keys"):
         return error
 
-    # Validate operation-specific parameters
-    if normalized_operation in ("list_objects", "create_bucket", "delete_bucket") and not bucket:
-        return validation_error("Missing required bucket", field="bucket")
-
-    if normalized_operation in ("get_object", "put_object", "delete_object", "head_object") and not key:
-        return validation_error("Missing required key", field="key")
-
-    if normalized_operation == "put_object" and not content:
-        return validation_error("Missing required content", field="content")
-
-    if normalized_operation == "copy_object" and not to_key:
-        return validation_error("Missing required to_key", field="to_key")
-
     # Build parameters
-    params: Dict[str, Any] = {}
-    if normalized_operation == "list_objects":
-        if prefix:
-            params["prefix"] = prefix
-        params["max-keys"] = str(max_keys)
+    params = _build_params(operation, prefix, max_keys)
 
     # Return preview if in dry-run mode
     if dry_run:
         return {
             "output": _build_preview(
-                operation=normalized_operation,
+                operation=operation,
                 bucket=bucket,
                 key=key,
                 region=AWS_REGION,
-                params=params if params else None,
-                max_keys=max_keys if normalized_operation == "list_objects" else None,
+                params=params,
+                max_keys=max_keys if operation == "list_objects" else None,
             )
         }
 
@@ -187,28 +225,26 @@ def main(
 
     try:
         # Build URL and method
-        preview = _build_preview(operation=normalized_operation, bucket=bucket, key=key, region=AWS_REGION, params=params)
-        url = preview["url"]
-        method = preview["method"]
+        method = _METHOD_MAP.get(operation, "GET")
+        url = _build_url(operation=operation, bucket=bucket, key=key, region=AWS_REGION)
 
         # Build headers
         headers = {}
-        if normalized_operation == "put_object":
+        if operation == "put_object":
             headers["Content-Type"] = content_type
 
-        if normalized_operation == "copy_object":
+        if operation == "copy_object":
             headers["x-amz-copy-source"] = f"/{bucket}/{key}"
             # For copy, we need to rebuild the URL with to_key
-            preview = _build_preview(operation=normalized_operation, bucket=bucket, key=to_key, region=AWS_REGION, params=params)
-            url = preview["url"]
+            url = _build_url(operation=operation, bucket=bucket, key=to_key, region=AWS_REGION)
 
         # Sign request
-        payload = content.encode("utf-8") if normalized_operation == "put_object" and content else b""
+        payload = content.encode("utf-8") if operation == "put_object" and content else b""
         signed_headers = _sign_request(
             method=method,
             url=url,
             bucket=bucket,
-            key=to_key if normalized_operation == "copy_object" else key,
+            key=to_key if operation == "copy_object" else key,
             region=AWS_REGION,
             access_key=AWS_ACCESS_KEY_ID,
             secret_key=AWS_SECRET_ACCESS_KEY,
@@ -221,8 +257,8 @@ def main(
             method=method,
             url=url,
             headers=signed_headers,
-            data=content.encode("utf-8") if normalized_operation == "put_object" else None,
-            params=params if params else None,
+            data=content.encode("utf-8") if operation == "put_object" else None,
+            params=params,
             timeout=timeout,
         )
 
@@ -233,15 +269,7 @@ def main(
                 response=response.text,
             )
 
-        # Parse response based on operation
-        if normalized_operation in ("put_object", "delete_object", "create_bucket", "delete_bucket"):
-            return {"output": {"status": "success", "status_code": response.status_code}}
-        if normalized_operation == "get_object":
-            return {"output": response.text}
-        if normalized_operation == "head_object":
-            return {"output": dict(response.headers)}
-        # List operations return XML, parse as text for now
-        return {"output": response.text}
+        return _build_output(operation, response)
 
     except Exception as e:
         return error_output(str(e), status_code=500)

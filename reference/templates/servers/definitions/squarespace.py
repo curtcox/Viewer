@@ -5,35 +5,143 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
-    CredentialValidator,
     ExternalApiClient,
-    OperationValidator,
-    ParameterValidator,
+    OperationDefinition,
     PreviewBuilder,
-    ResponseHandler,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
 )
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+_BASE_URL = "https://api.squarespace.com/1.0"
+
+
+def _build_create_product_payload(
+    *,
+    name: str,
+    price: float | None,
+    description: str,
+    sku: str,
+    **_: Any,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "name": name,
+        "variants": [
+            {
+                "pricing": {
+                    "basePrice": {
+                        "currency": "USD",
+                        "value": str(price),
+                    }
+                },
+                "sku": sku if sku else None,
+            }
+        ],
+    }
+    if description:
+        payload["description"] = description
+    return payload
+
+
+def _build_update_product_payload(
+    *,
+    name: str,
+    description: str,
+    price: float | None,
+    **_: Any,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {}
+    if name:
+        payload["name"] = name
+    if description:
+        payload["description"] = description
+    if price is not None:
+        payload["variants"] = [
+            {
+                "pricing": {
+                    "basePrice": {
+                        "currency": "USD",
+                        "value": str(price),
+                    }
+                }
+            }
+        ]
+    return payload
+
+
 _OPERATIONS = {
-    "list_products", "get_product", "create_product", "update_product", "delete_product",
-    "list_orders", "get_order",
-    "list_inventory", "get_inventory", "update_inventory"
+    "list_products": OperationDefinition(),
+    "get_product": OperationDefinition(required=(RequiredField("product_id"),)),
+    "create_product": OperationDefinition(
+        required=(RequiredField("name"), RequiredField("price")),
+        payload_builder=_build_create_product_payload,
+    ),
+    "update_product": OperationDefinition(
+        required=(RequiredField("product_id"),),
+        payload_builder=_build_update_product_payload,
+    ),
+    "delete_product": OperationDefinition(required=(RequiredField("product_id"),)),
+    "list_orders": OperationDefinition(),
+    "get_order": OperationDefinition(required=(RequiredField("order_id"),)),
+    "list_inventory": OperationDefinition(),
+    "get_inventory": OperationDefinition(required=(RequiredField("inventory_item_id"),)),
+    "update_inventory": OperationDefinition(
+        required=(RequiredField("inventory_item_id"), RequiredField("quantity")),
+        payload_builder=lambda quantity, **_: {"quantity": quantity},
+    ),
 }
-_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
-_PARAMETER_REQUIREMENTS = {
-    "get_product": ["product_id"],
-    "update_product": ["product_id"],
-    "delete_product": ["product_id"],
-    "get_order": ["order_id"],
-    "get_inventory": ["inventory_item_id"],
-    "update_inventory": ["inventory_item_id", "quantity"],
-    "create_product": ["name", "price"],
+
+_METHODS = {
+    "create_product": "POST",
+    "update_product": "PUT",
+    "delete_product": "DELETE",
+    "update_inventory": "PUT",
 }
-_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
+
+_ENDPOINT_BUILDERS = {
+    "list_products": lambda base_url, **_: f"{base_url}/commerce/products",
+    "get_product": lambda base_url, product_id, **_: f"{base_url}/commerce/products/{product_id}",
+    "create_product": lambda base_url, **_: f"{base_url}/commerce/products",
+    "update_product": lambda base_url, product_id, **_: f"{base_url}/commerce/products/{product_id}",
+    "delete_product": lambda base_url, product_id, **_: f"{base_url}/commerce/products/{product_id}",
+    "list_orders": lambda base_url, **_: f"{base_url}/commerce/orders",
+    "get_order": lambda base_url, order_id, **_: f"{base_url}/commerce/orders/{order_id}",
+    "list_inventory": lambda base_url, **_: f"{base_url}/commerce/inventory",
+    "get_inventory": lambda base_url, inventory_item_id, **_: (
+        f"{base_url}/commerce/inventory/{inventory_item_id}"
+    ),
+    "update_inventory": lambda base_url, inventory_item_id, **_: (
+        f"{base_url}/commerce/inventory/{inventory_item_id}"
+    ),
+}
+
+_LIST_OPERATIONS = {"list_products", "list_orders", "list_inventory"}
+
+
+def _build_list_params(cursor: str, limit: int) -> Dict[str, Any] | None:
+    params: Dict[str, Any] = {}
+    if cursor:
+        params["cursor"] = cursor
+    if limit:
+        params["limit"] = min(limit, 200)
+    return params or None
+
+
+def _build_params(operation: str, cursor: str, limit: int) -> Dict[str, Any] | None:
+    if operation in _LIST_OPERATIONS:
+        return _build_list_params(cursor, limit)
+    return None
+
+
+def _extract_error(response: object, data: object) -> str:
+    if isinstance(data, dict):
+        return data.get("message", "Squarespace API error")
+    return "Squarespace API error"
 
 
 def main(
@@ -88,115 +196,43 @@ def main(
         context: Request context
     """
 
-    # Validate operation
-    if error := _OPERATION_VALIDATOR.validate(operation):
-        return error
-    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
+    payload_result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        product_id=product_id,
+        order_id=order_id,
+        inventory_item_id=inventory_item_id,
+        name=name,
+        price=price,
+        quantity=quantity,
+        description=description,
+        sku=sku,
+    )
+    if isinstance(payload_result, tuple):
+        return validation_error(payload_result[0], field=payload_result[1])
+    payload = payload_result or None
+    if isinstance(payload, dict) and not payload:
+        payload = None
 
-    # Validate credentials
-    if error := CredentialValidator.require_secret(SQUARESPACE_API_KEY, "SQUARESPACE_API_KEY"):
-        return error
+    if not SQUARESPACE_API_KEY:
+        return error_output("Missing SQUARESPACE_API_KEY", status_code=401)
 
-    # Validate operation-specific parameters
-    # Note: price and quantity are special as they can be None vs empty string
-    params_dict = {
-        "product_id": product_id,
-        "order_id": order_id,
-        "inventory_item_id": inventory_item_id,
-        "name": name,
-        "price": price,
-        "quantity": quantity,
-    }
-    if error := _PARAMETER_VALIDATOR.validate_required(normalized_operation, params_dict):
-        return error
-
-    # Build payload for create/update operations
-    payload = None
-    params = None
-
-    if normalized_operation == "create_product":
-        payload = {
-            "name": name,
-            "variants": [
-                {
-                    "pricing": {
-                        "basePrice": {
-                            "currency": "USD",
-                            "value": str(price)
-                        }
-                    },
-                    "sku": sku if sku else None,
-                }
-            ]
-        }
-        if description:
-            payload["description"] = description
-    elif normalized_operation == "update_product":
-        payload = {}
-        if name:
-            payload["name"] = name
-        if description:
-            payload["description"] = description
-        if price is not None:
-            payload["variants"] = [
-                {
-                    "pricing": {
-                        "basePrice": {
-                            "currency": "USD",
-                            "value": str(price)
-                        }
-                    }
-                }
-            ]
-    elif normalized_operation == "update_inventory":
-        payload = {"quantity": quantity}
-    elif normalized_operation in {"list_products", "list_orders", "list_inventory"}:
-        params = {}
-        if cursor:
-            params["cursor"] = cursor
-        if limit:
-            params["limit"] = min(limit, 200)  # Max 200
-
-    # Build URL based on operation
-    base_url = "https://api.squarespace.com/1.0"
-    if normalized_operation == "list_products":
-        url = f"{base_url}/commerce/products"
-        method = "GET"
-    elif normalized_operation == "get_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "GET"
-    elif normalized_operation == "create_product":
-        url = f"{base_url}/commerce/products"
-        method = "POST"
-    elif normalized_operation == "update_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "PUT"
-    elif normalized_operation == "delete_product":
-        url = f"{base_url}/commerce/products/{product_id}"
-        method = "DELETE"
-    elif normalized_operation == "list_orders":
-        url = f"{base_url}/commerce/orders"
-        method = "GET"
-    elif normalized_operation == "get_order":
-        url = f"{base_url}/commerce/orders/{order_id}"
-        method = "GET"
-    elif normalized_operation == "list_inventory":
-        url = f"{base_url}/commerce/inventory"
-        method = "GET"
-    elif normalized_operation == "get_inventory":
-        url = f"{base_url}/commerce/inventory/{inventory_item_id}"
-        method = "GET"
-    elif normalized_operation == "update_inventory":
-        url = f"{base_url}/commerce/inventory/{inventory_item_id}"
-        method = "PUT"
-    else:
-        url = base_url
-        method = "GET"
+    params = _build_params(operation, cursor, limit)
+    endpoint_builder = _ENDPOINT_BUILDERS.get(operation)
+    if not endpoint_builder:
+        return validation_error("Unsupported operation", field="operation")
+    url = endpoint_builder(
+        _BASE_URL,
+        product_id=product_id,
+        order_id=order_id,
+        inventory_item_id=inventory_item_id,
+    )
+    method = _METHODS.get(operation, "GET")
 
     # Dry-run preview
     if dry_run:
         preview = PreviewBuilder.build(
-            operation=normalized_operation,
+            operation=operation,
             url=url,
             method=method,
             auth_type="Bearer Token",
@@ -213,26 +249,15 @@ def main(
         "User-Agent": "Viewer/1.0",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload if payload else None,
-            params=params if params else None,
-            timeout=timeout,
-        )
-    except requests.exceptions.RequestException as exc:
-        return ResponseHandler.handle_request_exception(exc)
-
-    # Some operations return no content (204)
-    if response.status_code == 204 or not response.content:
-        return {"output": {"success": True}, "content_type": "application/json"}
-
-    # Extract error message from Squarespace API response
-    def extract_error(data: Dict[str, Any]) -> str:
-        if isinstance(data, dict):
-            return data.get("message", "Squarespace API error")
-        return "Squarespace API error"
-
-    return ResponseHandler.handle_json_response(response, extract_error)
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_extract_error,
+        empty_response_statuses=(204,),
+        empty_response_output={"success": True},
+    )

@@ -19,7 +19,8 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 12: Migrated calendly.py, pipedrive.py, gitlab.py, wordpress.py, and webflow.py to dispatch tables and shared executor.
 - ✅ Phase 13: Migrated google_ads.py, google_contacts.py, google_forms.py, and pandadoc.py to dispatch tables and shared executor.
 - ✅ Phase 14: Migrated freshdesk.py, gorgias.py, zendesk.py, front.py, and intercom.py to dispatch tables and shared executor.
-- ⏳ Remaining servers: 45+ servers with 10+ branches still need migration
+- ✅ Phase 15: Migrated aws_s3.py, mongodb.py, and squarespace.py to dispatch tables.
+- ⏳ Remaining servers: 40+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
@@ -56,6 +57,9 @@ Successfully migrated **20 high-complexity external API servers** to use dispatc
 | **google_contacts.py** | TBD | TBD | TBD | ✅ Completed (Phase 13) |
 | **google_forms.py** | TBD | TBD | TBD | ✅ Completed (Phase 13) |
 | **pandadoc.py** | TBD | TBD | TBD | ✅ Completed (Phase 13) |
+| **aws_s3.py** | TBD | TBD | TBD | ✅ Completed (Phase 15) |
+| **mongodb.py** | TBD | TBD | TBD | ✅ Completed (Phase 15) |
+| **squarespace.py** | TBD | TBD | TBD | ✅ Completed (Phase 15) |
 
 **Total complexity reduction: 168+ branches eliminated across 24 servers (pending updated counts for Phase 11-13)**
 
@@ -85,10 +89,10 @@ The Radon analysis shows 25 server definitions with E-grade complexity (31-35):
 | 35 | 1 | dropbox.py |
 | 34 | 5 | xero.py, telegram.py, linkedin_ads.py, docusign.py, salesforce.py |
 | 33 | 1 | freshbooks.py |
-| 32 | 4 | docparser.py, onedrive.py, mongodb.py, squarespace.py |
-| 31 | 5 | aws_s3.py and others |
+| 32 | 4 | docparser.py, onedrive.py |
+| 31 | 5 | others |
 
-Note: freshbooks.py, docparser.py, and onedrive.py were migrated in Phase 9; servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py were migrated in Phase 10. Refresh the Radon analysis counts when convenient.
+Note: freshbooks.py, docparser.py, and onedrive.py were migrated in Phase 9; servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py were migrated in Phase 10; aws_s3.py, mongodb.py, and squarespace.py were migrated in Phase 15. Refresh the Radon analysis counts when convenient.
 
 **Root cause**: All complexity stems from the same anti-pattern—large if-elif chains in `main()` functions that dispatch operations.
 

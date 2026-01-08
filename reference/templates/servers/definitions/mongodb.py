@@ -6,8 +6,27 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 import json
 
-from server_utils.external_api import error_output, validation_error
+from server_utils.external_api import (
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    validate_and_build_payload,
+    validation_error,
+)
 from server_utils.external_api.limit_validator import MONGODB_MAX_LIMIT, get_limit_info, validate_limit
+
+
+_OPERATIONS = {
+    "find": OperationDefinition(required=(RequiredField("collection"),)),
+    "find_one": OperationDefinition(required=(RequiredField("collection"),)),
+    "insert_one": OperationDefinition(required=(RequiredField("collection"),)),
+    "insert_many": OperationDefinition(required=(RequiredField("collection"),)),
+    "update_one": OperationDefinition(required=(RequiredField("collection"),)),
+    "update_many": OperationDefinition(required=(RequiredField("collection"),)),
+    "delete_one": OperationDefinition(required=(RequiredField("collection"),)),
+    "delete_many": OperationDefinition(required=(RequiredField("collection"),)),
+    "count": OperationDefinition(required=(RequiredField("collection"),)),
+}
 
 
 def _build_preview(
@@ -39,6 +58,80 @@ def _build_preview(
     return preview
 
 
+def _stringify_id(document: Dict[str, Any]) -> None:
+    if "_id" in document:
+        document["_id"] = str(document["_id"])
+
+
+def _handle_find(collection_handle, parsed_query: Dict[str, Any], limit: int, **_: Any) -> Dict[str, Any]:
+    cursor = collection_handle.find(parsed_query).limit(limit)
+    result = list(cursor)
+    for doc in result:
+        _stringify_id(doc)
+    return {"output": result}
+
+
+def _handle_find_one(collection_handle, parsed_query: Dict[str, Any], **_: Any) -> Dict[str, Any]:
+    result = collection_handle.find_one(parsed_query)
+    if result:
+        _stringify_id(result)
+    return {"output": result}
+
+
+def _handle_insert_one(collection_handle, parsed_document: Any, **_: Any) -> Dict[str, Any]:
+    insert_result = collection_handle.insert_one(parsed_document)
+    return {"output": {"inserted_id": str(insert_result.inserted_id)}}
+
+
+def _handle_insert_many(collection_handle, parsed_document: Any, **_: Any) -> Dict[str, Any]:
+    if not isinstance(parsed_document, list):
+        return validation_error("insert_many requires a list of documents", field="document")
+    insert_result = collection_handle.insert_many(parsed_document)
+    return {"output": {"inserted_ids": [str(item_id) for item_id in insert_result.inserted_ids]}}
+
+
+def _handle_update(collection_handle, parsed_query: Dict[str, Any], parsed_update: Dict[str, Any], many: bool) -> Dict[str, Any]:
+    update_func = collection_handle.update_many if many else collection_handle.update_one
+    update_result = update_func(parsed_query, parsed_update)
+    return {
+        "output": {
+            "matched_count": update_result.matched_count,
+            "modified_count": update_result.modified_count,
+        }
+    }
+
+
+def _handle_delete(collection_handle, parsed_query: Dict[str, Any], many: bool) -> Dict[str, Any]:
+    delete_func = collection_handle.delete_many if many else collection_handle.delete_one
+    delete_result = delete_func(parsed_query)
+    return {"output": {"deleted_count": delete_result.deleted_count}}
+
+
+def _handle_count(collection_handle, parsed_query: Dict[str, Any], **_: Any) -> Dict[str, Any]:
+    return {"output": {"count": collection_handle.count_documents(parsed_query)}}
+
+
+_OPERATION_HANDLERS = {
+    "find": _handle_find,
+    "find_one": _handle_find_one,
+    "insert_one": _handle_insert_one,
+    "insert_many": _handle_insert_many,
+    "update_one": lambda collection_handle, parsed_query, parsed_update, **_: _handle_update(
+        collection_handle, parsed_query, parsed_update, many=False
+    ),
+    "update_many": lambda collection_handle, parsed_query, parsed_update, **_: _handle_update(
+        collection_handle, parsed_query, parsed_update, many=True
+    ),
+    "delete_one": lambda collection_handle, parsed_query, **_: _handle_delete(
+        collection_handle, parsed_query, many=False
+    ),
+    "delete_many": lambda collection_handle, parsed_query, **_: _handle_delete(
+        collection_handle, parsed_query, many=True
+    ),
+    "count": _handle_count,
+}
+
+
 def main(
     *,
     operation: str = "find",
@@ -67,22 +160,17 @@ def main(
     - count: Count documents matching query
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "find", "find_one", "insert_one", "insert_many",
-        "update_one", "update_many", "delete_one", "delete_many", "count"
-    }
-
-    if normalized_operation not in valid_operations:
-        return validation_error("Unsupported operation", field="operation")
-
     # Validate credentials
     if not MONGODB_URI:
         return error_output("Missing MONGODB_URI", status_code=401)
 
-    # Validate collection
-    if not collection:
-        return validation_error("Missing required collection", field="collection")
+    payload_result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        collection=collection,
+    )
+    if isinstance(payload_result, tuple):
+        return validation_error(payload_result[0], field=payload_result[1])
 
     # Validate limit parameter
     # MongoDB practical limit set to 10000 for performance
@@ -101,12 +189,12 @@ def main(
     if dry_run:
         return {
             "output": _build_preview(
-                operation=normalized_operation,
+                operation=operation,
                 collection=collection,
                 query=parsed_query if parsed_query != {} else None,
                 document=parsed_document if parsed_document != {} else None,
                 uri=MONGODB_URI,
-                limit=limit if normalized_operation in ("find", "find_one") else None,
+                limit=limit if operation in ("find", "find_one") else None,
             )
         }
 
@@ -126,59 +214,20 @@ def main(
         db = client[db_name]
         coll = db[collection]
 
-        result = None
-
-        if normalized_operation == "find":
-            cursor = coll.find(parsed_query).limit(limit)
-            result = list(cursor)
-            # Convert ObjectId to string for JSON serialization
-            for doc in result:
-                if "_id" in doc:
-                    doc["_id"] = str(doc["_id"])
-
-        elif normalized_operation == "find_one":
-            result = coll.find_one(parsed_query)
-            if result and "_id" in result:
-                result["_id"] = str(result["_id"])
-
-        elif normalized_operation == "insert_one":
-            insert_result = coll.insert_one(parsed_document)
-            result = {"inserted_id": str(insert_result.inserted_id)}
-
-        elif normalized_operation == "insert_many":
-            if not isinstance(parsed_document, list):
-                return validation_error("insert_many requires a list of documents", field="document")
-            insert_result = coll.insert_many(parsed_document)
-            result = {"inserted_ids": [str(id) for id in insert_result.inserted_ids]}
-
-        elif normalized_operation == "update_one":
-            update_result = coll.update_one(parsed_query, parsed_update)
-            result = {
-                "matched_count": update_result.matched_count,
-                "modified_count": update_result.modified_count,
-            }
-
-        elif normalized_operation == "update_many":
-            update_result = coll.update_many(parsed_query, parsed_update)
-            result = {
-                "matched_count": update_result.matched_count,
-                "modified_count": update_result.modified_count,
-            }
-
-        elif normalized_operation == "delete_one":
-            delete_result = coll.delete_one(parsed_query)
-            result = {"deleted_count": delete_result.deleted_count}
-
-        elif normalized_operation == "delete_many":
-            delete_result = coll.delete_many(parsed_query)
-            result = {"deleted_count": delete_result.deleted_count}
-
-        elif normalized_operation == "count":
-            result = {"count": coll.count_documents(parsed_query)}
+        handler = _OPERATION_HANDLERS.get(operation)
+        if handler is None:
+            return validation_error("Unsupported operation", field="operation")
+        result = handler(
+            coll,
+            parsed_query=parsed_query,
+            parsed_document=parsed_document,
+            parsed_update=parsed_update,
+            limit=limit,
+        )
 
         client.close()
 
-        return {"output": result}
+        return result
 
     except ImportError:
         return error_output(
