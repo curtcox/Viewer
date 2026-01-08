@@ -16,7 +16,8 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 9: Migrated freshbooks.py, docparser.py, and onedrive.py to dispatch tables and shared executor.
 - ✅ Phase 10: Migrated servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py to dispatch tables and shared executor.
 - ✅ Phase 11: Migrated mailchimp.py, mailerlite.py, and zoho_crm.py to dispatch tables and shared executor.
-- ⏳ Remaining servers: 70+ servers with 10+ branches still need migration
+- ✅ Phase 12: Migrated calendly.py, pipedrive.py, gitlab.py, wordpress.py, and webflow.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 60+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
@@ -44,6 +45,11 @@ Successfully migrated **20 high-complexity external API servers** to use dispatc
 | **mailchimp.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
 | **mailerlite.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
 | **zoho_crm.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
+| **calendly.py** | TBD | TBD | TBD | ✅ Completed (Phase 12) |
+| **pipedrive.py** | TBD | TBD | TBD | ✅ Completed (Phase 12) |
+| **gitlab.py** | TBD | TBD | TBD | ✅ Completed (Phase 12) |
+| **wordpress.py** | TBD | TBD | TBD | ✅ Completed (Phase 12) |
+| **webflow.py** | TBD | TBD | TBD | ✅ Completed (Phase 12) |
 
 **Total complexity reduction: 168+ branches eliminated across 20 servers (pending updated counts for Phase 11)**
 
