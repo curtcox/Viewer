@@ -44,7 +44,7 @@ def execute_json_request(
             "auth": auth,
         }
         request_func = getattr(client, "request", None)
-        if callable(request_func):
+        if isinstance(client, ExternalApiClient) and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
         else:
             method_func = getattr(client, method.lower(), None)
