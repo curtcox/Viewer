@@ -1,14 +1,18 @@
 # ruff: noqa: F821, F706
 """Call the QuickBooks Online API for accounting operations."""
 
+import json
 from typing import Optional
 from server_utils.external_api import (
     ExternalApiClient,
-    HttpClientConfig,
-    error_response,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
     missing_secret_error,
     generate_form,
     FormField,
+    validate_and_build_payload,
+    validation_error,
 )
 
 
@@ -17,6 +21,62 @@ DOCUMENTATION_URL = (
     "https://developer.intuit.com/app/developer/qbo/docs/api/"
     "accounting/all-entities/account"
 )
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "query": OperationDefinition(
+        required=(RequiredField("query"),),
+    ),
+    "get": OperationDefinition(
+        required=(RequiredField("entity_type"), RequiredField("entity_id")),
+    ),
+    "create": OperationDefinition(
+        required=(RequiredField("entity_type"), RequiredField("data")),
+        payload_builder=lambda data, **_: data,
+    ),
+    "update": OperationDefinition(
+        required=(RequiredField("entity_type"), RequiredField("data")),
+        payload_builder=lambda data, **_: data,
+    ),
+    "delete": OperationDefinition(
+        required=(RequiredField("entity_type"), RequiredField("entity_id")),
+        payload_builder=lambda entity_id, **_: {"Id": entity_id, "SyncToken": "0"},
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "query": lambda **_: "query",
+    "get": lambda entity_type, entity_id, **_: f"{entity_type.lower()}/{entity_id}",
+    "create": lambda entity_type, **_: entity_type.lower(),
+    "update": lambda entity_type, **_: entity_type.lower(),
+    "delete": lambda entity_type, **_: entity_type.lower(),
+}
+
+_METHODS = {
+    "create": "POST",
+    "update": "POST",
+    "delete": "POST",
+}
+
+
+def _quickbooks_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        fault = data.get("Fault")
+        if isinstance(fault, dict):
+            errors = fault.get("Error")
+            if isinstance(errors, list) and errors:
+                first = errors[0]
+                if isinstance(first, dict):
+                    return (
+                        first.get("Detail")
+                        or first.get("Message")
+                        or first.get("code")
+                        or "QuickBooks API error"
+                    )
+                return str(first)
+        return data.get("message") or "QuickBooks API error"
+    return "QuickBooks API error"
 
 
 def main(
@@ -64,9 +124,9 @@ def main(
     # Use realm_id parameter if provided, otherwise use secret
     effective_realm_id = realm_id or QUICKBOOKS_REALM_ID
     if not effective_realm_id:
-        return error_response(
+        return validation_error(
             "realm_id is required. Provide it via QUICKBOOKS_REALM_ID secret or realm_id parameter",
-            error_type="validation_error",
+            field="realm_id",
         )
 
     # Show form if no operation provided
@@ -151,78 +211,42 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    # Validate operation
-    valid_operations = ["query", "get", "create", "update", "delete"]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Build request based on operation
-    method = "GET"
-    url = f"{API_BASE_URL}/{effective_realm_id}"
-    payload = None
+    parsed_data = None
+    if data:
+        try:
+            parsed_data = json.loads(data) if isinstance(data, str) else data
+        except json.JSONDecodeError as exc:
+            return validation_error(f"Invalid JSON in data parameter: {exc}", field="data")
+
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        query=query,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        data=parsed_data,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+
+    base_url = f"{API_BASE_URL}/{effective_realm_id}"
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
     params = {"minorversion": minor_version}
-
     if operation == "query":
-        if not query:
-            return error_response(
-                "query is required for query operation",
-                error_type="validation_error",
-            )
-        url = f"{url}/query"
         params["query"] = query
-    elif operation == "get":
-        if not entity_type or not entity_id:
-            return error_response(
-                "entity_type and entity_id are required for get operation",
-                error_type="validation_error",
-            )
-        url = f"{url}/{entity_type.lower()}/{entity_id}"
-    elif operation == "create":
-        if not entity_type or not data:
-            return error_response(
-                "entity_type and data are required for create operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{url}/{entity_type.lower()}"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "update":
-        if not entity_type or not data:
-            return error_response(
-                "entity_type and data are required for update operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{url}/{entity_type.lower()}"
+    if operation == "update":
         params["operation"] = "update"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "delete":
-        if not entity_type or not entity_id:
-            return error_response(
-                "entity_type and entity_id are required for delete operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{url}/{entity_type.lower()}"
+    if operation == "delete":
         params["operation"] = "delete"
-        payload = {"Id": entity_id, "SyncToken": "0"}  # SyncToken required for delete
+    payload = result if isinstance(result, dict) else None
 
     # Dry run: return preview
     if dry_run:
@@ -237,10 +261,7 @@ def main(
             preview["payload"] = payload
         return {"output": preview}
 
-    # Create client with configured timeout
-    if client is None:
-        config = HttpClientConfig(timeout=timeout)
-        client = ExternalApiClient(config)
+    api_client = client or _DEFAULT_CLIENT
 
     headers = {
         "Authorization": f"Bearer {QUICKBOOKS_ACCESS_TOKEN}",
@@ -249,34 +270,14 @@ def main(
     if method == "POST":
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            params=params,
-            timeout=timeout,
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_quickbooks_error_message,
+        request_error_message="QuickBooks request failed",
+    )

@@ -633,12 +633,13 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     )
 
 
-def _build_property_index(property_dir: Path) -> None:
-    property_dir.mkdir(parents=True, exist_ok=True)
+def _build_hypothesis_index(hypothesis_dir: Path) -> None:
+    """Build an index page for Hypothesis test results with source code links."""
+    hypothesis_dir.mkdir(parents=True, exist_ok=True)
 
-    log_path = property_dir / "property-tests.log"
-    xml_path = property_dir / "property-tests-report.xml"
-    index_path = property_dir / "index.html"
+    log_path = hypothesis_dir / "hypothesis-tests.log"
+    xml_path = hypothesis_dir / "hypothesis-tests-report.xml"
+    index_path = hypothesis_dir / "index.html"
 
     log_content = "No log output was captured."
     if log_path.exists():
@@ -648,16 +649,43 @@ def _build_property_index(property_dir: Path) -> None:
     xml_link = ""
     if xml_path.exists():
         summary_html = _build_property_summary(xml_path)
-        xml_link = '<p><a href="property-tests-report.xml">Download the JUnit XML report</a></p>'
+        xml_link = '<p><a href="hypothesis-tests-report.xml">Download the JUnit XML report</a></p>'
 
-    body = f"""  <h1>Property test results</h1>
+    # Add source code links section
+    source_files = [
+        "tests/property/test_alias_matching_properties.py",
+        "tests/property/test_cid_properties.py",
+        "tests/property/test_db_equivalence_property.py",
+        "tests/property/test_encryption_properties.py",
+        "tests/property/test_response_format_properties.py",
+        "tests/property/test_serialization_properties.py",
+        "tests/property/test_serve_cid_content_properties.py",
+    ]
+    
+    github_repo = "curtcox/Viewer"
+    github_branch = "main"
+    source_links = []
+    for source_file in source_files:
+        file_name = source_file.split("/")[-1]
+        github_url = f"https://github.com/{github_repo}/blob/{github_branch}/{source_file}"
+        source_links.append(f'    <li><a href="{github_url}">{escape(file_name)}</a></li>')
+    
+    source_section = f"""  <h2>Hypothesis Test Source Code</h2>
+  <p>View the source code for the hypothesis tests in this project:</p>
+  <ul>
+{chr(10).join(source_links)}
+  </ul>"""
+
+    body = f"""  <h1>Hypothesis Test Results</h1>
+  <p>These are property-based tests using the <a href="https://hypothesis.readthedocs.io/">Hypothesis</a> testing framework.</p>
   {xml_link}
   {summary_html}
+  {source_section}
   <h2>Latest log output</h2>
   <pre>{log_content}</pre>"""
 
     index_path.write_text(
-        _render_html_page("Property test results", body, COMMON_CSS),
+        _render_html_page("Hypothesis Test Results", body, COMMON_CSS),
         encoding="utf-8",
     )
 
@@ -1148,11 +1176,11 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="Code Coverage (75% threshold)",
             report_link="unit-tests-coverage/index.html",
         ),
-        "property-tests": JobMetadata(
-            name="Property Tests",
+        "hypothesis-tests": JobMetadata(
+            name="Hypothesis Tests",
             icon="🔬",
-            check_type="Property-Based Testing",
-            report_link="property-tests/index.html",
+            check_type="Property-Based Testing with Hypothesis",
+            report_link="hypothesis-tests/index.html",
         ),
         "integration-tests": JobMetadata(
             name="Integration Tests",
@@ -1283,7 +1311,7 @@ def build_site(
     unit_tests_coverage_artifacts: Path | None,
     gauge_artifacts: Path | None,
     integration_artifacts: Path | None,
-    property_artifacts: Path | None,
+    hypothesis_artifacts: Path | None,
     radon_artifacts: Path | None,
     vulture_artifacts: Path | None,
     python_smells_artifacts: Path | None,
@@ -1304,7 +1332,7 @@ def build_site(
     unit_tests_coverage_dir = output_dir / "unit-tests-coverage"
     gauge_dir = output_dir / "gauge-specs"
     integration_dir = output_dir / "integration-tests"
-    property_dir = output_dir / "property-tests"
+    hypothesis_dir = output_dir / "hypothesis-tests"
     radon_dir = output_dir / "radon"
     vulture_dir = output_dir / "vulture"
     python_smells_dir = output_dir / "python-smells"
@@ -1320,7 +1348,7 @@ def build_site(
     _copy_artifacts(unit_tests_coverage_artifacts, unit_tests_coverage_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
     _copy_artifacts(integration_artifacts, integration_dir)
-    _copy_artifacts(property_artifacts, property_dir)
+    _copy_artifacts(hypothesis_artifacts, hypothesis_dir)
     _copy_artifacts(radon_artifacts, radon_dir)
     _copy_artifacts(vulture_artifacts, vulture_dir)
     _copy_artifacts(python_smells_artifacts, python_smells_dir)
@@ -1344,7 +1372,7 @@ def build_site(
     screenshot_notice = _format_screenshot_notice(placeholder_count, screenshot_reasons)
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
-    _build_property_index(property_dir)
+    _build_hypothesis_index(hypothesis_dir)
     _build_unit_tests_results_index(
         unit_tests_results_dir, job_status=job_statuses.get("unit-tests-results")
     )
@@ -1404,10 +1432,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the integration test artifact.",
     )
     parser.add_argument(
-        "--property-artifacts",
+        "--hypothesis-artifacts",
         type=Path,
         default=None,
-        help="Directory containing the property test artifacts.",
+        help="Directory containing the hypothesis test artifacts.",
     )
     parser.add_argument(
         "--radon-artifacts",
@@ -1497,7 +1525,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         unit_tests_coverage_artifacts=parsed.unit_tests_coverage_artifacts,
         gauge_artifacts=parsed.gauge_artifacts,
         integration_artifacts=parsed.integration_artifacts,
-        property_artifacts=parsed.property_artifacts,
+        hypothesis_artifacts=parsed.hypothesis_artifacts,
         radon_artifacts=parsed.radon_artifacts,
         vulture_artifacts=parsed.vulture_artifacts,
         python_smells_artifacts=parsed.python_smells_artifacts,

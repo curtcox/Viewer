@@ -4,12 +4,70 @@ from __future__ import annotations
 import base64
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+
+_OPERATIONS = {
+    "list_tickets": OperationDefinition(),
+    "get_ticket": OperationDefinition(
+        required=(RequiredField("ticket_id"),),
+    ),
+    "create_ticket": OperationDefinition(
+        required=(
+            RequiredField("subject"),
+            RequiredField("message"),
+            RequiredField("customer_email"),
+        ),
+        payload_builder=lambda subject, message, customer_email, status, priority, **_: {
+            "subject": subject,
+            "messages": [
+                {
+                    "channel": "email",
+                    "from_agent": False,
+                    "body_text": message,
+                    "sender": {"email": customer_email},
+                }
+            ],
+            **({"status": status} if status else {}),
+            **({"priority": priority} if priority else {}),
+        },
+    ),
+    "update_ticket": OperationDefinition(
+        required=(RequiredField("ticket_id"),),
+        payload_builder=lambda subject, status, priority, **_: {
+            key: value
+            for key, value in {
+                "subject": subject or None,
+                "status": status if status else None,
+                "priority": priority if priority else None,
+            }.items()
+            if value is not None
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_tickets": lambda **_: "tickets",
+    "get_ticket": lambda ticket_id, **_: f"tickets/{ticket_id}",
+    "create_ticket": lambda **_: "tickets",
+    "update_ticket": lambda ticket_id, **_: f"tickets/{ticket_id}",
+}
+
+_METHODS = {
+    "create_ticket": "POST",
+    "update_ticket": "PUT",
+}
 
 
 def _build_auth_header(email: str, api_key: str) -> str:
@@ -20,23 +78,11 @@ def _build_auth_header(email: str, api_key: str) -> str:
 
 def _build_preview(
     *,
-    domain: str,
     operation: str,
-    ticket_id: Optional[int],
+    url: str,
+    method: str,
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = f"https://{domain}.gorgias.com/api/tickets"
-    url = base_url
-    method = "GET"
-
-    if operation == "get_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}"
-    elif operation == "create_ticket":
-        method = "POST"
-    elif operation == "update_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}"
-        method = "PUT"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -47,6 +93,12 @@ def _build_preview(
         preview["payload"] = payload
 
     return preview
+
+
+def _gorgias_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("message") or data.get("error") or "Gorgias API error"
+    return "Gorgias API error"
 
 
 def main(
@@ -79,22 +131,21 @@ def main(
             details="Provide a Gorgias API key for Basic authentication",
         )
 
-    normalized_operation = operation.lower()
-    valid_operations = {"list_tickets", "get_ticket", "create_ticket", "update_ticket"}
-    if normalized_operation not in valid_operations:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
-    if normalized_operation in {"get_ticket", "update_ticket"}:
-        if ticket_id is None:
-            return validation_error("Missing required ticket_id", field="ticket_id")
-
-    if normalized_operation == "create_ticket":
-        if not subject:
-            return validation_error("Missing required subject", field="subject")
-        if not message:
-            return validation_error("Missing required message", field="message")
-        if not customer_email:
-            return validation_error("Missing required customer_email", field="customer_email")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        ticket_id=ticket_id,
+        subject=subject,
+        message=message,
+        customer_email=customer_email,
+        status=status,
+        priority=priority,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     headers = {
         "Authorization": _build_auth_header(email, GORGIAS_API_KEY),
@@ -102,71 +153,31 @@ def main(
         "Accept": "application/json",
     }
 
-    base_url = f"https://{domain}.gorgias.com/api/tickets"
-    url = base_url
-    payload: Optional[Dict[str, Any]] = None
-
-    if normalized_operation == "get_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}"
-    elif normalized_operation == "create_ticket":
-        payload = {
-            "subject": subject,
-            "messages": [
-                {
-                    "channel": "email",
-                    "from_agent": False,
-                    "body_text": message,
-                    "sender": {"email": customer_email},
-                }
-            ],
-        }
-        if status:
-            payload["status"] = status
-        if priority:
-            payload["priority"] = priority
-    elif normalized_operation == "update_ticket" and ticket_id is not None:
-        url = f"{base_url}/{ticket_id}"
-        payload = {}
-        if subject:
-            payload["subject"] = subject
-        if status:
-            payload["status"] = status
-        if priority:
-            payload["priority"] = priority
+    base_url = f"https://{domain}.gorgias.com/api"
+    endpoint = _ENDPOINT_BUILDERS[operation](ticket_id=ticket_id)
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         preview = _build_preview(
-            domain=domain,
-            operation=normalized_operation,
-            ticket_id=ticket_id,
+            operation=operation,
+            url=url,
+            method=method,
             payload=payload,
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
     api_client = client or _DEFAULT_CLIENT
 
-    try:
-        if normalized_operation == "create_ticket":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        elif normalized_operation == "update_ticket":
-            response = api_client.put(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Gorgias request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        message = data.get("message") or data.get("error") or "Gorgias API error"
-        return error_output(message, status_code=response.status_code, response=data)
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_gorgias_error_message,
+        request_error_message="Gorgias request failed",
+        include_exception_in_message=False,
+    )

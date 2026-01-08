@@ -6,12 +6,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
     GoogleAuthManager,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
@@ -21,10 +23,35 @@ _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = GoogleAuthManager()
 
 
-_SUPPORTED_OPERATIONS = {
-    "search",
-    "get_campaign",
-    "list_campaigns",
+_OPERATIONS = {
+    "search": OperationDefinition(
+        required=(RequiredField("query", "query is required for search operation"),),
+        payload_builder=lambda query, **_: {"query": query},
+    ),
+    "get_campaign": OperationDefinition(
+        required=(
+            RequiredField(
+                "campaign_id", "campaign_id is required for get_campaign operation"
+            ),
+        ),
+    ),
+    "list_campaigns": OperationDefinition(
+        payload_builder=lambda **_: {
+            "query": "SELECT campaign.id, campaign.name, campaign.status FROM campaign"
+        }
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "search": lambda base_url, **_: f"{base_url}/googleAds:search",
+    "get_campaign": lambda base_url, campaign_id, **_: f"{base_url}/campaigns/{campaign_id}",
+    "list_campaigns": lambda base_url, **_: f"{base_url}/googleAds:search",
+}
+
+_METHODS = {
+    "search": "POST",
+    "list_campaigns": "POST",
+    "get_campaign": "GET",
 }
 
 
@@ -48,15 +75,12 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _google_ads_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        error = data.get("error", {})
+        if isinstance(error, dict):
+            return error.get("message", "Google Ads API error")
+    return "Google Ads API error"
 
 
 def main(
@@ -110,38 +134,30 @@ def main(
             details="Google Ads developer token is required.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
+            f"Invalid operation: {operation}. Valid operations: {', '.join(_OPERATIONS)}"
         )
 
     if not customer_id:
         return validation_error("customer_id is required")
 
-    # Build URL and method based on operation
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        query=query,
+        campaign_id=campaign_id,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
+
     base_url = f"https://googleads.googleapis.com/v16/customers/{customer_id}"
-    method = "POST"
-    payload = None
-    url = ""
-
-    if operation == "search":
-        if not query:
-            return validation_error("query is required for search operation")
-        url = f"{base_url}/googleAds:search"
-        payload = {"query": query}
-    elif operation == "get_campaign":
-        if not campaign_id:
-            return validation_error("campaign_id is required for get_campaign operation")
-        url = f"{base_url}/campaigns/{campaign_id}"
-        method = "GET"
-    elif operation == "list_campaigns":
-        url = f"{base_url}/googleAds:search"
-        payload = {
-            "query": "SELECT campaign.id, campaign.name, campaign.status FROM campaign"
-        }
-
-    if not url:
-        return validation_error("Unsupported operation", field="operation")
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=base_url,
+        campaign_id=campaign_id,
+    )
+    method = _METHODS.get(operation, "GET")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
@@ -174,31 +190,13 @@ def main(
         "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Google Ads request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("error", {}).get("message", "Google Ads API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_google_ads_error_message,
+        request_error_message="Google Ads request failed",
+    )

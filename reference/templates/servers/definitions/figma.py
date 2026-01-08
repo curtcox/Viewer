@@ -5,46 +5,65 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_files": OperationDefinition(),
+    "get_file": OperationDefinition(
+        required=(RequiredField("file_key"),),
+    ),
+    "list_comments": OperationDefinition(
+        required=(RequiredField("file_key"),),
+    ),
+    "get_comment": OperationDefinition(
+        required=(RequiredField("file_key"), RequiredField("comment_id")),
+    ),
+    "create_comment": OperationDefinition(
+        required=(RequiredField("file_key"), RequiredField("message")),
+        payload_builder=lambda message, client_meta, **_: {
+            "message": message,
+            **({"client_meta": client_meta} if client_meta else {}),
+        },
+    ),
+    "delete_comment": OperationDefinition(
+        required=(RequiredField("file_key"), RequiredField("comment_id")),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_files": lambda **_: "me/files",
+    "get_file": lambda file_key, **_: f"files/{file_key}",
+    "list_comments": lambda file_key, **_: f"files/{file_key}/comments",
+    "get_comment": lambda file_key, comment_id, **_: f"files/{file_key}/comments/{comment_id}",
+    "create_comment": lambda file_key, **_: f"files/{file_key}/comments",
+    "delete_comment": lambda file_key, comment_id, **_: f"files/{file_key}/comments/{comment_id}",
+}
+
+_METHODS = {
+    "create_comment": "POST",
+    "delete_comment": "DELETE",
+}
 
 
 def _build_preview(
     *,
     operation: str,
-    file_key: Optional[str],
-    comment_id: Optional[str],
+    url: str,
+    method: str,
     payload: Optional[Dict[str, Any]],
     params: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = "https://api.figma.com/v1"
-
-    if operation == "list_files":
-        url = f"{base_url}/me/files"
-        method = "GET"
-    elif operation == "get_file":
-        url = f"{base_url}/files/{file_key}"
-        method = "GET"
-    elif operation == "list_comments":
-        url = f"{base_url}/files/{file_key}/comments"
-        method = "GET"
-    elif operation == "get_comment":
-        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
-        method = "GET"
-    elif operation == "create_comment":
-        url = f"{base_url}/files/{file_key}/comments"
-        method = "POST"
-    elif operation == "delete_comment":
-        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
-        method = "DELETE"
-    else:
-        url = base_url
-        method = "GET"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -56,6 +75,23 @@ def _build_preview(
     if payload:
         preview["payload"] = payload
     return preview
+
+
+def _figma_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("err") or data.get("message") or "Figma API error"
+    return "Figma API error"
+
+
+def _figma_success_parser(response: Any, data: Any) -> Dict[str, Any]:
+    if getattr(response, "status_code", 200) >= 400:
+        response_text = getattr(response, "text", None)
+        return error_output(
+            f"Figma API error: {response.status_code}",
+            status_code=response.status_code,
+            details=response_text[:500] if response_text else "No response body",
+        )
+    return {"output": data}
 
 
 def main(
@@ -73,27 +109,8 @@ def main(
 ) -> Dict[str, Any]:
     """List files and manage comments in Figma."""
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_files", "get_file",
-        "list_comments", "get_comment", "create_comment", "delete_comment"
-    }
-
-    if normalized_operation not in valid_operations:
-        return validation_error(
-            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(valid_operations))}",
-            field="operation"
-        )
-
-    # Validate required parameters based on operation
-    if normalized_operation not in {"list_files"} and not file_key:
-        return validation_error("Missing required file_key", field="file_key")
-
-    if normalized_operation in {"get_comment", "delete_comment"} and not comment_id:
-        return validation_error(f"Missing required comment_id for {normalized_operation}", field="comment_id")
-
-    if normalized_operation == "create_comment" and not message:
-        return validation_error("Missing required message for create_comment", field="message")
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
     if not FIGMA_ACCESS_TOKEN:
         return error_output(
@@ -102,99 +119,62 @@ def main(
             details="Provide a personal access token from Figma account settings",
         )
 
-    # Build parameters and payload
-    params: Dict[str, Any] = {}
-    payload: Optional[Dict[str, Any]] = None
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        file_key=file_key,
+        comment_id=comment_id,
+        message=message,
+        client_meta=client_meta,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    if normalized_operation == "create_comment":
-        payload = {"message": message}
-        if client_meta:
-            payload["client_meta"] = client_meta
+    params: Dict[str, Any] = {}
+    payload: Optional[Dict[str, Any]] = result if isinstance(result, dict) else None
 
     # Return preview if in dry-run mode
+    base_url = "https://api.figma.com/v1"
+    endpoint = _ENDPOINT_BUILDERS[operation](file_key=file_key, comment_id=comment_id)
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+
     if dry_run:
         return {
             "output": _build_preview(
-                operation=normalized_operation,
-                file_key=file_key,
-                comment_id=comment_id,
+                operation=operation,
+                url=url,
+                method=method,
                 payload=payload,
                 params=params if params else None,
             )
         }
 
     # Build request
-    use_client = client or _DEFAULT_CLIENT
+    api_client = client or _DEFAULT_CLIENT
     headers = {
         "X-Figma-Token": FIGMA_ACCESS_TOKEN,
         "Content-Type": "application/json",
     }
 
-    base_url = "https://api.figma.com/v1"
+    empty_response_statuses = (204,) if operation == "delete_comment" else None
+    empty_response_output = (
+        {"success": True, "message": "Comment deleted successfully"}
+        if operation == "delete_comment"
+        else None
+    )
 
-    if normalized_operation == "list_files":
-        url = f"{base_url}/me/files"
-        method = "GET"
-    elif normalized_operation == "get_file":
-        url = f"{base_url}/files/{file_key}"
-        method = "GET"
-    elif normalized_operation == "list_comments":
-        url = f"{base_url}/files/{file_key}/comments"
-        method = "GET"
-    elif normalized_operation == "get_comment":
-        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
-        method = "GET"
-    elif normalized_operation == "create_comment":
-        url = f"{base_url}/files/{file_key}/comments"
-        method = "POST"
-    elif normalized_operation == "delete_comment":
-        url = f"{base_url}/files/{file_key}/comments/{comment_id}"
-        method = "DELETE"
-    else:
-        return validation_error("Unexpected operation", field="operation")
-
-    try:
-        response = use_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            params=params if method == "GET" and params else None,
-            json=payload if method == "POST" else None,
-            timeout=timeout,
-        )
-
-        if response.status_code >= 400:
-            return error_output(
-                f"Figma API error: {response.status_code}",
-                status_code=response.status_code,
-                details=response.text[:500] if response.text else "No response body",
-            )
-
-        # DELETE returns 204 with no content
-        if response.status_code == 204:
-            return {"output": {"success": True, "message": "Comment deleted successfully"}}
-
-        try:
-            data = response.json()
-        except requests.exceptions.JSONDecodeError:
-            return error_output(
-                "Invalid JSON response from Figma API",
-                status_code=response.status_code,
-                details=response.text[:500] if response.text else "No response body",
-            )
-
-        return {"output": data}
-
-    except requests.exceptions.Timeout:
-        return error_output(
-            f"Request timed out after {timeout} seconds",
-            status_code=408,
-            details="Consider increasing the timeout parameter",
-        )
-    except requests.exceptions.RequestException as e:
-        status_code = e.response.status_code if hasattr(e, "response") and e.response else None
-        return error_output(
-            f"Request failed: {str(e)}",
-            status_code=status_code,
-            details=str(e),
-        )
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params if method == "GET" and params else None,
+        json=payload if method == "POST" else None,
+        timeout=timeout,
+        error_parser=_figma_error_message,
+        success_parser=_figma_success_parser,
+        request_error_message="Figma request failed",
+        empty_response_statuses=empty_response_statuses,
+        empty_response_output=empty_response_output,
+    )

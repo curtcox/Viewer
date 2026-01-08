@@ -1,47 +1,116 @@
 # ruff: noqa: F821, F706
 """Call the Meta (Facebook) Marketing API for ads management."""
 
-from typing import Optional
+from typing import Any, Dict, Optional
+
 from server_utils.external_api import (
-    CredentialValidator,
     ExternalApiClient,
-    HttpClientConfig,
-    OperationValidator,
-    ParameterValidator,
+    OperationDefinition,
     PreviewBuilder,
-    ResponseHandler,
-    error_response,
+    RequiredField,
+    error_output,
+    execute_json_request,
     generate_form,
+    validation_error,
     FormField,
+    validate_and_build_payload,
 )
 
 
 API_BASE_URL = "https://graph.facebook.com/v18.0"
 DOCUMENTATION_URL = "https://developers.facebook.com/docs/marketing-apis"
 
-_OPERATIONS = {
-    "list_accounts",
-    "list_campaigns",
-    "get_campaign",
-    "create_campaign",
-    "list_adsets",
-    "get_adset",
-    "list_ads",
-    "get_ad",
-    "get_insights",
-}
-_OPERATION_VALIDATOR = OperationValidator(_OPERATIONS)
+_DEFAULT_CLIENT = ExternalApiClient()
 
-_PARAMETER_REQUIREMENTS = {
-    "list_campaigns": ["account_id"],
-    "create_campaign": ["account_id", "campaign_name", "objective"],
-    "get_campaign": ["campaign_id"],
-    "list_adsets": ["account_id"],
-    "get_adset": ["ad_set_id"],
-    "list_ads": ["account_id"],
-    "get_ad": ["ad_id"],
+_OPERATIONS = {
+    "list_accounts": OperationDefinition(),
+    "list_campaigns": OperationDefinition(
+        required=(RequiredField("account_id"),),
+    ),
+    "get_campaign": OperationDefinition(
+        required=(RequiredField("campaign_id"),),
+    ),
+    "create_campaign": OperationDefinition(
+        required=(
+            RequiredField("account_id"),
+            RequiredField("campaign_name"),
+            RequiredField("objective"),
+        ),
+        payload_builder=lambda campaign_name, objective, status, **_: {
+            "name": campaign_name,
+            "objective": objective,
+            "status": status,
+            "special_ad_categories": "[]",
+        },
+    ),
+    "list_adsets": OperationDefinition(
+        required=(RequiredField("account_id"),),
+    ),
+    "get_adset": OperationDefinition(
+        required=(RequiredField("ad_set_id"),),
+    ),
+    "list_ads": OperationDefinition(
+        required=(RequiredField("account_id"),),
+    ),
+    "get_ad": OperationDefinition(
+        required=(RequiredField("ad_id"),),
+    ),
+    "get_insights": OperationDefinition(),
 }
-_PARAMETER_VALIDATOR = ParameterValidator(_PARAMETER_REQUIREMENTS)
+
+_ENDPOINT_BUILDERS = {
+    "list_accounts": lambda **_: "me/adaccounts",
+    "list_campaigns": lambda account_id, **_: f"{account_id}/campaigns",
+    "get_campaign": lambda campaign_id, **_: f"{campaign_id}",
+    "create_campaign": lambda account_id, **_: f"{account_id}/campaigns",
+    "list_adsets": lambda account_id, **_: f"{account_id}/adsets",
+    "get_adset": lambda ad_set_id, **_: f"{ad_set_id}",
+    "list_ads": lambda account_id, **_: f"{account_id}/ads",
+    "get_ad": lambda ad_id, **_: f"{ad_id}",
+    "get_insights": lambda campaign_id, ad_set_id, ad_id, **_: (
+        f"{campaign_id or ad_set_id or ad_id}/insights"
+    ),
+}
+
+_METHODS = {"create_campaign": "POST"}
+
+_PARAMETER_BUILDERS = {
+    "list_accounts": lambda limit, fields, **_: _build_list_params(limit, fields),
+    "list_campaigns": lambda limit, fields, **_: _build_list_params(limit, fields),
+    "list_adsets": lambda limit, fields, **_: _build_list_params(limit, fields),
+    "list_ads": lambda limit, fields, **_: _build_list_params(limit, fields),
+    "get_campaign": lambda fields, **_: _build_fields_params(fields),
+    "get_adset": lambda fields, **_: _build_fields_params(fields),
+    "get_ad": lambda fields, **_: _build_fields_params(fields),
+    "get_insights": lambda fields, **_: _build_fields_params(fields),
+}
+
+
+def _build_fields_params(fields: str) -> Dict[str, str]:
+    if fields:
+        return {"fields": fields}
+    return {}
+
+
+def _build_list_params(limit: int, fields: str) -> Dict[str, str | int]:
+    params: Dict[str, str | int] = {"limit": limit}
+    if fields:
+        params["fields"] = fields
+    return params
+
+
+def _build_preview_params(params: Dict[str, str | int]) -> Dict[str, str | int]:
+    preview_params = dict(params)
+    preview_params["access_token"] = "[REDACTED]"
+    return preview_params
+
+
+def _meta_error_message(_response, data: Any) -> str:
+    if isinstance(data, dict):
+        error_info = data.get("error")
+        if isinstance(error_info, dict):
+            return error_info.get("message", "Meta API error")
+    return "Meta API error"
 
 
 def main(
@@ -61,7 +130,7 @@ def main(
     META_ACCESS_TOKEN: str,
     context=None,
     client: Optional[ExternalApiClient] = None,
-):
+) -> Dict[str, Any]:
     """
     Make a request to the Meta Marketing API.
 
@@ -86,11 +155,9 @@ def main(
     Returns:
         Dict with 'output' containing the API response or preview
     """
-    # Validate secret first
-    if error := CredentialValidator.require_secret(META_ACCESS_TOKEN, "META_ACCESS_TOKEN"):
-        return error
+    if not META_ACCESS_TOKEN:
+        return error_output("Missing META_ACCESS_TOKEN", status_code=401)
 
-    # Show form if no operation provided
     if not operation:
         return generate_form(
             server_name="meta_ads",
@@ -180,127 +247,67 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    # Validate operation
-    if error := _OPERATION_VALIDATOR.validate(operation):
-        return error
-    normalized_operation = _OPERATION_VALIDATOR.normalize(operation)
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        account_id=account_id,
+        campaign_id=campaign_id,
+        ad_set_id=ad_set_id,
+        ad_id=ad_id,
+        campaign_name=campaign_name,
+        objective=objective,
+        status=status,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    # Validate operation-specific parameters
-    if error := _PARAMETER_VALIDATOR.validate_required(
-        normalized_operation,
-        {
-            "account_id": account_id,
-            "campaign_id": campaign_id,
-            "campaign_name": campaign_name,
-            "objective": objective,
-            "ad_set_id": ad_set_id,
-            "ad_id": ad_id,
-        },
-    ):
-        return error
-
-    # Additional validation for get_insights
-    if normalized_operation == "get_insights" and not (campaign_id or ad_set_id or ad_id):
-        return error_response(
+    if operation == "get_insights" and not (campaign_id or ad_set_id or ad_id):
+        return validation_error(
             "campaign_id, ad_set_id, or ad_id is required for get_insights",
-            error_type="validation_error",
         )
 
-    # Build request based on operation
-    method = "GET"
-    payload = None
-    params = {"access_token": META_ACCESS_TOKEN}
+    endpoint_builder = _ENDPOINT_BUILDERS.get(operation)
+    if not endpoint_builder:
+        return validation_error("Unsupported operation", field="operation")
 
-    if normalized_operation == "list_accounts":
-        url = f"{API_BASE_URL}/me/adaccounts"
-        params["limit"] = limit
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "list_campaigns":
-        url = f"{API_BASE_URL}/{account_id}/campaigns"
-        params["limit"] = limit
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "get_campaign":
-        url = f"{API_BASE_URL}/{campaign_id}"
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "create_campaign":
-        method = "POST"
-        url = f"{API_BASE_URL}/{account_id}/campaigns"
-        payload = {
-            "name": campaign_name,
-            "objective": objective,
-            "status": status,
-            "special_ad_categories": "[]",
-        }
-    elif normalized_operation == "list_adsets":
-        url = f"{API_BASE_URL}/{account_id}/adsets"
-        params["limit"] = limit
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "get_adset":
-        url = f"{API_BASE_URL}/{ad_set_id}"
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "list_ads":
-        url = f"{API_BASE_URL}/{account_id}/ads"
-        params["limit"] = limit
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "get_ad":
-        url = f"{API_BASE_URL}/{ad_id}"
-        if fields:
-            params["fields"] = fields
-    elif normalized_operation == "get_insights":
-        entity_id = campaign_id or ad_set_id or ad_id
-        url = f"{API_BASE_URL}/{entity_id}/insights"
-        if fields:
-            params["fields"] = fields
-    else:
-        url = API_BASE_URL
+    endpoint = endpoint_builder(
+        account_id=account_id,
+        campaign_id=campaign_id,
+        ad_set_id=ad_set_id,
+        ad_id=ad_id,
+    )
+    url = f"{API_BASE_URL}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
+    params = _PARAMETER_BUILDERS.get(operation, lambda **_: {})
+    params = params(limit=limit, fields=fields)
+    params["access_token"] = META_ACCESS_TOKEN
 
-    # Dry run: return preview
     if dry_run:
         preview = PreviewBuilder.build(
-            operation=normalized_operation,
+            operation=operation,
             url=url,
             method=method,
             auth_type="Access Token",
-            params={**params, "access_token": "[REDACTED]"},
+            params=_build_preview_params(params),
             payload=payload,
         )
         return PreviewBuilder.dry_run_response(preview)
 
-    # Create client with configured timeout
-    if client is None:
-        config = HttpClientConfig(timeout=timeout)
-        client = ExternalApiClient(config)
-
-    headers = {
-        "Accept": "application/json",
-    }
-    if method in ["POST", "PUT", "PATCH"]:
+    api_client = client or _DEFAULT_CLIENT
+    headers = {"Accept": "application/json"}
+    if method in {"POST", "PUT", "PATCH"}:
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload if payload else None,
-            params=params,
-            timeout=timeout,
-        )
-    except Exception as exc:
-        return ResponseHandler.handle_request_exception(exc)
-
-    # Extract error message from Meta API response
-    def extract_error(data):
-        if isinstance(data, dict) and "error" in data:
-            error_info = data["error"]
-            if isinstance(error_info, dict):
-                return error_info.get("message", "Meta API error")
-        return "Meta API error"
-
-    return ResponseHandler.handle_json_response(response, extract_error)
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_meta_error_message,
+        request_error_message="Request failed",
+        include_exception_in_message=True,
+    )

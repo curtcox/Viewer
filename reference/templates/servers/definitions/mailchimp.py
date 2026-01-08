@@ -3,24 +3,68 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import re
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
 
 
-_SUPPORTED_OPERATIONS = {
-    "list_lists",
-    "get_list",
-    "add_member",
-    "get_member",
-    "list_campaigns",
-    "get_campaign",
+_OPERATIONS = {
+    "list_lists": OperationDefinition(),
+    "get_list": OperationDefinition(
+        required=(RequiredField("list_id", "list_id is required for get_list operation"),),
+    ),
+    "add_member": OperationDefinition(
+        required=(
+            RequiredField("list_id", "list_id and email are required for add_member operation"),
+            RequiredField("email", "list_id and email are required for add_member operation"),
+        ),
+        payload_builder=lambda email, member_data, **_: {
+            "email_address": email,
+            "status": "subscribed",
+            **(member_data or {}),
+        },
+    ),
+    "get_member": OperationDefinition(
+        required=(
+            RequiredField("list_id", "list_id and email are required for get_member operation"),
+            RequiredField("email", "list_id and email are required for get_member operation"),
+        ),
+    ),
+    "list_campaigns": OperationDefinition(),
+    "get_campaign": OperationDefinition(
+        required=(
+            RequiredField("campaign_id", "campaign_id is required for get_campaign operation"),
+        ),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_lists": lambda base_url, count, **_: f"{base_url}/lists?count={count}",
+    "get_list": lambda base_url, list_id, **_: f"{base_url}/lists/{list_id}",
+    "add_member": lambda base_url, list_id, **_: f"{base_url}/lists/{list_id}/members",
+    "get_member": lambda base_url, list_id, email, **_: (
+        f"{base_url}/lists/{list_id}/members/{_subscriber_hash(email)}"
+    ),
+    "list_campaigns": lambda base_url, count, **_: f"{base_url}/campaigns?count={count}",
+    "get_campaign": lambda base_url, campaign_id, **_: f"{base_url}/campaigns/{campaign_id}",
+}
+
+_METHODS = {
+    "add_member": "POST",
 }
 
 
@@ -50,15 +94,19 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
+def _mailchimp_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        return (
+            data.get("detail")
+            or data.get("title")
+            or data.get("error")
+            or "Mailchimp API error"
         )
+    return "Mailchimp API error"
+
+
+def _subscriber_hash(email: str) -> str:
+    return hashlib.md5(email.lower().encode()).hexdigest()
 
 
 def main(
@@ -112,60 +160,35 @@ def main(
             details="API key must be in format: key-datacenter (e.g., key-us1)",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
+            f"Invalid operation: {operation}. Valid operations: {', '.join(_OPERATIONS)}"
         )
 
-    # Build URL and method based on operation
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        list_id=list_id,
+        email=email,
+        member_data=member_data,
+        campaign_id=campaign_id,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
+
     base_url = f"https://{datacenter}.api.mailchimp.com/3.0"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
-
-    if operation == "list_lists":
-        url = f"{base_url}/lists?count={count}"
-    elif operation == "get_list":
-        if not list_id:
-            return validation_error("list_id is required for get_list operation")
-        url = f"{base_url}/lists/{list_id}"
-    elif operation == "add_member":
-        if not list_id or not email:
-            return validation_error(
-                "list_id and email are required for add_member operation"
-            )
-        url = f"{base_url}/lists/{list_id}/members"
-        method = "POST"
-        payload = {"email_address": email, "status": "subscribed"}
-        if member_data:
-            payload.update(member_data)
-    elif operation == "get_member":
-        if not list_id or not email:
-            return validation_error(
-                "list_id and email are required for get_member operation"
-            )
-        # Mailchimp uses MD5 hash of lowercase email as member ID
-        import hashlib
-
-        subscriber_hash = hashlib.md5(email.lower().encode()).hexdigest()
-        url = f"{base_url}/lists/{list_id}/members/{subscriber_hash}"
-    elif operation == "list_campaigns":
-        url = f"{base_url}/campaigns?count={count}"
-    elif operation == "get_campaign":
-        if not campaign_id:
-            return validation_error(
-                "campaign_id is required for get_campaign operation"
-            )
-        url = f"{base_url}/campaigns/{campaign_id}"
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=base_url,
+        list_id=list_id,
+        email=email,
+        campaign_id=campaign_id,
+        count=count,
+    )
+    method = _METHODS.get(operation, "GET")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
-
-    # Mailchimp uses HTTP Basic Auth with 'anystring' as username and API key as password
-    import base64
 
     auth_str = base64.b64encode(f"anystring:{MAILCHIMP_API_KEY}".encode()).decode()
     headers = {
@@ -173,31 +196,13 @@ def main(
         "Authorization": f"Basic {auth_str}",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Mailchimp request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("detail", "Mailchimp API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_mailchimp_error_message,
+        request_error_message="Mailchimp request failed",
+    )

@@ -6,12 +6,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
     GoogleAuthManager,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
@@ -21,12 +23,67 @@ _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = GoogleAuthManager()
 
 
-_SUPPORTED_OPERATIONS = {
-    "list_contacts",
-    "get_contact",
-    "create_contact",
-    "update_contact",
-    "delete_contact",
+_OPERATIONS = {
+    "list_contacts": OperationDefinition(),
+    "get_contact": OperationDefinition(
+        required=(
+            RequiredField(
+                "resource_name", "resource_name is required for get_contact operation"
+            ),
+        ),
+    ),
+    "create_contact": OperationDefinition(
+        required=(
+            RequiredField("given_name", "given_name is required for create_contact operation"),
+        ),
+        payload_builder=lambda given_name, family_name, email, phone, **_: _build_contact_payload(
+            given_name=given_name,
+            family_name=family_name,
+            email=email,
+            phone=phone,
+        ),
+    ),
+    "update_contact": OperationDefinition(
+        required=(
+            RequiredField(
+                "resource_name", "resource_name is required for update_contact operation"
+            ),
+        ),
+        payload_builder=lambda given_name, family_name, email, phone, **_: _build_contact_payload(
+            given_name=given_name,
+            family_name=family_name,
+            email=email,
+            phone=phone,
+        ),
+    ),
+    "delete_contact": OperationDefinition(
+        required=(
+            RequiredField(
+                "resource_name", "resource_name is required for delete_contact operation"
+            ),
+        ),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_contacts": lambda base_url, page_size, **_: (
+        f"{base_url}/people/me/connections?pageSize={page_size}"
+        "&personFields=names,emailAddresses,phoneNumbers"
+    ),
+    "get_contact": lambda base_url, resource_name, **_: (
+        f"{base_url}/{resource_name}?personFields=names,emailAddresses,phoneNumbers"
+    ),
+    "create_contact": lambda base_url, **_: f"{base_url}/people:createContact",
+    "update_contact": lambda base_url, resource_name, **_: (
+        f"{base_url}/{resource_name}:updateContact?updatePersonFields=names,emailAddresses,phoneNumbers"
+    ),
+    "delete_contact": lambda base_url, resource_name, **_: f"{base_url}/{resource_name}:deleteContact",
+}
+
+_METHODS = {
+    "create_contact": "POST",
+    "update_contact": "PATCH",
+    "delete_contact": "DELETE",
 }
 
 
@@ -50,15 +107,28 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _build_contact_payload(
+    *,
+    given_name: Optional[str],
+    family_name: Optional[str],
+    email: Optional[str],
+    phone: Optional[str],
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {}
+
+    if given_name or family_name:
+        payload["names"] = [{}]
+        if given_name:
+            payload["names"][0]["givenName"] = given_name
+        if family_name:
+            payload["names"][0]["familyName"] = family_name
+
+    if email:
+        payload["emailAddresses"] = [{"value": email}]
+    if phone:
+        payload["phoneNumbers"] = [{"value": phone}]
+
+    return payload
 
 
 def main(
@@ -109,59 +179,31 @@ def main(
             details="Provide either a service account JSON or an access token.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
+            f"Invalid operation: {operation}. Valid operations: {', '.join(_OPERATIONS)}"
         )
 
-    # Build URL and method based on operation
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        resource_name=resource_name,
+        given_name=given_name,
+        family_name=family_name,
+        email=email,
+        phone=phone,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
+
     base_url = "https://people.googleapis.com/v1"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
-
-    if operation == "list_contacts":
-        url = f"{base_url}/people/me/connections?pageSize={page_size}&personFields=names,emailAddresses,phoneNumbers"
-    elif operation == "get_contact":
-        if not resource_name:
-            return validation_error("resource_name is required for get_contact operation")
-        url = f"{base_url}/{resource_name}?personFields=names,emailAddresses,phoneNumbers"
-    elif operation == "create_contact":
-        if not given_name:
-            return validation_error("given_name is required for create_contact operation")
-        url = f"{base_url}/people:createContact"
-        method = "POST"
-        payload = {"names": [{"givenName": given_name}]}
-        if family_name:
-            payload["names"][0]["familyName"] = family_name
-        if email:
-            payload["emailAddresses"] = [{"value": email}]
-        if phone:
-            payload["phoneNumbers"] = [{"value": phone}]
-    elif operation == "update_contact":
-        if not resource_name:
-            return validation_error("resource_name is required for update_contact operation")
-        url = f"{base_url}/{resource_name}:updateContact?updatePersonFields=names,emailAddresses,phoneNumbers"
-        method = "PATCH"
-        payload = {}
-        if given_name or family_name:
-            payload["names"] = [{}]
-            if given_name:
-                payload["names"][0]["givenName"] = given_name
-            if family_name:
-                payload["names"][0]["familyName"] = family_name
-        if email:
-            payload["emailAddresses"] = [{"value": email}]
-        if phone:
-            payload["phoneNumbers"] = [{"value": phone}]
-    elif operation == "delete_contact":
-        if not resource_name:
-            return validation_error("resource_name is required for delete_contact operation")
-        url = f"{base_url}/{resource_name}:deleteContact"
-        method = "DELETE"
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=base_url,
+        resource_name=resource_name,
+        page_size=page_size,
+    )
+    method = _METHODS.get(operation, "GET")
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
@@ -193,36 +235,19 @@ def main(
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Google Contacts request failed", status_code=status, details=str(exc)
-        )
-
-    if operation == "delete_contact":
-        # DELETE returns 200 on success
-        if response.status_code in (200, 204):
-            return {"output": {"message": "Contact deleted successfully"}}
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("error", {}).get("message", "Google Contacts API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=lambda _response, data: (
+            data.get("error", {}).get("message", "Google Contacts API error")
+            if isinstance(data, dict)
+            else "Google Contacts API error"
+        ),
+        request_error_message="Google Contacts request failed",
+        empty_response_statuses=(200, 204) if operation == "delete_contact" else None,
+        empty_response_output={"message": "Contact deleted successfully"},
+    )

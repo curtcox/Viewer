@@ -339,6 +339,7 @@ jobs:
         run: |
           TEST_STATUS=0
           python -m coverage run -m pytest \
+            --ignore=tests/property \
             --junitxml=test-results.xml \
             --html=unit-test-report.html \
             --self-contained-html \
@@ -449,8 +450,8 @@ jobs:
         if: steps.run_db_equivalence.outcome == 'failure'
         run: exit 1
 
-  property-tests:
-    name: Property Tests
+  hypothesis-tests:
+    name: Hypothesis Tests
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
@@ -467,29 +468,29 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .testmondata
-          key: testmon-property-${{ github.ref }}-${{ github.sha }}
+          key: testmon-hypothesis-${{ github.ref }}-${{ github.sha }}
           restore-keys: |
-            testmon-property-${{ github.ref }}-
-            testmon-property-
-      - name: Run property tests
-        id: run_property_tests
+            testmon-hypothesis-${{ github.ref }}-
+            testmon-hypothesis-
+      - name: Run hypothesis tests
+        id: run_hypothesis_tests
         run: |
           set -o pipefail
           ./scripts/checks/run_property_tests.sh \
-            --junitxml=property-tests-report.xml \
-            | tee property-tests.log
+            --junitxml=hypothesis-tests-report.xml \
+            | tee hypothesis-tests.log
         continue-on-error: true
-      - name: Upload property test artifacts
+      - name: Upload hypothesis test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: property-tests-results
+          name: hypothesis-tests-results
           path: |
-            property-tests-report.xml
-            property-tests.log
+            hypothesis-tests-report.xml
+            hypothesis-tests.log
           if-no-files-found: warn
-      - name: Fail if property tests failed
-        if: steps.run_property_tests.outcome == 'failure'
+      - name: Fail if hypothesis tests failed
+        if: steps.run_hypothesis_tests.outcome == 'failure'
         run: exit 1
 
   integration-tests:
@@ -664,7 +665,7 @@ jobs:
       - cid-validation
       - dead-fixtures
       - unit-tests
-      - property-tests
+      - hypothesis-tests
       - integration-tests
       - gauge-specs
       - ai-eval
@@ -697,7 +698,7 @@ jobs:
           DEAD_FIXTURES_STATUS: ${{ needs.dead-fixtures.result }}
           UNIT_TESTS_RESULTS_STATUS: ${{ needs.unit-tests.outputs.test_result }}
           UNIT_TESTS_COVERAGE_STATUS: ${{ needs.unit-tests.outputs.coverage_result }}
-          PROPERTY_TESTS_STATUS: ${{ needs.property-tests.result }}
+          HYPOTHESIS_TESTS_STATUS: ${{ needs.hypothesis-tests.result }}
           INTEGRATION_TESTS_STATUS: ${{ needs.integration-tests.result }}
           GAUGE_SPECS_STATUS: ${{ needs.gauge-specs.result }}
           AI_EVAL_STATUS: ${{ needs.ai-eval.result }}
@@ -707,97 +708,97 @@ jobs:
         continue-on-error: true
         with:
           name: unit-tests-results
-          path: site/unit-tests-results
+          path: artifacts/unit-tests-results
       - name: Download unit test coverage report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: unit-tests-html
-          path: site/unit-tests-coverage
+          path: artifacts/unit-tests-coverage
       - name: Download Gauge report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: gauge-html
-          path: site/gauge-specs
+          path: artifacts/gauge-specs
       - name: Download integration test results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: integration-tests-results
-          path: site/integration-tests
-      - name: Download property test results
+          path: artifacts/integration-tests
+      - name: Download hypothesis test results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: property-tests-results
-          path: site/property-tests
+          name: hypothesis-tests-results
+          path: artifacts/hypothesis-tests
       - name: Download Radon report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: radon-report
-          path: site/radon
+          path: artifacts/radon
       - name: Download Vulture report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: vulture-report
-          path: site/vulture
+          path: artifacts/vulture
       - name: Download Python Smells report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: python-smells-report
-          path: site/python-smells
+          path: artifacts/python-smells
       - name: Download Pylint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: pylint-report
-          path: site/pylint
+          path: artifacts/pylint
       - name: Download Pydoclint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: pydoclint-report
-          path: site/pydoclint
+          path: artifacts/pydoclint
       - name: Download ShellCheck report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: shellcheck-report
-          path: site/shellcheck
+          path: artifacts/shellcheck
       - name: Download Hadolint report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: hadolint-report
-          path: site/hadolint
+          path: artifacts/hadolint
       - name: Download Test Index report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: test-index-report
-          path: site/test-index
+          path: artifacts/test-index
       - name: Download CID validation report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: cid-validation-report
-          path: site/cid-validation
+          path: artifacts/cid-validation
       - name: Download Dead Fixtures report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: dead-fixtures-report
-          path: site/dead-fixtures
+          path: artifacts/dead-fixtures
       - name: Download AI eval results
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: ai-eval-results
-          path: site/ai-eval
+          path: artifacts/ai-eval
       - name: Prepare site content
         run: ./scripts/ci/prepare_report_site.sh
       - name: Upload artifact for GitHub Pages
