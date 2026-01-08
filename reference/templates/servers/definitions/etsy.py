@@ -3,16 +3,70 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_shops": OperationDefinition(),
+    "get_shop": OperationDefinition(
+        required=(RequiredField("shop_id"),),
+    ),
+    "list_listings": OperationDefinition(
+        required=(RequiredField("shop_id"),),
+    ),
+    "get_listing": OperationDefinition(
+        required=(RequiredField("listing_id"),),
+    ),
+    "create_listing": OperationDefinition(
+        required=(RequiredField("shop_id"), RequiredField("title"), RequiredField("price")),
+        payload_builder=lambda title, description, price, quantity, who_made, when_made, **_: {
+            "title": title,
+            "quantity": quantity,
+            "price": price,
+            "who_made": who_made,
+            "when_made": when_made,
+            **({"description": description} if description else {}),
+        },
+    ),
+    "update_listing": OperationDefinition(
+        required=(RequiredField("listing_id"),),
+        payload_builder=lambda title, description, price, quantity, **_: {
+            **({"title": title} if title else {}),
+            **({"description": description} if description else {}),
+            **({"price": price} if price else {}),
+            **({"quantity": quantity} if quantity else {}),
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_shops": lambda **_: "shops",
+    "get_shop": lambda shop_id, **_: f"shops/{shop_id}",
+    "list_listings": lambda shop_id, **_: f"shops/{shop_id}/listings/active",
+    "get_listing": lambda listing_id, **_: f"listings/{listing_id}",
+    "create_listing": lambda shop_id, **_: f"shops/{shop_id}/listings",
+    "update_listing": lambda listing_id, **_: f"listings/{listing_id}",
+}
+
+_METHODS = {
+    "create_listing": "POST",
+    "update_listing": "PUT",
+}
+
+_PARAMETER_BUILDERS = {
+    "list_shops": lambda limit, **_: {"limit": limit},
+    "list_listings": lambda limit, **_: {"limit": limit},
+}
 
 
 def _build_preview(
@@ -48,6 +102,12 @@ def _extract_error_message(data: Dict[str, Any]) -> str:
     return "Etsy API error"
 
 
+def _etsy_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        return _extract_error_message(data)
+    return "Etsy API error"
+
+
 def main(
     *,
     operation: str = "list_shops",
@@ -68,16 +128,7 @@ def main(
 ) -> Dict[str, Any]:
     """Interact with Etsy shops and listings."""
 
-    normalized_operation = operation.lower()
-
-    if normalized_operation not in {
-        "list_shops",
-        "get_shop",
-        "list_listings",
-        "get_listing",
-        "create_listing",
-        "update_listing",
-    }:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
     if not ETSY_ACCESS_TOKEN:
@@ -87,19 +138,20 @@ def main(
             details="Provide an Etsy OAuth access token.",
         )
 
-    if normalized_operation == "get_shop" and not shop_id:
-        return validation_error("Missing required shop_id", field="shop_id")
-    if normalized_operation == "list_listings" and not shop_id:
-        return validation_error("Missing required shop_id", field="shop_id")
-    if normalized_operation in {"get_listing", "update_listing"} and not listing_id:
-        return validation_error("Missing required listing_id", field="listing_id")
-    if normalized_operation == "create_listing":
-        if not shop_id:
-            return validation_error("Missing required shop_id", field="shop_id")
-        if not title:
-            return validation_error("Missing required title", field="title")
-        if not price:
-            return validation_error("Missing required price", field="price")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        shop_id=shop_id,
+        listing_id=listing_id,
+        title=title,
+        description=description,
+        price=price,
+        quantity=quantity,
+        who_made=who_made,
+        when_made=when_made,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     api_client = client or _DEFAULT_CLIENT
     headers = {
@@ -110,50 +162,15 @@ def main(
     }
 
     base_url = "https://openapi.etsy.com/v3/application"
-    url = f"{base_url}/shops"
-    method = "GET"
-    params: Optional[Dict[str, Any]] = None
-    payload: Optional[Dict[str, Any]] = None
-
-    if normalized_operation == "list_shops":
-        params = {"limit": limit}
-    elif normalized_operation == "get_shop":
-        url = f"{base_url}/shops/{shop_id}"
-    elif normalized_operation == "list_listings":
-        url = f"{base_url}/shops/{shop_id}/listings/active"
-        params = {"limit": limit}
-    elif normalized_operation == "get_listing":
-        url = f"{base_url}/listings/{listing_id}"
-    elif normalized_operation == "create_listing":
-        method = "POST"
-        url = f"{base_url}/shops/{shop_id}/listings"
-        listing_data: Dict[str, Any] = {
-            "title": title,
-            "quantity": quantity,
-            "price": price,
-            "who_made": who_made,
-            "when_made": when_made,
-        }
-        if description:
-            listing_data["description"] = description
-        payload = listing_data
-    elif normalized_operation == "update_listing":
-        method = "PUT"
-        url = f"{base_url}/listings/{listing_id}"
-        listing_data = {}
-        if title:
-            listing_data["title"] = title
-        if description:
-            listing_data["description"] = description
-        if price:
-            listing_data["price"] = price
-        if quantity:
-            listing_data["quantity"] = quantity
-        payload = listing_data
+    endpoint = _ENDPOINT_BUILDERS[operation](shop_id=shop_id, listing_id=listing_id)
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    params = _PARAMETER_BUILDERS.get(operation, lambda **_: None)(limit=limit)
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         preview = _build_preview(
-            operation=normalized_operation,
+            operation=operation,
             url=url,
             method=method,
             params=params,
@@ -161,31 +178,15 @@ def main(
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
-    try:
-        if method == "POST":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        elif method == "PUT":
-            response = api_client.put(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, params=params, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Etsy request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        return error_output(
-            _extract_error_message(data),
-            status_code=response.status_code,
-            response=data,
-        )
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_etsy_error_message,
+        request_error_message="Etsy request failed",
+        include_exception_in_message=False,
+    )

@@ -3,44 +3,84 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_conversations": OperationDefinition(),
+    "get_conversation": OperationDefinition(
+        required=(RequiredField("conversation_id"),),
+    ),
+    "create_conversation": OperationDefinition(
+        required=(
+            RequiredField("mailbox_id"),
+            RequiredField("subject"),
+            RequiredField("customer_email"),
+            RequiredField("text"),
+        ),
+        payload_builder=lambda mailbox_id, subject, customer_email, text, **_: {
+            "subject": subject,
+            "mailboxId": mailbox_id,
+            "customer": {"email": customer_email},
+            "threads": [
+                {
+                    "type": "customer",
+                    "customer": {"email": customer_email},
+                    "text": text,
+                }
+            ],
+        },
+    ),
+    "list_customers": OperationDefinition(),
+    "get_customer": OperationDefinition(
+        required=(RequiredField("customer_id"),),
+    ),
+    "create_customer": OperationDefinition(
+        required=(
+            RequiredField("first_name"),
+            RequiredField("last_name"),
+            RequiredField("email"),
+        ),
+        payload_builder=lambda first_name, last_name, email, **_: {
+            "firstName": first_name,
+            "lastName": last_name,
+            "email": email,
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_conversations": lambda **_: "conversations",
+    "get_conversation": lambda conversation_id, **_: f"conversations/{conversation_id}",
+    "create_conversation": lambda **_: "conversations",
+    "list_customers": lambda **_: "customers",
+    "get_customer": lambda customer_id, **_: f"customers/{customer_id}",
+    "create_customer": lambda **_: "customers",
+}
+
+_METHODS = {
+    "create_conversation": "POST",
+    "create_customer": "POST",
+}
 
 
 def _build_preview(
     *,
     operation: str,
-    conversation_id: Optional[str],
+    url: str,
+    method: str,
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = "https://api.helpscout.net/v2"
-
-    if operation == "list_conversations":
-        url = f"{base_url}/conversations"
-        method = "GET"
-    elif operation == "get_conversation":
-        url = f"{base_url}/conversations/{conversation_id}"
-        method = "GET"
-    elif operation == "create_conversation":
-        url = f"{base_url}/conversations"
-        method = "POST"
-    elif operation == "list_customers":
-        url = f"{base_url}/customers"
-        method = "GET"
-    elif operation == "get_customer":
-        url = f"{base_url}/customers/{conversation_id}"  # reusing for customer_id
-        method = "GET"
-    elif operation == "create_customer":
-        url = f"{base_url}/customers"
-        method = "POST"
-    else:
-        url = base_url
-        method = "GET"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -51,6 +91,12 @@ def _build_preview(
         preview["payload"] = payload
 
     return preview
+
+
+def _helpscout_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("message") or data.get("error") or "Help Scout API error"
+    return "Help Scout API error"
 
 
 def main(
@@ -80,44 +126,24 @@ def main(
             details="Provide a Help Scout API key for Bearer authentication",
         )
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_conversations",
-        "get_conversation",
-        "create_conversation",
-        "list_customers",
-        "get_customer",
-        "create_customer",
-    }
-    if normalized_operation not in valid_operations:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
-    # Validation for specific operations
-    if normalized_operation == "get_conversation":
-        if not conversation_id:
-            return validation_error("Missing required conversation_id", field="conversation_id")
-
-    if normalized_operation == "create_conversation":
-        if not mailbox_id:
-            return validation_error("Missing required mailbox_id", field="mailbox_id")
-        if not subject:
-            return validation_error("Missing required subject", field="subject")
-        if not customer_email:
-            return validation_error("Missing required customer_email", field="customer_email")
-        if not text:
-            return validation_error("Missing required text", field="text")
-
-    if normalized_operation == "get_customer":
-        if not customer_id:
-            return validation_error("Missing required customer_id", field="customer_id")
-
-    if normalized_operation == "create_customer":
-        if not first_name:
-            return validation_error("Missing required first_name", field="first_name")
-        if not last_name:
-            return validation_error("Missing required last_name", field="last_name")
-        if not email:
-            return validation_error("Missing required email", field="email")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        conversation_id=conversation_id,
+        customer_id=customer_id,
+        mailbox_id=mailbox_id,
+        subject=subject,
+        customer_email=customer_email,
+        text=text,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     headers = {
         "Authorization": f"Bearer {HELPSCOUT_API_KEY}",
@@ -126,78 +152,33 @@ def main(
     }
 
     base_url = "https://api.helpscout.net/v2"
-    payload: Optional[Dict[str, Any]] = None
-
-    # Build URL and payload based on operation
-    if normalized_operation == "list_conversations":
-        url = f"{base_url}/conversations"
-        method = "GET"
-    elif normalized_operation == "get_conversation":
-        url = f"{base_url}/conversations/{conversation_id}"
-        method = "GET"
-    elif normalized_operation == "create_conversation":
-        url = f"{base_url}/conversations"
-        method = "POST"
-        payload = {
-            "subject": subject,
-            "mailboxId": mailbox_id,
-            "customer": {"email": customer_email},
-            "threads": [
-                {
-                    "type": "customer",
-                    "customer": {"email": customer_email},
-                    "text": text,
-                }
-            ],
-        }
-    elif normalized_operation == "list_customers":
-        url = f"{base_url}/customers"
-        method = "GET"
-    elif normalized_operation == "get_customer":
-        url = f"{base_url}/customers/{customer_id}"
-        method = "GET"
-    elif normalized_operation == "create_customer":
-        url = f"{base_url}/customers"
-        method = "POST"
-        payload = {
-            "firstName": first_name,
-            "lastName": last_name,
-            "email": email,
-        }
-    else:
-        url = base_url
-        method = "GET"
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        conversation_id=conversation_id,
+        customer_id=customer_id,
+    )
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         preview = _build_preview(
-            operation=normalized_operation,
-            conversation_id=conversation_id or customer_id,
+            operation=operation,
+            url=url,
+            method=method,
             payload=payload,
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
     api_client = client or _DEFAULT_CLIENT
 
-    try:
-        if method == "POST":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("Help Scout request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        message = data.get("message") or data.get("error") or "Help Scout API error"
-        return error_output(message, status_code=response.status_code, response=data)
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_helpscout_error_message,
+        request_error_message="Help Scout request failed",
+        include_exception_in_message=False,
+    )

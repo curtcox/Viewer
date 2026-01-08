@@ -4,12 +4,55 @@ from __future__ import annotations
 import base64
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_records": OperationDefinition(),
+    "get_record": OperationDefinition(
+        required=(RequiredField("sys_id"),),
+    ),
+    "create_record": OperationDefinition(
+        required=(RequiredField("short_description"),),
+        payload_builder=lambda short_description, description, urgency, impact, **_: {
+            "short_description": short_description,
+            **({"description": description} if description else {}),
+            **({"urgency": urgency} if urgency else {}),
+            **({"impact": impact} if impact else {}),
+        },
+    ),
+    "update_record": OperationDefinition(
+        required=(RequiredField("sys_id"),),
+        payload_builder=lambda short_description, description, urgency, impact, **_: {
+            **({"short_description": short_description} if short_description else {}),
+            **({"description": description} if description else {}),
+            **({"urgency": urgency} if urgency else {}),
+            **({"impact": impact} if impact else {}),
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_records": lambda base_url, **_: base_url,
+    "get_record": lambda base_url, sys_id, **_: f"{base_url}/{sys_id}",
+    "create_record": lambda base_url, **_: base_url,
+    "update_record": lambda base_url, sys_id, **_: f"{base_url}/{sys_id}",
+}
+
+_METHODS = {
+    "create_record": "POST",
+    "update_record": "PUT",
+}
 
 
 def _build_auth_header(username: str, password: str) -> str:
@@ -20,24 +63,12 @@ def _build_auth_header(username: str, password: str) -> str:
 
 def _build_preview(
     *,
-    instance: str,
     operation: str,
+    url: str,
+    method: str,
     table: str,
-    sys_id: Optional[str],
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = f"https://{instance}.service-now.com/api/now/table/{table}"
-    url = base_url
-    method = "GET"
-
-    if operation == "get_record" and sys_id:
-        url = f"{base_url}/{sys_id}"
-    elif operation == "create_record":
-        method = "POST"
-    elif operation == "update_record" and sys_id:
-        url = f"{base_url}/{sys_id}"
-        method = "PUT"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -49,6 +80,21 @@ def _build_preview(
         preview["payload"] = payload
 
     return preview
+
+
+def _servicenow_error_message(_response: Any, data: Any) -> str:
+    if isinstance(data, dict):
+        error_block = data.get("error")
+        if isinstance(error_block, dict):
+            return (
+                error_block.get("message")
+                or error_block.get("detail")
+                or "ServiceNow API error"
+            )
+        if isinstance(error_block, str):
+            return error_block
+        return data.get("message") or "ServiceNow API error"
+    return "ServiceNow API error"
 
 
 def main(
@@ -83,18 +129,20 @@ def main(
             details="Provide a ServiceNow password for Basic authentication",
         )
 
-    normalized_operation = operation.lower()
-    valid_operations = {"list_records", "get_record", "create_record", "update_record"}
-    if normalized_operation not in valid_operations:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
-    if normalized_operation in {"get_record", "update_record"}:
-        if not sys_id:
-            return validation_error("Missing required sys_id", field="sys_id")
-
-    if normalized_operation == "create_record":
-        if not short_description:
-            return validation_error("Missing required short_description", field="short_description")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        sys_id=sys_id,
+        short_description=short_description,
+        description=description,
+        urgency=urgency,
+        impact=impact,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     headers = {
         "Authorization": _build_auth_header(SERVICENOW_USERNAME, SERVICENOW_PASSWORD),
@@ -103,67 +151,28 @@ def main(
     }
 
     base_url = f"https://{instance}.service-now.com/api/now/table/{table}"
-    url = base_url
-    payload: Optional[Dict[str, Any]] = None
-
-    if normalized_operation == "get_record" and sys_id:
-        url = f"{base_url}/{sys_id}"
-    elif normalized_operation == "create_record":
-        payload = {
-            "short_description": short_description,
-        }
-        if description:
-            payload["description"] = description
-        if urgency:
-            payload["urgency"] = urgency
-        if impact:
-            payload["impact"] = impact
-    elif normalized_operation == "update_record" and sys_id:
-        url = f"{base_url}/{sys_id}"
-        payload = {}
-        if short_description:
-            payload["short_description"] = short_description
-        if description:
-            payload["description"] = description
-        if urgency:
-            payload["urgency"] = urgency
-        if impact:
-            payload["impact"] = impact
+    url = _ENDPOINT_BUILDERS[operation](base_url=base_url, sys_id=sys_id)
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         preview = _build_preview(
-            instance=instance,
-            operation=normalized_operation,
+            operation=operation,
+            url=url,
+            method=method,
             table=table,
-            sys_id=sys_id,
             payload=payload,
         )
         return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
 
     api_client = client or _DEFAULT_CLIENT
-
-    try:
-        if normalized_operation == "create_record":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        elif normalized_operation == "update_record":
-            response = api_client.put(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("ServiceNow request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        message = data.get("error") or data.get("message") or "ServiceNow API error"
-        return error_output(message, status_code=response.status_code, response=data)
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_servicenow_error_message,
+        request_error_message="ServiceNow request failed",
+    )
