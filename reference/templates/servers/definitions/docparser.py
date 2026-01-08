@@ -50,7 +50,7 @@ _OPERATIONS = {
         },
     ),
     "list_documents": OperationDefinition(
-        required=(RequiredField("parser_id"),),
+        required=(RequiredField("parser_id", message="parser_id is required"),),
         payload_builder=lambda parser_id, **_: {
             "method": "GET",
             "url": f"{API_BASE_URL}/results/{parser_id}",
@@ -59,7 +59,10 @@ _OPERATIONS = {
         },
     ),
     "get_document": OperationDefinition(
-        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        required=(
+            RequiredField("document_id", message="document_id is required"),
+            RequiredField("parser_id", message="parser_id is required"),
+        ),
         payload_builder=lambda parser_id, document_id, **_: {
             "method": "GET",
             "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
@@ -68,7 +71,10 @@ _OPERATIONS = {
         },
     ),
     "get_parsed_data": OperationDefinition(
-        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        required=(
+            RequiredField("document_id", message="document_id is required"),
+            RequiredField("parser_id", message="parser_id is required"),
+        ),
         payload_builder=lambda parser_id, document_id, output_format, **_: {
             "method": "GET",
             "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
@@ -77,7 +83,10 @@ _OPERATIONS = {
         },
     ),
     "delete_document": OperationDefinition(
-        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        required=(
+            RequiredField("document_id", message="document_id is required"),
+            RequiredField("parser_id", message="parser_id is required"),
+        ),
         payload_builder=lambda parser_id, document_id, **_: {
             "method": "DELETE",
             "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
