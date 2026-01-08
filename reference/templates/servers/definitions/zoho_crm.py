@@ -5,21 +5,61 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
 
 
-_SUPPORTED_OPERATIONS = {
-    "list_records",
-    "get_record",
-    "create_record",
-    "update_record",
-    "delete_record",
-    "search_records",
+_OPERATIONS = {
+    "list_records": OperationDefinition(),
+    "get_record": OperationDefinition(
+        required=(RequiredField("record_id", "record_id is required for get_record operation"),),
+    ),
+    "create_record": OperationDefinition(
+        required=(RequiredField("data", "data is required for create_record operation"),),
+        payload_builder=lambda data, **_: {"data": [data]},
+    ),
+    "update_record": OperationDefinition(
+        required=(
+            RequiredField("record_id", "record_id is required for update_record operation"),
+            RequiredField("data", "data is required for update_record operation"),
+        ),
+        payload_builder=lambda data, **_: {"data": [data]},
+    ),
+    "delete_record": OperationDefinition(
+        required=(RequiredField("record_id", "record_id is required for delete_record operation"),),
+    ),
+    "search_records": OperationDefinition(
+        required=(RequiredField("criteria", "criteria is required for search_records operation"),),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_records": lambda base_url, module, page, per_page, **_: (
+        f"{base_url}/{module}?page={page}&per_page={per_page}"
+    ),
+    "get_record": lambda base_url, module, record_id, **_: f"{base_url}/{module}/{record_id}",
+    "create_record": lambda base_url, module, **_: f"{base_url}/{module}",
+    "update_record": lambda base_url, module, record_id, **_: f"{base_url}/{module}/{record_id}",
+    "delete_record": lambda base_url, module, record_id, **_: f"{base_url}/{module}/{record_id}",
+    "search_records": lambda base_url, module, criteria, page, per_page, **_: (
+        f"{base_url}/{module}/search?criteria={criteria}&page={page}&per_page={per_page}"
+    ),
+}
+
+_METHODS = {
+    "create_record": "POST",
+    "update_record": "PUT",
+    "delete_record": "DELETE",
 }
 
 
@@ -54,15 +94,10 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _zoho_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        return data.get("message") or data.get("error") or "Zoho CRM API error"
+    return "Zoho CRM API error"
 
 
 def main(
@@ -109,9 +144,9 @@ def main(
             details="Provide a valid OAuth access token.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
+            f"Invalid operation: {operation}. Valid operations: {', '.join(_OPERATIONS)}"
         )
 
     if module not in _SUPPORTED_MODULES:
@@ -119,78 +154,45 @@ def main(
             f"Invalid module: {module}. Valid modules: {', '.join(_SUPPORTED_MODULES)}"
         )
 
-    # Build URL and method based on operation
     base_url = "https://www.zohoapis.com/crm/v3"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        record_id=record_id,
+        data=data,
+        criteria=criteria,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
 
-    if operation == "list_records":
-        url = f"{base_url}/{module}?page={page}&per_page={per_page}"
-    elif operation == "get_record":
-        if not record_id:
-            return validation_error("record_id is required for get_record operation")
-        url = f"{base_url}/{module}/{record_id}"
-    elif operation == "create_record":
-        if not data:
-            return validation_error("data is required for create_record operation")
-        url = f"{base_url}/{module}"
-        method = "POST"
-        payload = {"data": [data]}
-    elif operation == "update_record":
-        if not record_id or not data:
-            return validation_error(
-                "record_id and data are required for update_record operation"
-            )
-        url = f"{base_url}/{module}/{record_id}"
-        method = "PUT"
-        payload = {"data": [data]}
-    elif operation == "delete_record":
-        if not record_id:
-            return validation_error("record_id is required for delete_record operation")
-        url = f"{base_url}/{module}/{record_id}"
-        method = "DELETE"
-    elif operation == "search_records":
-        if not criteria:
-            return validation_error("criteria is required for search_records operation")
-        url = f"{base_url}/{module}/search?criteria={criteria}&page={page}&per_page={per_page}"
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=base_url,
+        module=module,
+        record_id=record_id,
+        criteria=criteria,
+        page=page,
+        per_page=per_page,
+    )
+    method = _METHODS.get(operation, "GET")
 
     if dry_run:
-        return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
+        return {
+            "output": _build_preview(operation=operation, url=url, method=method, payload=payload)
+        }
 
     headers = {
         "Authorization": f"Zoho-oauthtoken {ZOHO_ACCESS_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Zoho CRM request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("message", "Zoho CRM API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_zoho_error_message,
+        request_error_message="Zoho CRM request failed",
+    )

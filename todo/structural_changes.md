@@ -15,11 +15,12 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 8: Migrated woocommerce.py (complexity 33→10, reduced by 23 branches)
 - ✅ Phase 9: Migrated freshbooks.py, docparser.py, and onedrive.py to dispatch tables and shared executor.
 - ✅ Phase 10: Migrated servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py to dispatch tables and shared executor.
-- ⏳ Remaining servers: 80+ servers with 10+ branches still need migration
+- ✅ Phase 11: Migrated mailchimp.py, mailerlite.py, and zoho_crm.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 70+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
-Successfully migrated **17 high-complexity external API servers** to use dispatch table pattern:
+Successfully migrated **20 high-complexity external API servers** to use dispatch table pattern:
 
 | Server | Before | After | Reduction | Status |
 |--------|--------|-------|-----------|--------|
@@ -40,8 +41,11 @@ Successfully migrated **17 high-complexity external API servers** to use dispatc
 | **figma.py** | 32 | TBD | TBD | ✅ Completed (Phase 10) |
 | **klaviyo.py** | 31 | TBD | TBD | ✅ Completed (Phase 10) |
 | **quickbooks.py** | 32 | TBD | TBD | ✅ Completed (Phase 10) |
+| **mailchimp.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
+| **mailerlite.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
+| **zoho_crm.py** | TBD | TBD | TBD | ✅ Completed (Phase 11) |
 
-**Total complexity reduction: 168+ branches eliminated across 17 servers (pending updated counts for Phase 10)**
+**Total complexity reduction: 168+ branches eliminated across 20 servers (pending updated counts for Phase 11)**
 
 ### Pattern Applied
 

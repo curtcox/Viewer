@@ -1,19 +1,82 @@
 # ruff: noqa: F821, F706
 """Call the MailerLite API for email marketing."""
 
-from typing import Optional
+from typing import Any, Optional
+
 from server_utils.external_api import (
     ExternalApiClient,
-    HttpClientConfig,
-    error_response,
-    missing_secret_error,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
     generate_form,
     FormField,
+    missing_secret_error,
+    validate_and_build_payload,
+    validation_error,
 )
 
 
 API_BASE_URL = "https://connect.mailerlite.com/api"
 DOCUMENTATION_URL = "https://developers.mailerlite.com/docs"
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_subscribers": OperationDefinition(),
+    "get_subscriber": OperationDefinition(
+        required=(
+            RequiredField("subscriber_id", "subscriber_id is required for get_subscriber operation"),
+        ),
+    ),
+    "create_subscriber": OperationDefinition(
+        required=(RequiredField("email", "email is required for create_subscriber operation"),),
+        payload_builder=lambda email, fields, **_: {"email": email, **({"fields": fields} if fields else {})},
+    ),
+    "update_subscriber": OperationDefinition(
+        required=(
+            RequiredField("subscriber_id", "subscriber_id is required for update_subscriber operation"),
+        ),
+        payload_builder=lambda email, fields, **_: {
+            **({"email": email} if email else {}),
+            **({"fields": fields} if fields else {}),
+        },
+    ),
+    "list_groups": OperationDefinition(),
+    "get_group": OperationDefinition(
+        required=(RequiredField("group_id", "group_id is required for get_group operation"),),
+    ),
+    "list_campaigns": OperationDefinition(),
+    "get_campaign": OperationDefinition(
+        required=(RequiredField("campaign_id", "campaign_id is required for get_campaign operation"),),
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_subscribers": lambda **_: f"{API_BASE_URL}/subscribers",
+    "get_subscriber": lambda subscriber_id, **_: f"{API_BASE_URL}/subscribers/{subscriber_id}",
+    "create_subscriber": lambda **_: f"{API_BASE_URL}/subscribers",
+    "update_subscriber": lambda subscriber_id, **_: f"{API_BASE_URL}/subscribers/{subscriber_id}",
+    "list_groups": lambda **_: f"{API_BASE_URL}/groups",
+    "get_group": lambda group_id, **_: f"{API_BASE_URL}/groups/{group_id}",
+    "list_campaigns": lambda **_: f"{API_BASE_URL}/campaigns",
+    "get_campaign": lambda campaign_id, **_: f"{API_BASE_URL}/campaigns/{campaign_id}",
+}
+
+_METHODS = {
+    "create_subscriber": "POST",
+    "update_subscriber": "PUT",
+}
+
+
+def _parse_fields(fields: Optional[str]) -> dict[str, Any] | None | tuple[str, str]:
+    if not fields:
+        return None
+    try:
+        import json
+
+        return json.loads(fields)
+    except json.JSONDecodeError:
+        return ("Invalid JSON in fields parameter", "fields")
 
 
 def main(
@@ -111,95 +174,35 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    # Validate operation
-    valid_operations = [
-        "list_subscribers",
-        "get_subscriber",
-        "create_subscriber",
-        "update_subscriber",
-        "list_groups",
-        "get_group",
-        "list_campaigns",
-        "get_campaign",
-    ]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
+    if operation not in _OPERATIONS:
+        return validation_error(
+            f"Invalid operation: {operation}. Must be one of: {', '.join(_OPERATIONS)}",
+            field="operation",
         )
 
-    # Build request based on operation
-    method = "GET"
-    url = API_BASE_URL
-    payload = None
+    parsed_fields = _parse_fields(fields)
+    if isinstance(parsed_fields, tuple):
+        return validation_error(parsed_fields[0], field=parsed_fields[1])
 
-    if operation == "list_subscribers":
-        url = f"{API_BASE_URL}/subscribers"
-    elif operation == "get_subscriber":
-        if not subscriber_id:
-            return error_response(
-                "subscriber_id is required for get_subscriber operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/subscribers/{subscriber_id}"
-    elif operation == "create_subscriber":
-        if not email:
-            return error_response(
-                "email is required for create_subscriber operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/subscribers"
-        payload = {"email": email}
-        if fields:
-            import json
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        subscriber_id=subscriber_id,
+        email=email,
+        fields=parsed_fields,
+        group_id=group_id,
+        campaign_id=campaign_id,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    payload = result
 
-            try:
-                custom_fields = json.loads(fields)
-                payload["fields"] = custom_fields
-            except json.JSONDecodeError:
-                return error_response(
-                    "Invalid JSON in fields parameter", error_type="validation_error"
-                )
-    elif operation == "update_subscriber":
-        if not subscriber_id:
-            return error_response(
-                "subscriber_id is required for update_subscriber operation",
-                error_type="validation_error",
-            )
-        method = "PUT"
-        url = f"{API_BASE_URL}/subscribers/{subscriber_id}"
-        payload = {}
-        if email:
-            payload["email"] = email
-        if fields:
-            import json
-
-            try:
-                custom_fields = json.loads(fields)
-                payload["fields"] = custom_fields
-            except json.JSONDecodeError:
-                return error_response(
-                    "Invalid JSON in fields parameter", error_type="validation_error"
-                )
-    elif operation == "list_groups":
-        url = f"{API_BASE_URL}/groups"
-    elif operation == "get_group":
-        if not group_id:
-            return error_response(
-                "group_id is required for get_group operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/groups/{group_id}"
-    elif operation == "list_campaigns":
-        url = f"{API_BASE_URL}/campaigns"
-    elif operation == "get_campaign":
-        if not campaign_id:
-            return error_response(
-                "campaign_id is required for get_campaign operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/campaigns/{campaign_id}"
+    url = _ENDPOINT_BUILDERS[operation](
+        subscriber_id=subscriber_id,
+        group_id=group_id,
+        campaign_id=campaign_id,
+    )
+    method = _METHODS.get(operation, "GET")
 
     # Dry run: return preview
     if dry_run:
@@ -213,40 +216,19 @@ def main(
             preview["payload"] = payload
         return {"output": preview}
 
-    # Create client with configured timeout
-    if client is None:
-        config = HttpClientConfig(timeout=timeout)
-        client = ExternalApiClient(config)
-
+    api_client = client or _DEFAULT_CLIENT
     headers = {
         "Authorization": f"Bearer {MAILERLITE_API_KEY}",
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
-    try:
-        response = client.request(
-            method=method, url=url, headers=headers, json=payload, timeout=timeout
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        request_error_message="MailerLite request failed",
+    )
