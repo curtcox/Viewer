@@ -14,11 +14,12 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 7: Migrated meta_ads.py (complexity 33→13, reduced by 20 branches)
 - ✅ Phase 8: Migrated woocommerce.py (complexity 33→10, reduced by 23 branches)
 - ✅ Phase 9: Migrated freshbooks.py, docparser.py, and onedrive.py to dispatch tables and shared executor.
-- ⏳ Remaining servers: 91+ servers with 10+ branches still need migration
+- ✅ Phase 10: Migrated servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 80+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
-Successfully migrated **11 high-complexity external API servers** to use dispatch table pattern:
+Successfully migrated **17 high-complexity external API servers** to use dispatch table pattern:
 
 | Server | Before | After | Reduction | Status |
 |--------|--------|-------|-----------|--------|
@@ -33,8 +34,14 @@ Successfully migrated **11 high-complexity external API servers** to use dispatc
 | **freshbooks.py** | 33 | TBD | TBD | ✅ Completed (Phase 9) |
 | **docparser.py** | 32 | TBD | TBD | ✅ Completed (Phase 9) |
 | **onedrive.py** | 32 | TBD | TBD | ✅ Completed (Phase 9) |
+| **servicenow.py** | 31 | TBD | TBD | ✅ Completed (Phase 10) |
+| **helpscout.py** | 31 | TBD | TBD | ✅ Completed (Phase 10) |
+| **etsy.py** | 31 | TBD | TBD | ✅ Completed (Phase 10) |
+| **figma.py** | 32 | TBD | TBD | ✅ Completed (Phase 10) |
+| **klaviyo.py** | 31 | TBD | TBD | ✅ Completed (Phase 10) |
+| **quickbooks.py** | 32 | TBD | TBD | ✅ Completed (Phase 10) |
 
-**Total complexity reduction: 168+ branches eliminated across 11 servers**
+**Total complexity reduction: 168+ branches eliminated across 17 servers (pending updated counts for Phase 10)**
 
 ### Pattern Applied
 
@@ -62,10 +69,10 @@ The Radon analysis shows 25 server definitions with E-grade complexity (31-35):
 | 35 | 1 | dropbox.py |
 | 34 | 5 | xero.py, telegram.py, linkedin_ads.py, docusign.py, salesforce.py |
 | 33 | 1 | freshbooks.py |
-| 32 | 6 | docparser.py, onedrive.py, mongodb.py, figma.py, quickbooks.py, squarespace.py |
-| 31 | 9 | servicenow.py, klaviyo.py, helpscout.py, etsy.py, aws_s3.py, and more |
+| 32 | 4 | docparser.py, onedrive.py, mongodb.py, squarespace.py |
+| 31 | 5 | aws_s3.py and others |
 
-Note: freshbooks.py, docparser.py, and onedrive.py were migrated in Phase 9; refresh the Radon analysis counts when convenient.
+Note: freshbooks.py, docparser.py, and onedrive.py were migrated in Phase 9; servicenow.py, helpscout.py, etsy.py, figma.py, klaviyo.py, and quickbooks.py were migrated in Phase 10. Refresh the Radon analysis counts when convenient.
 
 **Root cause**: All complexity stems from the same anti-pattern—large if-elif chains in `main()` functions that dispatch operations.
 

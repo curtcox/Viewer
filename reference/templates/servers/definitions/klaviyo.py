@@ -1,19 +1,99 @@
 # ruff: noqa: F821, F706
 """Call the Klaviyo API for email marketing and customer data."""
 
+import json
 from typing import Optional
+
 from server_utils.external_api import (
     ExternalApiClient,
-    HttpClientConfig,
-    error_response,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
     missing_secret_error,
     generate_form,
     FormField,
+    validate_and_build_payload,
+    validation_error,
 )
 
 
 API_BASE_URL = "https://a.klaviyo.com/api"
 DOCUMENTATION_URL = "https://developers.klaviyo.com/en/reference/api-overview"
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_profiles": OperationDefinition(),
+    "get_profile": OperationDefinition(
+        required=(RequiredField("profile_id"),),
+    ),
+    "create_profile": OperationDefinition(
+        required=(RequiredField("email"),),
+        payload_builder=lambda email, first_name, last_name, phone_number, properties, **_: {
+            "data": {
+                "type": "profile",
+                "attributes": {
+                    "email": email,
+                    **({"first_name": first_name} if first_name else {}),
+                    **({"last_name": last_name} if last_name else {}),
+                    **({"phone_number": phone_number} if phone_number else {}),
+                    **({"properties": properties} if properties else {}),
+                },
+            },
+        },
+    ),
+    "list_lists": OperationDefinition(),
+    "get_list": OperationDefinition(
+        required=(RequiredField("list_id"),),
+    ),
+    "create_list": OperationDefinition(
+        required=(RequiredField("list_id"),),
+        payload_builder=lambda list_id, **_: {
+            "data": {"type": "list", "attributes": {"name": list_id}},
+        },
+    ),
+    "add_profile_to_list": OperationDefinition(
+        required=(RequiredField("list_id"), RequiredField("profile_id")),
+        payload_builder=lambda list_id, profile_id, **_: {
+            "data": [{"type": "profile", "id": profile_id}],
+        },
+    ),
+    "get_events": OperationDefinition(),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_profiles": lambda **_: "profiles",
+    "get_profile": lambda profile_id, **_: f"profiles/{profile_id}",
+    "create_profile": lambda **_: "profiles",
+    "list_lists": lambda **_: "lists",
+    "get_list": lambda list_id, **_: f"lists/{list_id}",
+    "create_list": lambda **_: "lists",
+    "add_profile_to_list": lambda list_id, **_: f"lists/{list_id}/relationships/profiles",
+    "get_events": lambda **_: "events",
+}
+
+_METHODS = {
+    "create_profile": "POST",
+    "create_list": "POST",
+    "add_profile_to_list": "POST",
+}
+
+
+def _klaviyo_error_message(_response: object, data: object) -> str:
+    if isinstance(data, dict):
+        errors = data.get("errors")
+        if isinstance(errors, list) and errors:
+            first = errors[0]
+            if isinstance(first, dict):
+                return (
+                    first.get("detail")
+                    or first.get("title")
+                    or first.get("code")
+                    or "Klaviyo API error"
+                )
+            return str(first)
+        return data.get("message") or "Klaviyo API error"
+    return "Klaviyo API error"
 
 
 def main(
@@ -127,97 +207,34 @@ def main(
         )
 
     # Validate operation
-    valid_operations = [
-        "list_profiles",
-        "get_profile",
-        "create_profile",
-        "list_lists",
-        "get_list",
-        "create_list",
-        "add_profile_to_list",
-        "get_events",
-    ]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Build request based on operation
-    method = "GET"
-    url = API_BASE_URL
-    payload = None
+    parsed_properties = None
+    if properties:
+        try:
+            parsed_properties = json.loads(properties) if isinstance(properties, str) else properties
+        except json.JSONDecodeError:
+            return validation_error("Invalid JSON in properties field", field="properties")
 
-    if operation == "list_profiles":
-        url = f"{API_BASE_URL}/profiles"
-    elif operation == "get_profile":
-        if not profile_id:
-            return error_response(
-                "profile_id is required for get_profile operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/profiles/{profile_id}"
-    elif operation == "create_profile":
-        if not email:
-            return error_response(
-                "email is required for create_profile operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/profiles"
-        payload = {
-            "data": {
-                "type": "profile",
-                "attributes": {
-                    "email": email,
-                },
-            }
-        }
-        if first_name:
-            payload["data"]["attributes"]["first_name"] = first_name
-        if last_name:
-            payload["data"]["attributes"]["last_name"] = last_name
-        if phone_number:
-            payload["data"]["attributes"]["phone_number"] = phone_number
-        if properties:
-            import json
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        profile_id=profile_id,
+        list_id=list_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        phone_number=phone_number,
+        properties=parsed_properties,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-            try:
-                props = json.loads(properties)
-                payload["data"]["attributes"]["properties"] = props
-            except json.JSONDecodeError:
-                return error_response(
-                    "Invalid JSON in properties field", error_type="validation_error"
-                )
-    elif operation == "list_lists":
-        url = f"{API_BASE_URL}/lists"
-    elif operation == "get_list":
-        if not list_id:
-            return error_response(
-                "list_id is required for get_list operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/lists/{list_id}"
-    elif operation == "create_list":
-        if not list_id:
-            return error_response(
-                "list_id is required for create_list operation (used as name)",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/lists"
-        payload = {"data": {"type": "list", "attributes": {"name": list_id}}}
-    elif operation == "add_profile_to_list":
-        if not list_id or not profile_id:
-            return error_response(
-                "list_id and profile_id are required for add_profile_to_list operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/lists/{list_id}/relationships/profiles"
-        payload = {"data": [{"type": "profile", "id": profile_id}]}
-    elif operation == "get_events":
-        url = f"{API_BASE_URL}/events"
+    endpoint = _ENDPOINT_BUILDERS[operation](profile_id=profile_id, list_id=list_id)
+    url = f"{API_BASE_URL}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     # Dry run: return preview
     if dry_run:
@@ -231,10 +248,7 @@ def main(
             preview["payload"] = payload
         return {"output": preview}
 
-    # Create client with configured timeout
-    if client is None:
-        config = HttpClientConfig(timeout=timeout)
-        client = ExternalApiClient(config)
+    api_client = client or _DEFAULT_CLIENT
 
     headers = {
         "Authorization": f"Klaviyo-API-Key {KLAVIYO_API_KEY}",
@@ -244,29 +258,13 @@ def main(
     if method in ["POST", "PUT", "PATCH"]:
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method, url=url, headers=headers, json=payload, timeout=timeout
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_klaviyo_error_message,
+        request_error_message="Klaviyo request failed",
+    )
