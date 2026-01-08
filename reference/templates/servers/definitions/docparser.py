@@ -236,6 +236,7 @@ def main(
             "params": params,
             "payload": payload,
             "auth": "Basic [REDACTED]",
+            "dry_run": True,
         }
         return {"output": preview, "content_type": "application/json"}
 
