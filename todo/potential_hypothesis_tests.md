@@ -138,7 +138,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 6. History Filters (`history_filters.py`)
+### 6. History Filters (`history_filters.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_history_filters_properties.py`
 
 **Test: Timestamp round-trip**
 - **What it tests**: Formatting a datetime and parsing it back should yield the original value (modulo timezone)
@@ -211,7 +213,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 9. Authorization (`authorization.py`)
+### 9. Authorization (`authorization.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_authorization_properties.py`
 
 **Test: AuthorizationResult validation**
 - **What it tests**: Creating an `AuthorizationResult` with `allowed=False` should require status_code and message
