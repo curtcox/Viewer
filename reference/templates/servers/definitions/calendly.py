@@ -5,24 +5,74 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+_BASE_URL = "https://api.calendly.com"
 
-
-_SUPPORTED_OPERATIONS = {
-    "get_user",
-    "list_event_types",
-    "get_event_type",
-    "list_events",
-    "get_event",
-    "list_invitees",
-    "get_invitee",
-    "cancel_event",
+_OPERATIONS = {
+    "get_user": OperationDefinition(),
+    "list_event_types": OperationDefinition(required=(RequiredField("user_uri"),)),
+    "get_event_type": OperationDefinition(required=(RequiredField("event_type_uuid"),)),
+    "list_events": OperationDefinition(required=(RequiredField("user_uri"),)),
+    "get_event": OperationDefinition(required=(RequiredField("event_uuid"),)),
+    "list_invitees": OperationDefinition(required=(RequiredField("event_uuid"),)),
+    "get_invitee": OperationDefinition(required=(RequiredField("invitee_uuid"),)),
+    "cancel_event": OperationDefinition(
+        required=(RequiredField("event_uuid"),),
+        payload_builder=lambda **_: {"reason": "Cancelled via API"},
+    ),
 }
+
+_ENDPOINT_BUILDERS = {
+    "get_user": lambda base_url, **_: f"{base_url}/users/me",
+    "list_event_types": lambda base_url, **_: f"{base_url}/event_types",
+    "get_event_type": lambda base_url, event_type_uuid, **_: (
+        f"{base_url}/event_types/{event_type_uuid}"
+    ),
+    "list_events": lambda base_url, **_: f"{base_url}/scheduled_events",
+    "get_event": lambda base_url, event_uuid, **_: (
+        f"{base_url}/scheduled_events/{event_uuid}"
+    ),
+    "list_invitees": lambda base_url, event_uuid, **_: (
+        f"{base_url}/scheduled_events/{event_uuid}/invitees"
+    ),
+    "get_invitee": lambda base_url, invitee_uuid, **_: (
+        f"{base_url}/scheduled_events/invitees/{invitee_uuid}"
+    ),
+    "cancel_event": lambda base_url, event_uuid, **_: (
+        f"{base_url}/scheduled_events/{event_uuid}/cancellation"
+    ),
+}
+
+_METHODS = {
+    "cancel_event": "POST",
+}
+
+
+def _build_params(
+    operation: str,
+    *,
+    user_uri: Optional[str],
+    event_uuid: Optional[str],
+    count: int,
+) -> Optional[Dict[str, Any]]:
+    params: Dict[str, Any] = {}
+    if operation in {"list_event_types", "list_events"}:
+        params["user"] = user_uri
+        params["count"] = count
+    elif operation == "list_invitees":
+        params["count"] = count
+    return params or None
 
 
 def _build_preview(
@@ -31,6 +81,7 @@ def _build_preview(
     url: str,
     method: str,
     payload: Optional[Dict[str, Any]],
+    params: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
     preview: Dict[str, Any] = {
         "operation": operation,
@@ -39,21 +90,24 @@ def _build_preview(
         "auth": "bearer",
     }
 
+    if params:
+        preview["params"] = params
     if payload:
         preview["payload"] = payload
 
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _calendly_error_message(response: object, data: object) -> str:
+    status = getattr(response, "status_code", None)
+    if status == 401:
+        return "Invalid or missing CALENDLY_API_KEY"
+    if status == 403:
+        return "Insufficient permissions for this operation"
+
+    if isinstance(data, dict):
+        return data.get("message") or data.get("error") or "Calendly API error"
+    return "Calendly API error"
 
 
 def main(
@@ -98,92 +152,59 @@ def main(
             details="Provide a valid API key (OAuth token).",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
-        )
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        user_uri=user_uri,
+        event_type_uuid=event_type_uuid,
+        event_uuid=event_uuid,
+        invitee_uuid=invitee_uuid,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    # Build URL and method based on operation
-    base_url = "https://api.calendly.com"
-    method = "GET"
-    payload = None
-    url = ""
-
-    if operation == "get_user":
-        url = f"{base_url}/users/me"
-    elif operation == "list_event_types":
-        if not user_uri:
-            return validation_error("user_uri is required for list_event_types operation")
-        url = f"{base_url}/event_types?user={user_uri}&count={count}"
-    elif operation == "get_event_type":
-        if not event_type_uuid:
-            return validation_error(
-                "event_type_uuid is required for get_event_type operation"
-            )
-        url = f"{base_url}/event_types/{event_type_uuid}"
-    elif operation == "list_events":
-        if not user_uri:
-            return validation_error("user_uri is required for list_events operation")
-        url = f"{base_url}/scheduled_events?user={user_uri}&count={count}"
-    elif operation == "get_event":
-        if not event_uuid:
-            return validation_error("event_uuid is required for get_event operation")
-        url = f"{base_url}/scheduled_events/{event_uuid}"
-    elif operation == "list_invitees":
-        if not event_uuid:
-            return validation_error("event_uuid is required for list_invitees operation")
-        url = f"{base_url}/scheduled_events/{event_uuid}/invitees?count={count}"
-    elif operation == "get_invitee":
-        if not invitee_uuid:
-            return validation_error("invitee_uuid is required for get_invitee operation")
-        url = f"{base_url}/scheduled_events/invitees/{invitee_uuid}"
-    elif operation == "cancel_event":
-        if not event_uuid:
-            return validation_error("event_uuid is required for cancel_event operation")
-        url = f"{base_url}/scheduled_events/{event_uuid}/cancellation"
-        method = "POST"
-        payload = {"reason": "Cancelled via API"}
-
-    if not url:
-        return validation_error("Unsupported operation", field="operation")
+    method = _METHODS.get(operation, "GET")
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=_BASE_URL,
+        user_uri=user_uri,
+        event_type_uuid=event_type_uuid,
+        event_uuid=event_uuid,
+        invitee_uuid=invitee_uuid,
+    )
+    params = _build_params(
+        operation,
+        user_uri=user_uri,
+        event_uuid=event_uuid,
+        count=count,
+    )
+    payload = result
 
     if dry_run:
-        return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
+        return {
+            "output": _build_preview(
+                operation=operation,
+                url=url,
+                method=method,
+                payload=payload,
+                params=params,
+            )
+        }
 
     headers = {
         "Authorization": f"Bearer {CALENDLY_API_KEY}",
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Calendly request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("message", "Calendly API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    # Some operations return 201 or 204
-    if response.status_code in (201, 204):
-        return {"output": {"success": True}}
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_calendly_error_message,
+        request_error_message="Calendly request failed",
+        empty_response_statuses=(201, 204),
+        empty_response_output={"success": True},
+    )

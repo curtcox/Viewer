@@ -5,58 +5,98 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+_BASE_URL = "https://api.webflow.com"
+
+_OPERATIONS = {
+    "list_sites": OperationDefinition(),
+    "get_site": OperationDefinition(required=(RequiredField("site_id"),)),
+    "publish_site": OperationDefinition(
+        required=(RequiredField("site_id"),),
+        payload_builder=lambda live, **_: {"domains": ["live"] if live else []},
+    ),
+    "list_collections": OperationDefinition(required=(RequiredField("site_id"),)),
+    "get_collection": OperationDefinition(required=(RequiredField("collection_id"),)),
+    "list_items": OperationDefinition(required=(RequiredField("collection_id"),)),
+    "get_item": OperationDefinition(
+        required=(RequiredField("collection_id"), RequiredField("item_id"))
+    ),
+    "create_item": OperationDefinition(
+        required=(RequiredField("collection_id"), RequiredField("fields")),
+        payload_builder=lambda fields, **_: {"fields": fields},
+    ),
+    "update_item": OperationDefinition(
+        required=(
+            RequiredField("collection_id"),
+            RequiredField("item_id"),
+            RequiredField("fields"),
+        ),
+        payload_builder=lambda fields, **_: {
+            "fields": fields,
+            "_archived": False,
+            "_draft": False,
+        },
+    ),
+    "delete_item": OperationDefinition(
+        required=(RequiredField("collection_id"), RequiredField("item_id"))
+    ),
+}
+
+_METHODS = {
+    "publish_site": "POST",
+    "create_item": "POST",
+    "update_item": "PUT",
+    "delete_item": "DELETE",
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_sites": lambda base_url, **_: f"{base_url}/sites",
+    "get_site": lambda base_url, site_id, **_: f"{base_url}/sites/{site_id}",
+    "publish_site": lambda base_url, site_id, **_: (
+        f"{base_url}/sites/{site_id}/publish"
+    ),
+    "list_collections": lambda base_url, site_id, **_: (
+        f"{base_url}/sites/{site_id}/collections"
+    ),
+    "get_collection": lambda base_url, collection_id, **_: (
+        f"{base_url}/collections/{collection_id}"
+    ),
+    "list_items": lambda base_url, collection_id, **_: (
+        f"{base_url}/collections/{collection_id}/items"
+    ),
+    "get_item": lambda base_url, collection_id, item_id, **_: (
+        f"{base_url}/collections/{collection_id}/items/{item_id}"
+    ),
+    "create_item": lambda base_url, collection_id, **_: (
+        f"{base_url}/collections/{collection_id}/items"
+    ),
+    "update_item": lambda base_url, collection_id, item_id, **_: (
+        f"{base_url}/collections/{collection_id}/items/{item_id}"
+    ),
+    "delete_item": lambda base_url, collection_id, item_id, **_: (
+        f"{base_url}/collections/{collection_id}/items/{item_id}"
+    ),
+}
 
 
 def _build_preview(
     *,
     operation: str,
-    site_id: Optional[str],
-    collection_id: Optional[str],
-    item_id: Optional[str],
+    url: str,
+    method: str,
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    base_url = "https://api.webflow.com"
-
-    if operation == "list_sites":
-        url = f"{base_url}/sites"
-        method = "GET"
-    elif operation == "get_site":
-        url = f"{base_url}/sites/{site_id}"
-        method = "GET"
-    elif operation == "publish_site":
-        url = f"{base_url}/sites/{site_id}/publish"
-        method = "POST"
-    elif operation == "list_collections":
-        url = f"{base_url}/sites/{site_id}/collections"
-        method = "GET"
-    elif operation == "get_collection":
-        url = f"{base_url}/collections/{collection_id}"
-        method = "GET"
-    elif operation == "list_items":
-        url = f"{base_url}/collections/{collection_id}/items"
-        method = "GET"
-    elif operation == "get_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "GET"
-    elif operation == "create_item":
-        url = f"{base_url}/collections/{collection_id}/items"
-        method = "POST"
-    elif operation == "update_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "PUT"
-    elif operation == "delete_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "DELETE"
-    else:
-        url = base_url
-        method = "GET"
-
     preview: Dict[str, Any] = {
         "operation": operation,
         "url": url,
@@ -66,6 +106,23 @@ def _build_preview(
     if payload:
         preview["payload"] = payload
     return preview
+
+
+def _webflow_error_message(response: object, data: object) -> str:
+    status_code = getattr(response, "status_code", None)
+    if status_code == 401:
+        return (
+            "Invalid or expired WEBFLOW_API_TOKEN. Check your API token in Webflow Account Settings"
+        )
+    if status_code == 403:
+        return (
+            "Insufficient permissions for this operation. Check your API token has the required scopes"
+        )
+    if status_code == 404:
+        return "Resource not found"
+    if isinstance(data, dict):
+        return data.get("message") or data.get("error") or "Webflow API error"
+    return "Webflow API error"
 
 
 def main(
@@ -110,156 +167,64 @@ def main(
         context: Request context
     """
 
-    normalized_operation = operation.lower()
-    valid_operations = {
-        "list_sites", "get_site", "publish_site",
-        "list_collections", "get_collection",
-        "list_items", "get_item", "create_item", "update_item", "delete_item"
-    }
-
-    if normalized_operation not in valid_operations:
+    if operation not in _OPERATIONS:
         return validation_error(
-            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(valid_operations))}",
-            field="operation"
+            f"Unsupported operation: {operation}. Must be one of {', '.join(sorted(_OPERATIONS))}",
+            field="operation",
         )
-
-    # Validate required parameters based on operation
-    if normalized_operation in {"get_site", "publish_site", "list_collections"} and not site_id:
-        return validation_error(f"Missing required site_id for {normalized_operation}", field="site_id")
-
-    if normalized_operation in {"get_collection", "list_items", "create_item"} and not collection_id:
-        return validation_error(f"Missing required collection_id for {normalized_operation}", field="collection_id")
-
-    if normalized_operation in {"get_item", "update_item", "delete_item"} and not collection_id:
-        return validation_error(f"Missing required collection_id for {normalized_operation}", field="collection_id")
-
-    if normalized_operation in {"get_item", "update_item", "delete_item"} and not item_id:
-        return validation_error(f"Missing required item_id for {normalized_operation}", field="item_id")
-
-    if normalized_operation in {"create_item", "update_item"} and not fields:
-        return validation_error(f"Missing required fields for {normalized_operation}", field="fields")
 
     if not WEBFLOW_API_TOKEN:
         return error_output(
             "Missing WEBFLOW_API_TOKEN. Get your API token from Webflow Account Settings > Integrations",
-            status_code=401
+            status_code=401,
         )
 
-    # Build payload for create/update operations
-    payload = None
-    if normalized_operation in {"create_item", "update_item"}:
-        payload = {"fields": fields}
-        if normalized_operation == "update_item":
-            payload["_archived"] = False
-            payload["_draft"] = False
-    elif normalized_operation == "publish_site":
-        payload = {"domains": ["live"] if live else []}
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        site_id=site_id,
+        collection_id=collection_id,
+        item_id=item_id,
+        fields=fields,
+        live=live,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    # Dry-run preview
+    url = _ENDPOINT_BUILDERS[operation](
+        base_url=_BASE_URL,
+        site_id=site_id,
+        collection_id=collection_id,
+        item_id=item_id,
+    )
+    method = _METHODS.get(operation, "GET")
+    payload = result
+
     if dry_run:
         preview = _build_preview(
-            operation=normalized_operation,
-            site_id=site_id,
-            collection_id=collection_id,
-            item_id=item_id,
+            operation=operation,
+            url=url,
+            method=method,
             payload=payload,
         )
-        return {"output": {"dry_run": True, "preview": preview}, "content_type": "application/json"}
+        return {"output": {"dry_run": True, "preview": preview}}
 
-    # Make the actual API call
     api_client = client or _DEFAULT_CLIENT
-    base_url = "https://api.webflow.com"
     headers = {
         "Authorization": f"Bearer {WEBFLOW_API_TOKEN}",
         "accept-version": "1.0.0",
         "Content-Type": "application/json",
     }
 
-    # Build URL based on operation
-    if normalized_operation == "list_sites":
-        url = f"{base_url}/sites"
-        method = "GET"
-    elif normalized_operation == "get_site":
-        url = f"{base_url}/sites/{site_id}"
-        method = "GET"
-    elif normalized_operation == "publish_site":
-        url = f"{base_url}/sites/{site_id}/publish"
-        method = "POST"
-    elif normalized_operation == "list_collections":
-        url = f"{base_url}/sites/{site_id}/collections"
-        method = "GET"
-    elif normalized_operation == "get_collection":
-        url = f"{base_url}/collections/{collection_id}"
-        method = "GET"
-    elif normalized_operation == "list_items":
-        url = f"{base_url}/collections/{collection_id}/items"
-        method = "GET"
-    elif normalized_operation == "get_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "GET"
-    elif normalized_operation == "create_item":
-        url = f"{base_url}/collections/{collection_id}/items"
-        method = "POST"
-    elif normalized_operation == "update_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "PUT"
-    elif normalized_operation == "delete_item":
-        url = f"{base_url}/collections/{collection_id}/items/{item_id}"
-        method = "DELETE"
-    else:
-        return validation_error(f"Unknown operation: {operation}")
-
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload if payload else None,
-            timeout=timeout,
-        )
-
-        if response.status_code == 401:
-            return error_output(
-                "Invalid or expired WEBFLOW_API_TOKEN. Check your API token in Webflow Account Settings",
-                status_code=401
-            )
-        if response.status_code == 403:
-            return error_output(
-                "Insufficient permissions for this operation. Check your API token has the required scopes",
-                status_code=403
-            )
-        if response.status_code == 404:
-            return error_output(
-                f"Resource not found (site_id={site_id}, collection_id={collection_id}, item_id={item_id})",
-                status_code=404
-            )
-
-        response.raise_for_status()
-
-        # Some operations return no content
-        if response.status_code == 204 or not response.content:
-            return {"output": {"success": True}, "content_type": "application/json"}
-
-        try:
-            data = response.json()
-            return {"output": data, "content_type": "application/json"}
-        except requests.exceptions.JSONDecodeError:
-            return error_output(
-                "Failed to parse API response as JSON",
-                status_code=response.status_code,
-                response=response.text[:500]
-            )
-
-    except requests.exceptions.Timeout:
-        return error_output(
-            f"Request timed out after {timeout} seconds. Try increasing the timeout parameter",
-            status_code=408
-        )
-    except requests.exceptions.RequestException as e:
-        status_code = e.response.status_code if e.response else None
-        error_detail = e.response.text[:500] if e.response else str(e)
-        return error_output(
-            f"Webflow API request failed: {str(e)}",
-            status_code=status_code,
-            response=error_detail
-        )
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_parser=_webflow_error_message,
+        request_error_message="Webflow API request failed",
+        empty_response_statuses=(204,),
+        empty_response_output={"success": True},
+    )
