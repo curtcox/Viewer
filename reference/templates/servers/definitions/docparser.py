@@ -238,6 +238,14 @@ def main(
             "auth": "Basic [REDACTED]",
             "dry_run": True,
         }
+        if parser_id:
+            preview["parser_id"] = parser_id
+        if document_id:
+            preview["document_id"] = document_id
+        if file_url:
+            preview["file_url"] = file_url
+        if output_format:
+            preview["output_format"] = output_format
         return {"output": preview, "content_type": "application/json"}
 
     # Create HTTP client
