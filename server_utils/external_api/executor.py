@@ -48,6 +48,8 @@ def execute_json_request(
         mock_children = getattr(client, "_mock_children", {})
         request_func = getattr(client, "request", None)
         method_func = None
+        if method_name in client_attrs:
+            method_func = getattr(client, method_name, None)
         if isinstance(client, ExternalApiClient) and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
         elif isinstance(mock_children, dict) and method_name in mock_children:
@@ -55,14 +57,12 @@ def execute_json_request(
             response = method_func(url, **request_kwargs)
         elif isinstance(mock_children, dict) and "request" in mock_children and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
-        elif method_name in client_attrs:
-            method_func = getattr(client, method_name, None)
+        elif method_func is not None:
             response = method_func(url, **request_kwargs)
-        elif "request" in client_attrs and callable(request_func):
+        elif callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
         else:
-            method_func = getattr(client, method_name, None)
-            response = method_func(url, **request_kwargs)
+            raise AttributeError(f"Client does not support method {method_name} or request()")
     except requests.RequestException as exc:
         message = request_error_message
         if include_exception_in_message:
