@@ -6,7 +6,7 @@ python scripts/build-report-site.py \
   --unit-tests-coverage-artifacts site/unit-tests-coverage \
   --gauge-artifacts site/gauge-specs \
   --integration-artifacts site/integration-tests \
-  --property-artifacts site/property-tests \
+  --hypothesis-artifacts site/hypothesis-tests \
   --radon-artifacts site/radon \
   --vulture-artifacts site/vulture \
   --python-smells-artifacts site/python-smells \

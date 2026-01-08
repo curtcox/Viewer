@@ -20,7 +20,7 @@ cat > job-statuses.json << EOF
   "dead-fixtures": "${DEAD_FIXTURES_STATUS}",
   "unit-tests-results": "${UNIT_TESTS_RESULTS_STATUS}",
   "unit-tests-coverage": "${UNIT_TESTS_COVERAGE_STATUS}",
-  "property-tests": "${PROPERTY_TESTS_STATUS}",
+  "hypothesis-tests": "${HYPOTHESIS_TESTS_STATUS}",
   "integration-tests": "${INTEGRATION_TESTS_STATUS}",
   "gauge-specs": "${GAUGE_SPECS_STATUS}",
   "ai-eval": "${AI_EVAL_STATUS}"
