@@ -188,4 +188,5 @@ def main(
         timeout=timeout,
         error_parser=_etsy_error_message,
         request_error_message="Etsy request failed",
+        include_exception_in_message=False,
     )
