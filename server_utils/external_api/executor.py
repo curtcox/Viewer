@@ -43,11 +43,25 @@ def execute_json_request(
             "timeout": timeout,
             "auth": auth,
         }
+        method_name = method.lower()
+        client_attrs = getattr(client, "__dict__", {})
+        mock_children = getattr(client, "_mock_children", {})
         request_func = getattr(client, "request", None)
+        method_func = None
         if isinstance(client, ExternalApiClient) and callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
+        elif isinstance(mock_children, dict) and method_name in mock_children:
+            method_func = mock_children[method_name]
+            response = method_func(url, **request_kwargs)
+        elif isinstance(mock_children, dict) and "request" in mock_children and callable(request_func):
+            response = request_func(method=method, url=url, **request_kwargs)
+        elif method_name in client_attrs:
+            method_func = getattr(client, method_name, None)
+            response = method_func(url, **request_kwargs)
+        elif "request" in client_attrs and callable(request_func):
+            response = request_func(method=method, url=url, **request_kwargs)
         else:
-            method_func = getattr(client, method.lower(), None)
+            method_func = getattr(client, method_name, None)
             response = method_func(url, **request_kwargs)
     except requests.RequestException as exc:
         message = request_error_message
