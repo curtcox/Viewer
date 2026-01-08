@@ -1,19 +1,90 @@
 # ruff: noqa: F821, F706
 """Call the FreshBooks API for accounting and time tracking operations."""
 
-from typing import Optional
+from __future__ import annotations
+
+import json
+from typing import Any, Optional
 from server_utils.external_api import (
     ExternalApiClient,
     HttpClientConfig,
+    OperationDefinition,
+    RequiredField,
     error_response,
+    execute_json_request,
     missing_secret_error,
     generate_form,
+    validate_and_build_payload,
     FormField,
 )
 
 
 API_BASE_URL = "https://api.freshbooks.com"
 DOCUMENTATION_URL = "https://www.freshbooks.com/api/start"
+
+
+def _parse_json_or_error(value: str | dict, field_name: str) -> dict[str, Any] | tuple[str, str]:
+    if isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as e:
+        return (f"Invalid JSON in {field_name} parameter: {str(e)}", field_name)
+
+
+def _build_base_url(endpoint: str, business_id: str) -> str:
+    if business_id:
+        return f"{API_BASE_URL}/accounting/account/{business_id}/{endpoint}"
+    return f"{API_BASE_URL}/{endpoint}"
+
+
+_OPERATIONS = {
+    "list": OperationDefinition(
+        required=(RequiredField("endpoint"),),
+        payload_builder=lambda endpoint, business_id, params, **_: {
+            "method": "GET",
+            "url": f"{_build_base_url(endpoint, business_id)}/{endpoint.rstrip('s')}",
+            "payload": None,
+            "params": params,
+        },
+    ),
+    "get": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("entity_id")),
+        payload_builder=lambda endpoint, business_id, entity_id, **_: {
+            "method": "GET",
+            "url": f"{_build_base_url(endpoint, business_id)}/{entity_id}",
+            "payload": None,
+            "params": None,
+        },
+    ),
+    "create": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("data")),
+        payload_builder=lambda endpoint, business_id, data, **_: {
+            "method": "POST",
+            "url": _build_base_url(endpoint, business_id),
+            "payload": data,
+            "params": None,
+        },
+    ),
+    "update": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("entity_id"), RequiredField("data")),
+        payload_builder=lambda endpoint, business_id, entity_id, data, **_: {
+            "method": "PUT",
+            "url": f"{_build_base_url(endpoint, business_id)}/{entity_id}",
+            "payload": data,
+            "params": None,
+        },
+    ),
+    "delete": OperationDefinition(
+        required=(RequiredField("endpoint"), RequiredField("entity_id")),
+        payload_builder=lambda endpoint, business_id, entity_id, **_: {
+            "method": "DELETE",
+            "url": f"{_build_base_url(endpoint, business_id)}/{entity_id}",
+            "payload": None,
+            "params": None,
+        },
+    ),
+}
 
 
 def main(
@@ -133,93 +204,38 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    # Validate operation
-    valid_operations = ["list", "get", "create", "update", "delete"]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
-        )
-
-    # Validate endpoint is provided
-    if not endpoint:
-        return error_response(
-            "endpoint is required for all operations",
-            error_type="validation_error",
-        )
-
-    # Build request based on operation
-    method = "GET"
-    url = API_BASE_URL
-    payload = None
-    query_params = {}
-
-    # Parse params if provided
+    query_params = None
     if params:
-        try:
-            import json
-            query_params = json.loads(params) if isinstance(params, str) else params
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in params parameter: {str(e)}",
-                error_type="validation_error",
-            )
+        parsed = _parse_json_or_error(params, "params")
+        if isinstance(parsed, tuple):
+            return error_response(parsed[0], error_type="validation_error")
+        query_params = parsed
 
-    # Most FreshBooks endpoints require business_id in path
-    if business_id:
-        url = f"{API_BASE_URL}/accounting/account/{business_id}/{endpoint}"
-    else:
-        url = f"{API_BASE_URL}/{endpoint}"
+    payload_data = None
+    if data:
+        parsed = _parse_json_or_error(data, "data")
+        if isinstance(parsed, tuple):
+            return error_response(parsed[0], error_type="validation_error")
+        payload_data = parsed
 
-    if operation == "list":
-        # List operation uses GET with optional query params
-        url = f"{url}/{endpoint.rstrip('s')}"  # Some endpoints use singular form
-    elif operation == "get":
-        if not entity_id:
-            return error_response(
-                "entity_id is required for get operation",
-                error_type="validation_error",
-            )
-        url = f"{url}/{entity_id}"
-    elif operation == "create":
-        if not data:
-            return error_response(
-                "data is required for create operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "update":
-        if not entity_id or not data:
-            return error_response(
-                "entity_id and data are required for update operation",
-                error_type="validation_error",
-            )
-        method = "PUT"
-        url = f"{url}/{entity_id}"
-        try:
-            import json
-            payload = json.loads(data) if isinstance(data, str) else data
-        except json.JSONDecodeError as e:
-            return error_response(
-                f"Invalid JSON in data parameter: {str(e)}",
-                error_type="validation_error",
-            )
-    elif operation == "delete":
-        if not entity_id:
-            return error_response(
-                "entity_id is required for delete operation",
-                error_type="validation_error",
-            )
-        method = "DELETE"
-        url = f"{url}/{entity_id}"
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        endpoint=endpoint,
+        business_id=business_id,
+        entity_id=entity_id,
+        data=payload_data,
+        params=query_params,
+    )
+    if isinstance(result, tuple):
+        return error_response(result[0], error_type="validation_error")
+    if result is None:
+        return error_response("Unable to build request", error_type="validation_error")
+
+    method = result["method"]
+    url = result["url"]
+    payload = result["payload"]
+    query_params = result["params"]
 
     # Dry run: return preview
     if dry_run:
@@ -247,34 +263,13 @@ def main(
     if method in ["POST", "PUT"]:
         headers["Content-Type"] = "application/json"
 
-    try:
-        response = client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            params=query_params if query_params else None,
-            timeout=timeout,
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        params=query_params,
+        json=payload,
+        timeout=timeout,
+        request_error_message="FreshBooks API request failed",
+    )

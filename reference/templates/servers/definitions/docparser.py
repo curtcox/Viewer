@@ -1,21 +1,88 @@
 # ruff: noqa: F821, F706
 """Call the Docparser API for document parsing operations."""
 
+from __future__ import annotations
+
+import base64
 from typing import Optional
 from server_utils.external_api import (
     ExternalApiClient,
     HttpClientConfig,
-    error_response,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
     missing_secret_error,
     validation_error,
     generate_form,
+    validate_and_build_payload,
     FormField,
 )
-import requests
 
 
 API_BASE_URL = "https://api.docparser.com/v1"
 DOCUMENTATION_URL = "https://dev.docparser.com/"
+
+
+def _build_basic_auth_header(api_key: str) -> str:
+    token = base64.b64encode(f"{api_key}:".encode("utf-8")).decode("utf-8")
+    return f"Basic {token}"
+
+
+_OPERATIONS = {
+    "list_parsers": OperationDefinition(
+        payload_builder=lambda **_: {
+            "method": "GET",
+            "url": f"{API_BASE_URL}/parsers",
+            "params": None,
+            "payload": None,
+        },
+    ),
+    "upload_document": OperationDefinition(
+        required=(RequiredField("parser_id"), RequiredField("file_url")),
+        payload_builder=lambda parser_id, file_url, **_: {
+            "method": "POST",
+            "url": f"{API_BASE_URL}/document/upload/{parser_id}",
+            "params": None,
+            "payload": {"url": file_url},
+        },
+    ),
+    "list_documents": OperationDefinition(
+        required=(RequiredField("parser_id"),),
+        payload_builder=lambda parser_id, **_: {
+            "method": "GET",
+            "url": f"{API_BASE_URL}/results/{parser_id}",
+            "params": None,
+            "payload": None,
+        },
+    ),
+    "get_document": OperationDefinition(
+        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        payload_builder=lambda parser_id, document_id, **_: {
+            "method": "GET",
+            "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
+            "params": None,
+            "payload": None,
+        },
+    ),
+    "get_parsed_data": OperationDefinition(
+        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        payload_builder=lambda parser_id, document_id, output_format, **_: {
+            "method": "GET",
+            "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
+            "params": {"format": output_format},
+            "payload": None,
+        },
+    ),
+    "delete_document": OperationDefinition(
+        required=(RequiredField("parser_id"), RequiredField("document_id")),
+        payload_builder=lambda parser_id, document_id, **_: {
+            "method": "DELETE",
+            "url": f"{API_BASE_URL}/results/{parser_id}/{document_id}",
+            "params": None,
+            "payload": None,
+        },
+    ),
+}
 
 
 def main(
@@ -130,47 +197,34 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    # Validate operation
-    valid_operations = [
-        "list_parsers", "upload_document", "get_document",
-        "list_documents", "get_parsed_data", "delete_document"
-    ]
-    if operation not in valid_operations:
-        return validation_error(
-            f"Invalid operation: {operation}. Must be one of {valid_operations}"
-        )
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        parser_id=parser_id,
+        document_id=document_id,
+        file_url=file_url,
+        output_format=output_format,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+    if result is None:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Operation-specific validation
-    if operation in ["upload_document", "list_documents", "get_parsed_data"]:
-        if not parser_id:
-            return validation_error(f"parser_id is required for {operation}")
-
-    if operation == "upload_document" and not file_url:
-        return validation_error("file_url is required for upload_document")
-
-    if operation in ["get_document", "get_parsed_data", "delete_document"]:
-        if not document_id:
-            return validation_error(f"document_id is required for {operation}")
-        if not parser_id:
-            return validation_error(f"parser_id is required for {operation}")
+    method = result["method"]
+    url = result["url"]
+    params = result["params"]
+    payload = result["payload"]
 
     # Dry run preview
     if dry_run:
         preview = {
             "operation": operation,
-            "api_endpoint": API_BASE_URL,
-            "dry_run": True,
+            "method": method,
+            "url": url,
+            "params": params,
+            "payload": payload,
+            "auth": "Basic [REDACTED]",
         }
-
-        if parser_id:
-            preview["parser_id"] = parser_id
-        if document_id:
-            preview["document_id"] = document_id
-        if file_url:
-            preview["file_url"] = file_url
-        if output_format:
-            preview["output_format"] = output_format
-
         return {"output": preview, "content_type": "application/json"}
 
     # Create HTTP client
@@ -178,79 +232,23 @@ def main(
         config = HttpClientConfig(timeout=timeout)
         client = ExternalApiClient(config)
 
-    # Use Basic Auth with API key
-    auth = (DOCPARSER_API_KEY, "")
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": _build_basic_auth_header(DOCPARSER_API_KEY),
+    }
 
-    try:
-        # Build request based on operation
-        if operation == "list_parsers":
-            response = client.get(f"{API_BASE_URL}/parsers", headers=headers, auth=auth)
-
-        elif operation == "upload_document":
-            payload = {"url": file_url}
-            response = client.post(
-                f"{API_BASE_URL}/document/upload/{parser_id}",
-                headers=headers,
-                json=payload,
-                auth=auth
-            )
-
-        elif operation == "list_documents":
-            response = client.get(
-                f"{API_BASE_URL}/results/{parser_id}",
-                headers=headers,
-                auth=auth
-            )
-
-        elif operation == "get_document":
-            response = client.get(
-                f"{API_BASE_URL}/results/{parser_id}/{document_id}",
-                headers=headers,
-                auth=auth
-            )
-
-        elif operation == "get_parsed_data":
-            if not parser_id or not document_id:
-                return validation_error("parser_id and document_id are required")
-            response = client.get(
-                f"{API_BASE_URL}/results/{parser_id}/{document_id}",
-                headers=headers,
-                params={"format": output_format},
-                auth=auth
-            )
-
-        elif operation == "delete_document":
-            response = client.delete(
-                f"{API_BASE_URL}/results/{parser_id}/{document_id}",
-                headers=headers,
-                auth=auth
-            )
-
-        else:
-            return validation_error(f"Unsupported operation: {operation}")
-
-        response.raise_for_status()
-        return {"output": response.json(), "content_type": "application/json"}
-
-    except requests.RequestException as e:
-        status_code = e.response.status_code if hasattr(e, "response") and e.response else None
-        error_detail = ""
-        if hasattr(e, "response") and e.response:
-            try:
-                error_detail = e.response.text
-            except Exception:
-                error_detail = str(e)
-        else:
-            error_detail = str(e)
-
-        return error_response(
-            message=f"Docparser API request failed: {error_detail}",
-            error_type="api_error",
-            status_code=status_code,
-        )
-    except Exception as e:
-        return error_response(
-            message=f"Unexpected error: {str(e)}",
-            error_type="api_error",
-        )
+    result = execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        request_error_message="Docparser API request failed",
+        empty_response_statuses=(204,),
+        empty_response_output={"success": True},
+    )
+    if "output" in result:
+        result["content_type"] = "application/json"
+    return result

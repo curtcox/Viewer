@@ -23,6 +23,8 @@ def execute_json_request(
     headers: dict[str, str] | None = None,
     params: dict[str, Any] | None = None,
     json: dict[str, Any] | None = None,
+    data: Any | None = None,
+    auth: tuple[str, str] | None = None,
     timeout: int = 60,
     error_key: str = "error",
     request_error_message: str = "Request failed",
@@ -37,7 +39,9 @@ def execute_json_request(
             "headers": headers,
             "params": params,
             "json": json,
+            "data": data,
             "timeout": timeout,
+            "auth": auth,
         }
         request_func = getattr(client, "request", None)
         if callable(request_func):
