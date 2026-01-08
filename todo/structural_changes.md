@@ -18,7 +18,8 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 11: Migrated mailchimp.py, mailerlite.py, and zoho_crm.py to dispatch tables and shared executor.
 - ✅ Phase 12: Migrated calendly.py, pipedrive.py, gitlab.py, wordpress.py, and webflow.py to dispatch tables and shared executor.
 - ✅ Phase 13: Migrated google_ads.py, google_contacts.py, google_forms.py, and pandadoc.py to dispatch tables and shared executor.
-- ⏳ Remaining servers: 50+ servers with 10+ branches still need migration
+- ✅ Phase 14: Migrated freshdesk.py, gorgias.py, zendesk.py, front.py, and intercom.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 45+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
