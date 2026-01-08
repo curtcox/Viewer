@@ -83,6 +83,17 @@ def _figma_error_message(_response: Any, data: Any) -> str:
     return "Figma API error"
 
 
+def _figma_success_parser(response: Any, data: Any) -> Dict[str, Any]:
+    if getattr(response, "status_code", 200) >= 400:
+        response_text = getattr(response, "text", None)
+        return error_output(
+            f"Figma API error: {response.status_code}",
+            status_code=response.status_code,
+            details=response_text[:500] if response_text else "No response body",
+        )
+    return {"output": data}
+
+
 def main(
     *,
     operation: str = "list_files",
@@ -162,6 +173,7 @@ def main(
         json=payload if method == "POST" else None,
         timeout=timeout,
         error_parser=_figma_error_message,
+        success_parser=_figma_success_parser,
         request_error_message="Figma request failed",
         empty_response_statuses=empty_response_statuses,
         empty_response_output=empty_response_output,
