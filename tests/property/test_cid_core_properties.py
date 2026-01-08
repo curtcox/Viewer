@@ -1,7 +1,6 @@
 """Property tests for CID core functionality."""
 
 from hypothesis import assume, example, given, strategies as st
-import pytest
 
 from cid_core import (
     CID_LENGTH_PREFIX_CHARS,

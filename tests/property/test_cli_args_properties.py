@@ -1,6 +1,6 @@
 """Property tests for CLI argument parsing."""
 
-from hypothesis import assume, example, given, strategies as st
+from hypothesis import example, given, strategies as st
 import pytest
 
 from cli_args import parse_memory_size
