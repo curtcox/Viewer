@@ -6,12 +6,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
     MicrosoftAuthManager,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
@@ -20,13 +22,36 @@ _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = MicrosoftAuthManager()
 
 
-_SUPPORTED_OPERATIONS = {
-    "list_accounts",
-    "get_account",
-    "create_account",
-    "update_account",
-    "list_contacts",
-    "get_contact",
+_OPERATIONS = {
+    "list_accounts": OperationDefinition(),
+    "get_account": OperationDefinition(required=(RequiredField("account_id"),)),
+    "create_account": OperationDefinition(
+        required=(RequiredField("account_name"), RequiredField("data")),
+    ),
+    "update_account": OperationDefinition(
+        required=(RequiredField("account_id"), RequiredField("data")),
+    ),
+    "list_contacts": OperationDefinition(),
+    "get_contact": OperationDefinition(required=(RequiredField("contact_id"),)),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_accounts": lambda **_: "accounts",
+    "get_account": lambda account_id, **_: f"accounts({account_id})",
+    "create_account": lambda **_: "accounts",
+    "update_account": lambda account_id, **_: f"accounts({account_id})",
+    "list_contacts": lambda **_: "contacts",
+    "get_contact": lambda contact_id, **_: f"contacts({contact_id})",
+}
+
+_METHODS = {
+    "create_account": "POST",
+    "update_account": "PATCH",
+}
+
+_PARAMETER_BUILDERS = {
+    "list_accounts": lambda top, **_: {"$top": top},
+    "list_contacts": lambda top, **_: {"$top": top},
 }
 
 
@@ -35,6 +60,7 @@ def _build_preview(
     operation: str,
     url: str,
     method: str,
+    params: Optional[Dict[str, Any]],
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
     preview: Dict[str, Any] = {
@@ -44,21 +70,19 @@ def _build_preview(
         "auth": "dynamics365_oauth",
     }
 
+    if params:
+        preview["params"] = params
     if payload:
         preview["payload"] = payload
 
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _build_account_payload(account_name: Optional[str], data: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(data)
+    if account_name and "name" not in payload:
+        payload["name"] = account_name
+    return payload
 
 
 def main(
@@ -103,28 +127,30 @@ def main(
     Returns:
         Dict with 'output' containing the API response or error.
     """
-    # Validate operation
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Supported: {', '.join(sorted(_SUPPORTED_OPERATIONS))}"
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
     # Validate instance URL
     if not instance_url:
         return validation_error("instance_url is required (e.g., 'https://org.crm.dynamics.com')")
 
-    # Validate operation-specific requirements
-    if operation in ("get_account", "update_account") and not account_id:
-        return validation_error(f"operation={operation} requires account_id")
+    parsed_data = None
+    if operation in ("create_account", "update_account") and data:
+        try:
+            parsed_data = json.loads(data)
+        except json.JSONDecodeError:
+            return validation_error("data must be valid JSON")
 
-    if operation == "get_contact" and not contact_id:
-        return validation_error("get_contact requires contact_id")
-
-    if operation == "create_account" and not account_name:
-        return validation_error("create_account requires account_name")
-
-    if operation in ("create_account", "update_account") and not data:
-        return validation_error(f"operation={operation} requires data")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        account_id=account_id,
+        contact_id=contact_id,
+        account_name=account_name,
+        data=parsed_data,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
     # Get authentication
     auth_manager_instance = auth_manager or _DEFAULT_AUTH_MANAGER
@@ -151,69 +177,28 @@ def main(
         )
 
     api_base = f"{instance_url}/api/data/v9.2"
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        account_id=account_id,
+        contact_id=contact_id,
+    )
+    url = f"{api_base}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    params = _PARAMETER_BUILDERS.get(operation, lambda **_: None)(top=top)
+    payload = None
+    if operation == "create_account" and parsed_data:
+        payload = _build_account_payload(account_name, parsed_data)
+    elif operation == "update_account" and parsed_data:
+        payload = parsed_data
 
-    # Build request based on operation
-    if operation == "list_accounts":
-        url = f"{api_base}/accounts"
-        params = {"$top": top}
-        method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=params)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "get_account":
-        url = f"{api_base}/accounts({account_id})"
-        params = {}
-        method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=None)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "create_account":
-        url = f"{api_base}/accounts"
-        try:
-            payload = json.loads(data)
-            if "name" not in payload:
-                payload["name"] = account_name
-        except json.JSONDecodeError:
-            return validation_error("data must be valid JSON")
-        params = {}
-        method = "POST"
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "update_account":
-        url = f"{api_base}/accounts({account_id})"
-        try:
-            payload = json.loads(data)
-        except json.JSONDecodeError:
-            return validation_error("data must be valid JSON")
-        params = {}
-        method = "PATCH"
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=payload)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "list_contacts":
-        url = f"{api_base}/contacts"
-        params = {"$top": top}
-        method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=params)
-            return {"output": preview, "content_type": "application/json"}
-
-    elif operation == "get_contact":
-        url = f"{api_base}/contacts({contact_id})"
-        params = {}
-        method = "GET"
-        payload = None
-        if dry_run:
-            preview = _build_preview(operation=operation, url=url, method=method, payload=None)
-            return {"output": preview, "content_type": "application/json"}
+    if dry_run:
+        preview = _build_preview(
+            operation=operation,
+            url=url,
+            method=method,
+            params=params,
+            payload=payload,
+        )
+        return {"output": preview, "content_type": "application/json"}
 
     # Execute request
     headers["Content-Type"] = "application/json"
@@ -221,37 +206,15 @@ def main(
     headers["OData-Version"] = "4.0"
     headers["Accept"] = "application/json"
 
-    try:
-        if method == "GET":
-            response = client_instance.get(url, headers=headers, params=params, timeout=timeout)
-        elif method == "POST":
-            response = client_instance.post(url, headers=headers, json=payload, timeout=timeout)
-        elif method == "PATCH":
-            response = client_instance.patch(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            return error_output(f"Unsupported HTTP method: {method}")
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            f"Request failed: {exc}",
-            status_code=status,
-            details=str(exc),
-        )
-
-    if not response.ok:
-        error_details = _parse_json_response(response)
-        return error_output(
-            f"API request failed: {response.status_code}",
-            status_code=response.status_code,
-            details=error_details,
-        )
-
-    # POST may return 204 with no content
-    if response.status_code == 204:
-        return {"output": {"success": True, "message": "Resource created/updated"}, "content_type": "application/json"}
-
-    result = _parse_json_response(response)
-    if "output" in result:
-        return result
-
-    return {"output": result, "content_type": "application/json"}
+    return execute_json_request(
+        client_instance,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        request_error_message="Dynamics 365 request failed",
+        empty_response_statuses=(204,),
+        empty_response_output={"success": True, "message": "Resource created/updated"},
+    )

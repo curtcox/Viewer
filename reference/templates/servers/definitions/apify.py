@@ -1,22 +1,80 @@
 # ruff: noqa: F821, F706
 """Call the Apify API for web scraping and automation."""
 
-from typing import Optional
+from typing import Any, Dict, Optional
+
+import json
+
 from server_utils.external_api import (
     ExternalApiClient,
-    HttpClientConfig,
-    error_response,
-    missing_secret_error,
-    validation_error,
-    generate_form,
     FormField,
+    HttpClientConfig,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
+    generate_form,
+    missing_secret_error,
+    validate_and_build_payload,
+    validation_error,
 )
-import json
-import requests
 
 
 API_BASE_URL = "https://api.apify.com/v2"
 DOCUMENTATION_URL = "https://docs.apify.com/api/v2"
+
+
+_OPERATIONS = {
+    "list_actors": OperationDefinition(),
+    "run_actor": OperationDefinition(
+        required=(RequiredField("actor_id"),),
+        payload_builder=lambda input_data, **_: input_data or {},
+    ),
+    "get_run": OperationDefinition(required=(RequiredField("run_id"),)),
+    "list_runs": OperationDefinition(),
+    "get_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
+    "download_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
+    "delete_dataset": OperationDefinition(required=(RequiredField("dataset_id"),)),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_actors": lambda **_: "acts",
+    "run_actor": lambda actor_id, **_: f"acts/{actor_id}/runs",
+    "get_run": lambda run_id, **_: f"actor-runs/{run_id}",
+    "list_runs": lambda **_: "actor-runs",
+    "get_dataset": lambda dataset_id, **_: f"datasets/{dataset_id}",
+    "download_dataset": lambda dataset_id, **_: f"datasets/{dataset_id}/items",
+    "delete_dataset": lambda dataset_id, **_: f"datasets/{dataset_id}",
+}
+
+_METHODS = {
+    "run_actor": "POST",
+    "delete_dataset": "DELETE",
+}
+
+_PARAMETER_BUILDERS = {
+    "download_dataset": lambda output_format, **_: {"format": output_format},
+}
+
+
+def _build_preview(
+    *,
+    operation: str,
+    url: str,
+    method: str,
+    params: Dict[str, Any],
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "url": url,
+        "method": method,
+        "auth": "api_key",
+    }
+    if params:
+        preview["params"] = params
+    if payload:
+        preview["payload"] = payload
+    return preview
 
 
 def main(
@@ -79,35 +137,51 @@ def main(
             documentation_url=DOCUMENTATION_URL,
         )
 
-    valid_operations = ["list_actors", "run_actor", "get_run", "list_runs",
-                       "get_dataset", "download_dataset", "delete_dataset"]
-    if operation not in valid_operations:
-        return validation_error(f"Invalid operation: {operation}")
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    if operation == "run_actor" and not actor_id:
-        return validation_error("actor_id is required for run_actor")
-    if operation in ["get_run"] and not run_id:
-        return validation_error(f"run_id is required for {operation}")
-    if operation in ["get_dataset", "download_dataset", "delete_dataset"] and not dataset_id:
-        return validation_error(f"dataset_id is required for {operation}")
-
-    parsed_input = {}
+    parsed_input = None
     if input_data:
         try:
             parsed_input = json.loads(input_data)
-        except json.JSONDecodeError as e:
-            return validation_error(f"Invalid JSON in input_data: {e}")
+        except json.JSONDecodeError as exc:
+            return validation_error(f"Invalid JSON in input_data: {exc}")
+
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        actor_id=actor_id,
+        run_id=run_id,
+        dataset_id=dataset_id,
+        input_data=parsed_input,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        actor_id=actor_id,
+        run_id=run_id,
+        dataset_id=dataset_id,
+    )
+    url = f"{API_BASE_URL}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
+
+    params: Dict[str, Any] = {"token": APIFY_API_TOKEN}
+    extra_params = _PARAMETER_BUILDERS.get(operation, lambda **_: None)(
+        output_format=output_format
+    )
+    if extra_params:
+        params.update(extra_params)
 
     if dry_run:
-        preview = {"operation": operation, "api_endpoint": API_BASE_URL, "dry_run": True}
-        if actor_id:
-            preview["actor_id"] = actor_id
-        if run_id:
-            preview["run_id"] = run_id
-        if dataset_id:
-            preview["dataset_id"] = dataset_id
-        if parsed_input:
-            preview["input"] = parsed_input
+        preview = _build_preview(
+            operation=operation,
+            url=url,
+            method=method,
+            params=params,
+            payload=payload,
+        )
         return {"output": preview, "content_type": "application/json"}
 
     if client is None:
@@ -115,40 +189,14 @@ def main(
         client = ExternalApiClient(config)
 
     headers = {"Content-Type": "application/json"}
-    params = {"token": APIFY_API_TOKEN}
 
-    try:
-        if operation == "list_actors":
-            response = client.get(f"{API_BASE_URL}/acts", headers=headers, params=params)
-        elif operation == "run_actor":
-            response = client.post(f"{API_BASE_URL}/acts/{actor_id}/runs",
-                                 headers=headers, params=params, json=parsed_input)
-        elif operation == "get_run":
-            response = client.get(f"{API_BASE_URL}/actor-runs/{run_id}",
-                                headers=headers, params=params)
-        elif operation == "list_runs":
-            response = client.get(f"{API_BASE_URL}/actor-runs",
-                                headers=headers, params=params)
-        elif operation == "get_dataset":
-            response = client.get(f"{API_BASE_URL}/datasets/{dataset_id}",
-                                headers=headers, params=params)
-        elif operation == "download_dataset":
-            download_params = {**params, "format": output_format}
-            response = client.get(f"{API_BASE_URL}/datasets/{dataset_id}/items",
-                                headers=headers, params=download_params)
-        elif operation == "delete_dataset":
-            response = client.delete(f"{API_BASE_URL}/datasets/{dataset_id}",
-                                   headers=headers, params=params)
-        else:
-            return validation_error(f"Unsupported operation: {operation}")
-
-        response.raise_for_status()
-        return {"output": response.json(), "content_type": "application/json"}
-
-    except requests.RequestException as e:
-        status_code = e.response.status_code if hasattr(e, "response") and e.response else None
-        error_detail = e.response.text if hasattr(e, "response") and e.response else str(e)
-        return error_response(f"Apify API request failed: {error_detail}",
-                            "api_error", status_code)
-    except Exception as e:
-        return error_response(f"Unexpected error: {str(e)}", "api_error")
+    return execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        request_error_message="Apify API request failed",
+    )
