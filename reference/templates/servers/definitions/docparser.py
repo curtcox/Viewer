@@ -38,7 +38,10 @@ _OPERATIONS = {
         },
     ),
     "upload_document": OperationDefinition(
-        required=(RequiredField("parser_id"), RequiredField("file_url")),
+        required=(
+            RequiredField("parser_id"),
+            RequiredField("file_url", message="file_url is required"),
+        ),
         payload_builder=lambda parser_id, file_url, **_: {
             "method": "POST",
             "url": f"{API_BASE_URL}/document/upload/{parser_id}",
