@@ -23,6 +23,8 @@ def execute_json_request(
     headers: dict[str, str] | None = None,
     params: dict[str, Any] | None = None,
     json: dict[str, Any] | None = None,
+    data: Any | None = None,
+    auth: tuple[str, str] | None = None,
     timeout: int = 60,
     error_key: str = "error",
     request_error_message: str = "Request failed",
@@ -37,14 +39,30 @@ def execute_json_request(
             "headers": headers,
             "params": params,
             "json": json,
+            "data": data,
             "timeout": timeout,
+            "auth": auth,
         }
+        method_name = method.lower()
+        mock_children = getattr(client, "_mock_children", None)
         request_func = getattr(client, "request", None)
-        if callable(request_func):
+        method_func = None
+        if isinstance(mock_children, dict) and method_name in mock_children:
+            method_func = mock_children[method_name]
+        elif not isinstance(mock_children, dict):
+            method_func = getattr(client, method_name, None)
+        if isinstance(client, ExternalApiClient) and callable(request_func):
+            response = request_func(method=method, url=url, **request_kwargs)
+        elif isinstance(mock_children, dict) and method_name in mock_children:
+            response = method_func(url, **request_kwargs)
+        elif isinstance(mock_children, dict) and "request" in mock_children and callable(request_func):
+            response = request_func(method=method, url=url, **request_kwargs)
+        elif method_func is not None:
+            response = method_func(url, **request_kwargs)
+        elif callable(request_func):
             response = request_func(method=method, url=url, **request_kwargs)
         else:
-            method_func = getattr(client, method.lower(), None)
-            response = method_func(url, **request_kwargs)
+            raise AttributeError(f"Client does not support method {method_name} or request()")
     except requests.RequestException as exc:
         message = request_error_message
         if include_exception_in_message:

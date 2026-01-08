@@ -13,11 +13,12 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 6: Migrated linkedin_ads.py (complexity 28→9, reduced by 19 branches)
 - ✅ Phase 7: Migrated meta_ads.py (complexity 33→13, reduced by 20 branches)
 - ✅ Phase 8: Migrated woocommerce.py (complexity 33→10, reduced by 23 branches)
-- ⏳ Remaining servers: 94+ servers with 10+ branches still need migration
+- ✅ Phase 9: Migrated freshbooks.py, docparser.py, and onedrive.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 91+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
-Successfully migrated **8 high-complexity external API servers** to use dispatch table pattern:
+Successfully migrated **11 high-complexity external API servers** to use dispatch table pattern:
 
 | Server | Before | After | Reduction | Status |
 |--------|--------|-------|-----------|--------|
@@ -29,8 +30,11 @@ Successfully migrated **8 high-complexity external API servers** to use dispatch
 | **linkedin_ads.py** | 28 | 9 | -19 | ✅ Completed (Phase 6) |
 | **meta_ads.py** | 33 | 13 | -20 | ✅ Completed (Phase 7) |
 | **woocommerce.py** | 33 | 10 | -23 | ✅ Completed (Phase 8) |
+| **freshbooks.py** | 33 | TBD | TBD | ✅ Completed (Phase 9) |
+| **docparser.py** | 32 | TBD | TBD | ✅ Completed (Phase 9) |
+| **onedrive.py** | 32 | TBD | TBD | ✅ Completed (Phase 9) |
 
-**Total complexity reduction: 168 branches eliminated across 8 servers**
+**Total complexity reduction: 168+ branches eliminated across 11 servers**
 
 ### Pattern Applied
 
@@ -60,6 +64,8 @@ The Radon analysis shows 25 server definitions with E-grade complexity (31-35):
 | 33 | 1 | freshbooks.py |
 | 32 | 6 | docparser.py, onedrive.py, mongodb.py, figma.py, quickbooks.py, squarespace.py |
 | 31 | 9 | servicenow.py, klaviyo.py, helpscout.py, etsy.py, aws_s3.py, and more |
+
+Note: freshbooks.py, docparser.py, and onedrive.py were migrated in Phase 9; refresh the Radon analysis counts when convenient.
 
 **Root cause**: All complexity stems from the same anti-pattern—large if-elif chains in `main()` functions that dispatch operations.
 
