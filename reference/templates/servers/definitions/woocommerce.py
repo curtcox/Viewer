@@ -8,12 +8,68 @@ import requests
 
 from server_utils.external_api import (
     ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
+
+_OPERATIONS = {
+    "list_products": OperationDefinition(),
+    "get_product": OperationDefinition(
+        required=(RequiredField("product_id"),),
+    ),
+    "create_product": OperationDefinition(
+        required=(RequiredField("name"),),
+        payload_builder=lambda name, regular_price, **_: {
+            "name": name,
+            **({"regular_price": regular_price} if regular_price else {}),
+        },
+    ),
+    "list_orders": OperationDefinition(),
+    "get_order": OperationDefinition(
+        required=(RequiredField("order_id"),),
+    ),
+    "list_customers": OperationDefinition(),
+    "get_customer": OperationDefinition(
+        required=(RequiredField("customer_id"),),
+    ),
+    "create_customer": OperationDefinition(
+        required=(RequiredField("email"),),
+        payload_builder=lambda email, first_name, last_name, **_: {
+            "email": email,
+            **({"first_name": first_name} if first_name else {}),
+            **({"last_name": last_name} if last_name else {}),
+        },
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_products": lambda **_: "products",
+    "get_product": lambda product_id, **_: f"products/{product_id}",
+    "create_product": lambda **_: "products",
+    "list_orders": lambda **_: "orders",
+    "get_order": lambda order_id, **_: f"orders/{order_id}",
+    "list_customers": lambda **_: "customers",
+    "get_customer": lambda customer_id, **_: f"customers/{customer_id}",
+    "create_customer": lambda **_: "customers",
+}
+
+_METHODS = {
+    "create_product": "POST",
+    "create_customer": "POST",
+}
+
+_PARAMETER_BUILDERS = {
+    "list_products": lambda limit, **_: {"per_page": limit},
+    "list_orders": lambda limit, **_: {"per_page": limit},
+    "list_customers": lambda limit, **_: {"per_page": limit},
+}
 
 
 def _build_preview(
@@ -49,6 +105,12 @@ def _extract_error_message(data: Dict[str, Any]) -> str:
     return "WooCommerce API error"
 
 
+def _woocommerce_error_message(_response: requests.Response, data: Any) -> str:
+    if isinstance(data, dict):
+        return _extract_error_message(data)
+    return "WooCommerce API error"
+
+
 def main(
     *,
     operation: str = "list_products",
@@ -71,18 +133,7 @@ def main(
 ) -> Dict[str, Any]:
     """Interact with WooCommerce products, orders, and customers."""
 
-    normalized_operation = operation.lower()
-
-    if normalized_operation not in {
-        "list_products",
-        "get_product",
-        "create_product",
-        "list_orders",
-        "get_order",
-        "list_customers",
-        "get_customer",
-        "create_customer",
-    }:
+    if operation not in _OPERATIONS:
         return validation_error("Unsupported operation", field="operation")
 
     if not WOOCOMMERCE_CONSUMER_KEY:
@@ -106,23 +157,46 @@ def main(
             details="Provide your WooCommerce store URL (e.g., 'https://mystore.com').",
         )
 
-    # Normalize store URL
     store_url = WOOCOMMERCE_STORE_URL.rstrip("/")
     if not store_url.startswith("http"):
         store_url = f"https://{store_url}"
 
-    if normalized_operation == "create_product" and not name:
-        return validation_error("Missing required name", field="name")
-    if normalized_operation == "get_product" and not product_id:
-        return validation_error("Missing required product_id", field="product_id")
-    if normalized_operation == "get_order" and not order_id:
-        return validation_error("Missing required order_id", field="order_id")
-    if normalized_operation == "get_customer" and not customer_id:
-        return validation_error("Missing required customer_id", field="customer_id")
-    if normalized_operation == "create_customer" and not email:
-        return validation_error("Missing required email", field="email")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        product_id=product_id,
+        order_id=order_id,
+        customer_id=customer_id,
+        name=name,
+        regular_price=regular_price,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    # Create Basic Auth header
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        product_id=product_id,
+        order_id=order_id,
+        customer_id=customer_id,
+    )
+    base_url = f"{store_url}/wp-json/wc/v3"
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    params = _PARAMETER_BUILDERS.get(operation, lambda **_: None)(limit=limit)
+    payload = result if isinstance(result, dict) else None
+
+    if dry_run:
+        preview = _build_preview(
+            operation=operation,
+            url=url,
+            method=method,
+            params=params,
+            payload=payload,
+        )
+        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
+
     credentials = f"{WOOCOMMERCE_CONSUMER_KEY}:{WOOCOMMERCE_CONSUMER_SECRET}"
     encoded = base64.b64encode(credentials.encode()).decode()
 
@@ -133,75 +207,15 @@ def main(
         "Accept": "application/json",
     }
 
-    base_url = f"{store_url}/wp-json/wc/v3"
-    url = f"{base_url}/products"
-    method = "GET"
-    params: Optional[Dict[str, Any]] = None
-    payload: Optional[Dict[str, Any]] = None
-
-    if normalized_operation == "list_products":
-        params = {"per_page": limit}
-    elif normalized_operation == "get_product":
-        url = f"{base_url}/products/{product_id}"
-    elif normalized_operation == "create_product":
-        method = "POST"
-        product_data: Dict[str, Any] = {"name": name}
-        if regular_price:
-            product_data["regular_price"] = regular_price
-        payload = product_data
-    elif normalized_operation == "list_orders":
-        url = f"{base_url}/orders"
-        params = {"per_page": limit}
-    elif normalized_operation == "get_order":
-        url = f"{base_url}/orders/{order_id}"
-    elif normalized_operation == "list_customers":
-        url = f"{base_url}/customers"
-        params = {"per_page": limit}
-    elif normalized_operation == "get_customer":
-        url = f"{base_url}/customers/{customer_id}"
-    elif normalized_operation == "create_customer":
-        method = "POST"
-        url = f"{base_url}/customers"
-        customer_data: Dict[str, Any] = {"email": email}
-        if first_name:
-            customer_data["first_name"] = first_name
-        if last_name:
-            customer_data["last_name"] = last_name
-        payload = customer_data
-
-    if dry_run:
-        preview = _build_preview(
-            operation=normalized_operation,
-            url=url,
-            method=method,
-            params=params,
-            payload=payload,
-        )
-        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
-
-    try:
-        if method == "POST":
-            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
-        else:
-            response = api_client.get(url, headers=headers, params=params, timeout=timeout)
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output("WooCommerce request failed", status_code=status, details=str(exc))
-
-    try:
-        data = response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=getattr(response, "status_code", None),
-            details=getattr(response, "text", None),
-        )
-
-    if not getattr(response, "ok", False):
-        return error_output(
-            _extract_error_message(data),
-            status_code=response.status_code,
-            response=data,
-        )
-
-    return {"output": data}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        error_parser=_woocommerce_error_message,
+        request_error_message="WooCommerce request failed",
+        include_exception_in_message=False,
+    )

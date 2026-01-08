@@ -11,11 +11,13 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 4: Migrated xero.py (complexity 34→15, reduced by 19 branches)
 - ✅ Phase 5: Migrated docusign.py (complexity 30→9, reduced by 21 branches)
 - ✅ Phase 6: Migrated linkedin_ads.py (complexity 28→9, reduced by 19 branches)
-- ⏳ Remaining servers: 96+ servers with 10+ branches still need migration
+- ✅ Phase 7: Migrated meta_ads.py (complexity 33→13, reduced by 20 branches)
+- ✅ Phase 8: Migrated woocommerce.py (complexity 33→10, reduced by 23 branches)
+- ⏳ Remaining servers: 94+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
-Successfully migrated **6 high-complexity external API servers** to use dispatch table pattern:
+Successfully migrated **8 high-complexity external API servers** to use dispatch table pattern:
 
 | Server | Before | After | Reduction | Status |
 |--------|--------|-------|-----------|--------|
@@ -25,8 +27,10 @@ Successfully migrated **6 high-complexity external API servers** to use dispatch
 | **xero.py** | 34 | 15 | -19 | ✅ Completed (Phase 4) |
 | **docusign.py** | 30 | 9 | -21 | ✅ Completed (Phase 5) |
 | **linkedin_ads.py** | 28 | 9 | -19 | ✅ Completed (Phase 6) |
+| **meta_ads.py** | 33 | 13 | -20 | ✅ Completed (Phase 7) |
+| **woocommerce.py** | 33 | 10 | -23 | ✅ Completed (Phase 8) |
 
-**Total complexity reduction: 125 branches eliminated across 6 servers**
+**Total complexity reduction: 168 branches eliminated across 8 servers**
 
 ### Pattern Applied
 
@@ -53,7 +57,7 @@ The Radon analysis shows 25 server definitions with E-grade complexity (31-35):
 |------------|-------|----------|
 | 35 | 1 | dropbox.py |
 | 34 | 5 | xero.py, telegram.py, linkedin_ads.py, docusign.py, salesforce.py |
-| 33 | 2 | meta_ads.py, woocommerce.py, freshbooks.py |
+| 33 | 1 | freshbooks.py |
 | 32 | 6 | docparser.py, onedrive.py, mongodb.py, figma.py, quickbooks.py, squarespace.py |
 | 31 | 9 | servicenow.py, klaviyo.py, helpscout.py, etsy.py, aws_s3.py, and more |
 
