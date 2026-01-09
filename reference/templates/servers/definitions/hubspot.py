@@ -5,21 +5,52 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-import requests
-
-from server_utils.external_api import ExternalApiClient, error_output, validation_error
+from server_utils.external_api import (
+    ExternalApiClient,
+    OperationDefinition,
+    RequiredField,
+    error_output,
+    execute_json_request,
+    validate_and_build_payload,
+    validation_error,
+)
 
 
 _DEFAULT_CLIENT = ExternalApiClient()
 
 
-_SUPPORTED_OPERATIONS = {
-    "list_contacts",
-    "get_contact",
-    "create_contact",
-    "list_companies",
-    "get_company",
-    "create_company",
+_OPERATIONS = {
+    "list_contacts": OperationDefinition(),
+    "get_contact": OperationDefinition(required=(RequiredField("contact_id"),)),
+    "create_contact": OperationDefinition(
+        required=(RequiredField("properties"),),
+        payload_builder=lambda properties, **_: {"properties": properties},
+    ),
+    "list_companies": OperationDefinition(),
+    "get_company": OperationDefinition(required=(RequiredField("company_id"),)),
+    "create_company": OperationDefinition(
+        required=(RequiredField("properties"),),
+        payload_builder=lambda properties, **_: {"properties": properties},
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "list_contacts": lambda **_: "crm/v3/objects/contacts",
+    "get_contact": lambda contact_id, **_: f"crm/v3/objects/contacts/{contact_id}",
+    "create_contact": lambda **_: "crm/v3/objects/contacts",
+    "list_companies": lambda **_: "crm/v3/objects/companies",
+    "get_company": lambda company_id, **_: f"crm/v3/objects/companies/{company_id}",
+    "create_company": lambda **_: "crm/v3/objects/companies",
+}
+
+_METHODS = {
+    "create_contact": "POST",
+    "create_company": "POST",
+}
+
+_PARAMETER_BUILDERS = {
+    "list_contacts": lambda limit, **_: {"limit": limit},
+    "list_companies": lambda limit, **_: {"limit": limit},
 }
 
 
@@ -28,6 +59,7 @@ def _build_preview(
     operation: str,
     url: str,
     method: str,
+    params: Optional[Dict[str, Any]],
     payload: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
     preview: Dict[str, Any] = {
@@ -37,21 +69,17 @@ def _build_preview(
         "auth": "bearer",
     }
 
+    if params:
+        preview["params"] = params
     if payload:
         preview["payload"] = payload
 
     return preview
 
-
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _hubspot_error_message(_response: object, data: Any) -> str:
+    if isinstance(data, dict):
+        return data.get("message", "HubSpot API error")
+    return "HubSpot API error"
 
 
 def main(
@@ -94,82 +122,53 @@ def main(
             details="Provide a valid OAuth access token.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Build URL and method based on operation
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        contact_id=contact_id,
+        company_id=company_id,
+        properties=properties,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+
     base_url = "https://api.hubapi.com"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
-
-    if operation == "list_contacts":
-        url = f"{base_url}/crm/v3/objects/contacts?limit={limit}"
-    elif operation == "get_contact":
-        if not contact_id:
-            return validation_error("contact_id is required for get_contact operation")
-        url = f"{base_url}/crm/v3/objects/contacts/{contact_id}"
-    elif operation == "create_contact":
-        if not properties:
-            return validation_error(
-                "properties are required for create_contact operation"
-            )
-        url = f"{base_url}/crm/v3/objects/contacts"
-        method = "POST"
-        payload = {"properties": properties}
-    elif operation == "list_companies":
-        url = f"{base_url}/crm/v3/objects/companies?limit={limit}"
-    elif operation == "get_company":
-        if not company_id:
-            return validation_error("company_id is required for get_company operation")
-        url = f"{base_url}/crm/v3/objects/companies/{company_id}"
-    elif operation == "create_company":
-        if not properties:
-            return validation_error(
-                "properties are required for create_company operation"
-            )
-        url = f"{base_url}/crm/v3/objects/companies"
-        method = "POST"
-        payload = {"properties": properties}
-
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        contact_id=contact_id,
+        company_id=company_id,
+    )
+    url = f"{base_url}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
+    params = _PARAMETER_BUILDERS.get(operation, lambda **_: None)(limit=limit)
 
     if dry_run:
-        return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
+        return {
+            "output": _build_preview(
+                operation=operation,
+                url=url,
+                method=method,
+                params=params,
+                payload=payload,
+            )
+        }
 
     headers = {
         "Authorization": f"Bearer {HUBSPOT_ACCESS_TOKEN}",
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "HubSpot request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("message", "HubSpot API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=payload,
+        timeout=timeout,
+        request_error_message="HubSpot request failed",
+        error_parser=_hubspot_error_message,
+    )

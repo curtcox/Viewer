@@ -6,12 +6,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-import requests
-
 from server_utils.external_api import (
     ExternalApiClient,
     GoogleAuthManager,
+    OperationDefinition,
+    RequiredField,
     error_output,
+    execute_json_request,
+    validate_and_build_payload,
     validation_error,
 )
 
@@ -21,10 +23,29 @@ _DEFAULT_CLIENT = ExternalApiClient()
 _DEFAULT_AUTH_MANAGER = GoogleAuthManager()
 
 
-_SUPPORTED_OPERATIONS = {
-    "get_document",
-    "create_document",
-    "batch_update",
+_OPERATIONS = {
+    "get_document": OperationDefinition(
+        required=(RequiredField("document_id"),),
+    ),
+    "create_document": OperationDefinition(
+        required=(RequiredField("title"),),
+        payload_builder=lambda title, **_: {"title": title},
+    ),
+    "batch_update": OperationDefinition(
+        required=(RequiredField("document_id"), RequiredField("requests_payload")),
+        payload_builder=lambda requests_payload, **_: {"requests": requests_payload},
+    ),
+}
+
+_ENDPOINT_BUILDERS = {
+    "get_document": lambda document_id, **_: f"{document_id}",
+    "create_document": lambda **_: "",
+    "batch_update": lambda document_id, **_: f"{document_id}:batchUpdate",
+}
+
+_METHODS = {
+    "create_document": "POST",
+    "batch_update": "POST",
 }
 
 
@@ -48,15 +69,10 @@ def _build_preview(
     return preview
 
 
-def _parse_json_response(response: requests.Response) -> Dict[str, Any]:
-    try:
-        return response.json()
-    except ValueError:
-        return error_output(
-            "Invalid JSON response",
-            status_code=response.status_code,
-            details=response.text,
-        )
+def _build_url(base_url: str, endpoint: str) -> str:
+    if not endpoint:
+        return base_url
+    return f"{base_url}/{endpoint}"
 
 
 def main(
@@ -101,41 +117,31 @@ def main(
             details="Provide either a service account JSON or an access token.",
         )
 
-    if operation not in _SUPPORTED_OPERATIONS:
-        return validation_error(
-            f"Invalid operation: {operation}. Valid operations: {', '.join(_SUPPORTED_OPERATIONS)}"
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Build URL and method based on operation
-    base_url = "https://docs.googleapis.com/v1/documents"
-    url: Optional[str] = None
-    method = "GET"
-    payload = None
-
-    if operation == "get_document":
-        if not document_id:
-            return validation_error("document_id is required for get_document operation")
-        url = f"{base_url}/{document_id}"
-    elif operation == "create_document":
-        if not title:
-            return validation_error("title is required for create_document operation")
-        url = base_url
-        method = "POST"
-        payload = {"title": title}
-    elif operation == "batch_update":
-        if not document_id:
-            return validation_error("document_id is required for batch_update operation")
-        if not requests_payload:
-            return validation_error("requests_payload is required for batch_update operation")
-        url = f"{base_url}/{document_id}:batchUpdate"
-        method = "POST"
+    parsed_requests = None
+    if operation == "batch_update" and requests_payload:
         try:
-            payload = {"requests": json.loads(requests_payload)}
+            parsed_requests = json.loads(requests_payload)
         except json.JSONDecodeError:
             return validation_error("requests_payload must be valid JSON")
 
-    if url is None:
-        return error_output(f"Internal error: unhandled operation '{operation}'")
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        document_id=document_id,
+        title=title,
+        requests_payload=parsed_requests,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
+
+    base_url = "https://docs.googleapis.com/v1/documents"
+    endpoint = _ENDPOINT_BUILDERS[operation](document_id=document_id)
+    url = _build_url(base_url, endpoint)
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     if dry_run:
         return {"output": _build_preview(operation=operation, url=url, method=method, payload=payload)}
@@ -167,31 +173,13 @@ def main(
         "Content-Type": "application/json",
     }
 
-    try:
-        response = api_client.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        return error_output(
-            "Google Docs request failed", status_code=status, details=str(exc)
-        )
-
-    if not response.ok:
-        parsed = _parse_json_response(response)
-        if "error" in parsed.get("output", {}):
-            return parsed
-        return error_output(
-            parsed.get("error", {}).get("message", "Google Docs API error"),
-            status_code=response.status_code,
-            response=parsed,
-        )
-
-    parsed = _parse_json_response(response)
-    if "error" in parsed.get("output", {}):
-        return parsed
-    return {"output": parsed}
+    return execute_json_request(
+        api_client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        error_key="error",
+        request_error_message="Google Docs request failed",
+    )

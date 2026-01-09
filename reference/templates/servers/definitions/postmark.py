@@ -1,19 +1,92 @@
 # ruff: noqa: F821, F706
 """Call the Postmark API for transactional email delivery."""
 
-from typing import Optional
+from typing import Any, Dict, Optional
+
 from server_utils.external_api import (
     ExternalApiClient,
-    HttpClientConfig,
-    error_response,
-    missing_secret_error,
-    generate_form,
     FormField,
+    HttpClientConfig,
+    OperationDefinition,
+    RequiredField,
+    execute_json_request,
+    generate_form,
+    missing_secret_error,
+    validate_and_build_payload,
+    validation_error,
 )
 
 
 API_BASE_URL = "https://api.postmarkapp.com"
 DOCUMENTATION_URL = "https://postmarkapp.com/developer"
+
+
+_OPERATIONS = {
+    "send_email": OperationDefinition(
+        required=(
+            RequiredField("to_email"),
+            RequiredField("from_email"),
+            RequiredField("subject"),
+        ),
+        payload_builder=lambda to_email, from_email, subject, text_body, html_body, **_: {
+            "To": to_email,
+            "From": from_email,
+            "Subject": subject,
+            **({"TextBody": text_body} if text_body else {}),
+            **({"HtmlBody": html_body} if html_body else {}),
+        },
+    ),
+    "send_template_email": OperationDefinition(
+        required=(
+            RequiredField("to_email"),
+            RequiredField("from_email"),
+            RequiredField("template_id"),
+        ),
+        payload_builder=lambda to_email, from_email, template_id, **_: {
+            "To": to_email,
+            "From": from_email,
+            "TemplateId": template_id,
+        },
+    ),
+    "get_message": OperationDefinition(required=(RequiredField("message_id"),)),
+    "list_bounces": OperationDefinition(),
+    "get_stats": OperationDefinition(),
+    "list_templates": OperationDefinition(),
+    "get_template": OperationDefinition(required=(RequiredField("template_id"),)),
+}
+
+_ENDPOINT_BUILDERS = {
+    "send_email": lambda **_: "email",
+    "send_template_email": lambda **_: "email/withTemplate",
+    "get_message": lambda message_id, **_: f"messages/outbound/{message_id}/details",
+    "list_bounces": lambda **_: "bounces",
+    "get_stats": lambda **_: "stats/outbound",
+    "list_templates": lambda **_: "templates",
+    "get_template": lambda template_id, **_: f"templates/{template_id}",
+}
+
+_METHODS = {
+    "send_email": "POST",
+    "send_template_email": "POST",
+}
+
+
+def _build_preview(
+    *,
+    operation: str,
+    method: str,
+    url: str,
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "method": method,
+        "url": url,
+        "headers": {"X-Postmark-Server-Token": "[REDACTED]"},
+    }
+    if payload:
+        preview["payload"] = payload
+    return preview
 
 
 def main(
@@ -132,87 +205,39 @@ def main(
         )
 
     # Validate operation
-    valid_operations = [
-        "send_email",
-        "send_template_email",
-        "get_message",
-        "list_bounces",
-        "get_stats",
-        "list_templates",
-        "get_template",
-    ]
-    if operation not in valid_operations:
-        return error_response(
-            f"Invalid operation: {operation}. Must be one of: {', '.join(valid_operations)}",
-            error_type="validation_error",
-        )
+    if operation not in _OPERATIONS:
+        return validation_error("Unsupported operation", field="operation")
 
-    # Build request based on operation
-    method = "GET"
-    url = API_BASE_URL
-    payload = None
+    result = validate_and_build_payload(
+        operation,
+        _OPERATIONS,
+        to_email=to_email,
+        from_email=from_email,
+        subject=subject,
+        text_body=text_body,
+        html_body=html_body,
+        template_id=template_id,
+        message_id=message_id,
+    )
+    if isinstance(result, tuple):
+        return validation_error(result[0], field=result[1])
 
-    if operation == "send_email":
-        if not to_email or not from_email or not subject:
-            return error_response(
-                "to_email, from_email, and subject are required for send_email operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/email"
-        payload = {
-            "To": to_email,
-            "From": from_email,
-            "Subject": subject,
-        }
-        if text_body:
-            payload["TextBody"] = text_body
-        if html_body:
-            payload["HtmlBody"] = html_body
-    elif operation == "send_template_email":
-        if not to_email or not from_email or not template_id:
-            return error_response(
-                "to_email, from_email, and template_id are required for send_template_email operation",
-                error_type="validation_error",
-            )
-        method = "POST"
-        url = f"{API_BASE_URL}/email/withTemplate"
-        payload = {
-            "To": to_email,
-            "From": from_email,
-            "TemplateId": template_id,
-        }
-    elif operation == "get_message":
-        if not message_id:
-            return error_response(
-                "message_id is required for get_message operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/messages/outbound/{message_id}/details"
-    elif operation == "list_bounces":
-        url = f"{API_BASE_URL}/bounces"
-    elif operation == "get_stats":
-        url = f"{API_BASE_URL}/stats/outbound"
-    elif operation == "list_templates":
-        url = f"{API_BASE_URL}/templates"
-    elif operation == "get_template":
-        if not template_id:
-            return error_response(
-                "template_id is required for get_template operation",
-                error_type="validation_error",
-            )
-        url = f"{API_BASE_URL}/templates/{template_id}"
+    endpoint = _ENDPOINT_BUILDERS[operation](
+        message_id=message_id,
+        template_id=template_id,
+    )
+    url = f"{API_BASE_URL}/{endpoint}"
+    method = _METHODS.get(operation, "GET")
+    payload = result if isinstance(result, dict) else None
 
     # Dry run: return preview
     if dry_run:
-        preview = {
-            "operation": operation,
-            "method": method,
-            "url": url,
-            "headers": {"X-Postmark-Server-Token": "[REDACTED]"},
-        }
-        if payload:
-            preview["payload"] = payload
+        preview = _build_preview(
+            operation=operation,
+            method=method,
+            url=url,
+            payload=payload,
+        )
         return {"output": preview}
 
     # Create client with configured timeout
@@ -226,29 +251,12 @@ def main(
         "Accept": "application/json",
     }
 
-    try:
-        response = client.request(
-            method=method, url=url, headers=headers, json=payload, timeout=timeout
-        )
-
-        # Try to parse JSON response
-        try:
-            return {"output": response.json()}
-        except Exception:
-            # If JSON parsing fails, return raw content
-            return error_response(
-                f"Failed to parse response as JSON. Status: {response.status_code}",
-                error_type="api_error",
-                status_code=response.status_code,
-                details={"raw_response": response.text[:500]},
-            )
-
-    except Exception as e:
-        status_code = None
-        if hasattr(e, "response") and e.response is not None:
-            status_code = e.response.status_code
-        return error_response(
-            f"API request failed: {str(e)}",
-            error_type="api_error",
-            status_code=status_code,
-        )
+    return execute_json_request(
+        client,
+        method,
+        url,
+        headers=headers,
+        json=payload,
+        timeout=timeout,
+        request_error_message="Postmark request failed",
+    )

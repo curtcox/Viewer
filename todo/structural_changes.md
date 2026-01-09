@@ -20,7 +20,8 @@ This document proposes concrete structural changes to reduce cyclomatic complexi
 - ✅ Phase 13: Migrated google_ads.py, google_contacts.py, google_forms.py, and pandadoc.py to dispatch tables and shared executor.
 - ✅ Phase 14: Migrated freshdesk.py, gorgias.py, zendesk.py, front.py, and intercom.py to dispatch tables and shared executor.
 - ✅ Phase 15: Migrated aws_s3.py, mongodb.py, and squarespace.py to dispatch tables.
-- ⏳ Remaining servers: 40+ servers with 10+ branches still need migration
+- ✅ Phase 16: Migrated google_docs.py, apify.py, hunter.py, hubspot.py, postmark.py, and dynamics365.py to dispatch tables and shared executor.
+- ⏳ Remaining servers: 30+ servers with 10+ branches still need migration
 
 ## Summary of Improvements
 
