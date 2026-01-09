@@ -150,6 +150,9 @@ def test_gateway_instruction_page_includes_links_for_builtin_gateways(
     """Gateway instruction page should include links for gateways loaded from gateways.source.json."""
     import json
 
+    from pathlib import Path
+
+    from cid_core import generate_cid
     from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID, TEST_HRX_ARCHIVE_CID
 
     with open(
@@ -170,15 +173,20 @@ def test_gateway_instruction_page_includes_links_for_builtin_gateways(
     assert response.status_code == 200
     page = response.get_data(as_text=True)
 
-    mock_server_cid = TEST_CIDS_ARCHIVE_CID
+    def expected_mock_cid(server_name: str) -> str:
+        archive = Path("reference/files") / f"{server_name}.cids"
+        if archive.exists():
+            return generate_cid(archive.read_bytes())
+        return TEST_CIDS_ARCHIVE_CID
 
-    assert f"/gateway/test/cids/{mock_server_cid}/as/" in page
-    assert f"/cids/{mock_server_cid}" in page
+    assert "/gateway/test/cids/" in page
+    assert "/cids/" in page
     assert f"/gateway/test/cids/{TEST_HRX_ARCHIVE_CID}/as/" not in page
     assert f"/cids/{TEST_HRX_ARCHIVE_CID}" not in page
 
     # Non-external (internal-only) gateways
     for server_name in ("man", "tldr", "hrx", "cids"):
+        mock_server_cid = expected_mock_cid(server_name)
         assert f"/servers/{server_name}" in page
         assert f"/gateway/{server_name}" in page
         assert f"/gateway/meta/{server_name}" in page
@@ -291,7 +299,10 @@ def test_gateway_configured_gateways_server_meta_test_links_respond_without_erro
     """
 
     import json
+    from pathlib import Path
 
+    from cid_core import generate_cid
+    from cid_storage import ensure_cid_exists
     from reference.templates.servers import get_server_templates
 
     with open(
@@ -345,10 +356,24 @@ def test_gateway_configured_gateways_server_meta_test_links_respond_without_erro
 
     from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID
 
-    mock_server_cid = TEST_CIDS_ARCHIVE_CID
+    def expected_mock_cid(server_name: str) -> str:
+        archive = Path("reference/files") / f"{server_name}.cids"
+        if archive.exists():
+            content_bytes = archive.read_bytes()
+            cid_value = generate_cid(content_bytes)
+            with integration_app.app_context():
+                ensure_cid_exists(cid_value, content_bytes)
+            return cid_value
+
+        cid_file = Path("cids") / TEST_CIDS_ARCHIVE_CID
+        if cid_file.exists():
+            with integration_app.app_context():
+                ensure_cid_exists(TEST_CIDS_ARCHIVE_CID, cid_file.read_bytes())
+        return TEST_CIDS_ARCHIVE_CID
 
     # Verify each Server/Meta/Test target responds without error.
     for server_name in gateways_config.keys():
+        mock_server_cid = expected_mock_cid(server_name)
         server_url = f"/servers/{server_name}"
         meta_url = f"/gateway/meta/{server_name}"
         test_url = f"/gateway/test/cids/{mock_server_cid}/as/{server_name}"

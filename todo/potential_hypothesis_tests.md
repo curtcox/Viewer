@@ -1,10 +1,31 @@
 # Potential Hypothesis Tests
 
-This document lists opportunities for property-based testing using Hypothesis throughout the codebase. Each test is described with what it would test and why it would be valuable.
+This document tracked opportunities for property-based testing using Hypothesis throughout the codebase. **Most high-priority items have now been implemented.**
+
+## Summary
+
+### ✅ Completed (6/9 high-priority modules, 59 tests total)
+
+The following high-priority modules now have comprehensive hypothesis property tests:
+
+1. **HRX Parser** - `tests/property/test_hrx_parser_properties.py` (6 tests)
+2. **MIME Utils** - `tests/property/test_mime_utils_properties.py` (9 tests)
+3. **CLI Arguments** - `tests/property/test_cli_args_properties.py` (10 tests)
+4. **CID Core** - `tests/property/test_cid_core_properties.py` (13 tests)
+5. **Authorization** - `tests/property/test_authorization_properties.py` (9 tests)
+6. **History Filters** - `tests/property/test_history_filters_properties.py` (12 tests)
+
+### Remaining Opportunities
+
+The following modules remain as opportunities for future hypothesis tests:
+
+- **Formdown Renderer** (`formdown_renderer.py`) - descriptor parsing, HTML safety, field ID uniqueness
+- **Entity References** (`entity_references.py`) - extraction idempotence, path normalization, deduplication
+- **Link Presenter** (`link_presenter.py`) - path normalization, URL combination, server paths
 
 ## Already Covered
 
-The following modules already have hypothesis tests:
+The following modules already had hypothesis tests before this work:
 - `tests/property/test_cid_properties.py` - CID encoding/parsing round-trips
 - `tests/property/test_alias_matching_properties.py` - Alias pattern normalization
 - `tests/property/test_serialization_properties.py` - Model serialization
@@ -17,7 +38,9 @@ The following modules already have hypothesis tests:
 
 ## High Priority Opportunities
 
-### 1. HRX Parser (`hrx_parser.py`)
+### 1. HRX Parser (`hrx_parser.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_hrx_parser_properties.py`
 
 **Test: HRX parse-serialize idempotence**
 - **What it tests**: Parsing an HRX archive and reconstructing it should preserve file paths and content
@@ -41,7 +64,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 2. MIME Utils (`mime_utils.py`)
+### 2. MIME Utils (`mime_utils.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_mime_utils_properties.py`
 
 **Test: Extension-MIME round-trip consistency**
 - **What it tests**: For any known MIME type, converting to extension and back should be stable
@@ -134,7 +159,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 6. History Filters (`history_filters.py`)
+### 6. History Filters (`history_filters.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_history_filters_properties.py`
 
 **Test: Timestamp round-trip**
 - **What it tests**: Formatting a datetime and parsing it back should yield the original value (modulo timezone)
@@ -158,7 +185,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 7. CLI Arguments (`cli_args.py`)
+### 7. CLI Arguments (`cli_args.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_cli_args_properties.py`
 
 **Test: Memory size parsing**
 - **What it tests**: `parse_memory_size()` should handle various formats correctly
@@ -179,7 +208,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 8. CID Core (`cid_core.py`)
+### 8. CID Core (`cid_core.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_cid_core_properties.py`
 
 **Test: Base64url encode/decode round-trip**
 - **What it tests**: Encoding bytes and decoding back should yield original data
@@ -203,7 +234,9 @@ The following modules already have hypothesis tests:
 
 ---
 
-### 9. Authorization (`authorization.py`)
+### 9. Authorization (`authorization.py`) ✅ DONE
+
+**Status**: Implemented in `tests/property/test_authorization_properties.py`
 
 **Test: AuthorizationResult validation**
 - **What it tests**: Creating an `AuthorizationResult` with `allowed=False` should require status_code and message
