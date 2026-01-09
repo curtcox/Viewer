@@ -13,7 +13,9 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 - **Configuration Format**: No versioning; open to improved format if proposed
 - **Configuration Reloading**: Hot-reloadable without restart
 - **Configuration Validation**: Yes, at load time
-- **HTTP Independence**: Must work without Flask request context (supports non-HTTP invocation)
+- **Internal Server Pattern**: Gateway is implemented as an internal server (like other servers in `server_execution`)
+- **Server Contract**: Follows standard server interface - called via `try_server_execution("/gateway/...")`, works without Flask context
+- **Invocation Methods**: HTTP requests, direct Python calls (CLI, testing, batch processing)
 
 ### Error Handling
 - **Transform Errors**: Fatal with detailed diagnostics for correction
@@ -975,10 +977,11 @@ def test_redirect_following_handles_all_status_codes(status_code)
 
 ### Clear Separation of Concerns
 - **Gateway scope**: Only handles routing under /gateway/, doesn't touch Flask routing elsewhere
+- **Internal server pattern**: Gateway is just another internal server (follows same contract as all servers)
 - **Transform scope**: Only request and response transforms (no additional types needed)
 - **External concerns**: Test/prod diffs, metrics, monitoring handled by separate services
 - **Reserved names**: Special routes (meta, request, response, test) take precedence; conflicting server names need aliases
-- **HTTP independence**: Gateway works without Flask - supports direct invocation, CLI, batch processing
+- **Protocol independence**: Works via HTTP, direct calls (CLI, testing, batch) - uses server_execution framework
 
 ### Developer Experience
 - **Rich diagnostics** - All errors provide detailed context for correction
@@ -1278,43 +1281,93 @@ gateway_logger.addHandler(CustomStructuredLogHandler())
 gateway_logger.setLevel(logging.INFO)
 ```
 
-### Non-HTTP Request Handling
-**Important:** Gateway must work without Flask request context
+### Internal Server Contract
+**Important:** Gateway follows the standard internal server pattern
 
-Since requests may come from non-HTTP sources, the gateway needs to:
+Gateway is implemented as an internal server following the same contract as other servers:
 
-1. **Accept request details as parameters** (not from `flask_request`)
-2. **Return Python dictionaries** (not Flask Response objects)
-3. **Be callable without Flask application context**
+1. **Entry Point**: `main()` function (standard server interface)
+2. **Invocation**: Called via `try_server_execution("/gateway/...")` or direct invocation
+3. **Request Context**: Works with or without Flask request context
+4. **Return Types**: Returns standard server results (strings, dicts, Flask Response objects)
+5. **Parameter Extraction**: Uses `request_parsing` utilities like other servers
 
 ```python
-# Gateway entry point - works with or without HTTP
-def main(server_name: str = None, path: str = "", context: dict = None):
-    """Gateway entry point.
+# Gateway entry point - standard internal server pattern
+def main(rest: str = "", **kwargs):
+    """Gateway main function (internal server interface).
 
-    Can be called:
-    - Via Flask: main() with flask_request in context
-    - Directly: main(server_name="man", path="ls", context={...})
-    - CLI: main(**parse_cli_args())
+    Invoked via:
+    - HTTP: GET /gateway/{server_name}/{path} -> main(rest="server_name/path")
+    - Direct: execute_server_code(gateway_server, "gateway")
+    - CLI: Via server_execution CLI tools
+    - Testing: Direct function call with mocked context
+
+    Args:
+        rest: Remaining path after /gateway/ (e.g., "man/ls")
+        **kwargs: Additional parameters from server_execution framework
+
+    Returns:
+        Response in standard server format (string, dict, Flask Response)
     """
-    # Extract from Flask if available, otherwise use parameters
-    if server_name is None:
-        # Parse from flask_request.path if available
-        server_name, path = _parse_from_flask_request()
+    # Extract context from server_execution framework
+    context = _load_user_context(**kwargs)
 
-    # Route and handle
-    return router.route(server_name, path, context or {})
+    # Parse path into server_name and rest
+    parts = rest.split("/", 1)
+    server_name = parts[0] if parts else ""
+    path = parts[1] if len(parts) > 1 else ""
+
+    # Build request details (works with or without Flask)
+    if has_request_context():
+        request_details = RequestDetails.from_flask_request(request, path)
+    else:
+        # Non-HTTP invocation: defaults to GET with minimal details
+        request_details = RequestDetails.from_params(
+            path=path,
+            method=kwargs.get("method", "GET"),
+            headers=kwargs.get("headers", {}),
+            query_string=kwargs.get("query_string", "")
+        )
+
+    # Route and handle (standard gateway logic)
+    return router.route(server_name, request_details, context)
+
+
+# Helper for compatibility with other server patterns
+def _load_user_context(**kwargs):
+    """Load user context from server_execution framework.
+
+    Follows the same pattern as other internal servers.
+    """
+    from server_execution.code_execution import _load_user_context as load_ctx
+    return load_ctx(**kwargs)
 ```
+
+**Key Points:**
+- Gateway is just another internal server (no special status)
+- Uses same parameter extraction as other servers (`rest` parameter, `_load_user_context`)
+- Headers, cookies, request IDs are relayed through `RequestDetails` but not used by gateway logic
+- Method defaults to "GET" for non-HTTP invocations
+- Compatible with existing CLI tools, testing framework, and batch processing
 
 ---
 
-**Document Status**: **FINAL v4.0** - Implementation ready
+**Document Status**: **FINAL v5.0** - Implementation ready
 **Last Updated**: 2026-01-09
 **Owner**: Development Team
 **All Design Decisions**: Complete (52/52 questions resolved)
-**Key Additions in v4.0**:
-- Simple pattern matching routing (no external dependencies)
-- Centralized logging with interception point
-- Non-HTTP invocation support (direct calls, CLI, batch)
-- RequestDetails factory methods for various sources
-- Updated test plan with 280+ tests including non-HTTP scenarios
+
+**Key Additions in v5.0**:
+- **Internal server pattern**: Gateway follows standard server contract (uses `main(rest, **kwargs)`)
+- Invocation via `try_server_execution("/gateway/...")` like other servers
+- Uses `server_execution` framework utilities (`_load_user_context`, request parsing)
+- Compatible with existing CLI tools, testing framework, batch processing
+- Method defaults to "GET" for non-HTTP invocations
+- Headers/cookies/request IDs relayed but not used by gateway logic
+
+**Previous versions**:
+- v4.0: Simple routing, centralized logging, RequestDetails factory methods
+- v3.0: All 50 original questions resolved, middleware & routing design
+- v2.0: Design decisions documented
+- v1.0: Initial plan with open questions
