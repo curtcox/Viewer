@@ -174,7 +174,7 @@ def test_mime_type_no_extension(path):
 def test_mime_type_unknown_extension(unknown_ext):
     """Unknown extensions should return default MIME type."""
     # Make sure the extension is not known
-    assume(unknown_ext not in EXTENSION_TO_MIME)
+    assume(unknown_ext.lower() not in EXTENSION_TO_MIME)
     
     path = f"file.{unknown_ext}"
     mime = get_mime_type_from_extension(path)

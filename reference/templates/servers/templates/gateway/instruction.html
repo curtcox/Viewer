@@ -141,7 +141,7 @@
                 {%- endmacro %}
 
                 {% for name, config in gateways.items() %}
-                {% set mock_server_cid = mock_server_cids.get(name, "") if mock_server_cids else "" %}
+                {% set mock_server_cid = (mock_server_cids.get(name, "") if mock_server_cids else "") or (mock_server_cid_default or "") %}
                 <tr>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
                         <span class="gateway-name">{{ name }}</span>
@@ -168,7 +168,7 @@
 
                 {% for server in external_servers or [] %}
                     {% if server.name and server.name not in gateways %}
-                    {% set mock_server_cid = mock_server_cids.get(server.name, "") if mock_server_cids else "" %}
+                    {% set mock_server_cid = (mock_server_cids.get(server.name, "") if mock_server_cids else "") or (mock_server_cid_default or "") %}
                     <tr>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
                             <span class="gateway-name">{{ server.name }}</span>
