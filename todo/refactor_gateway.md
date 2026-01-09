@@ -168,10 +168,55 @@ reference/templates/servers/definitions/
 
 **Key Points:**
 - `gateway.py` is the entry point (stored in database, loaded as boot image)
-- `gateway/` package contains modular implementation
-- Entry point imports from package: `from gateway import main`
-- Works from filesystem (tests, boot) and database (runtime)
+- `gateway/` package contains modular implementation (**MUST be on filesystem, not in database**)
+- Entry point imports from package: `from gateway.models import RequestDetails`
+- Database-stored code can import from filesystem packages normally
 - Maintains backwards compatible interface throughout refactor
+
+**Critical Architectural Constraint (Research Finding)**:
+
+Database-stored Python code is executed via `exec()` without filesystem context. This means:
+
+1. **Import Limitations**:
+   - ✅ CAN import from standard library: `import json`
+   - ✅ CAN import from application filesystem: `from flask import request`
+   - ✅ CAN import from filesystem packages: `from gateway.models import RequestDetails`
+   - ❌ CANNOT import other database-stored code
+   - ❌ CANNOT use relative imports within database-stored files
+
+2. **Refactoring Implications**:
+   - `gateway.py` (entry point): Stored in database via boot image (Server.definition)
+   - `gateway/` (package): Lives in application filesystem at `reference/templates/servers/definitions/gateway/`
+   - When `gateway.py` does `from gateway.models import RequestDetails`, Python finds the package on the filesystem
+   - This works identically whether code runs from database (production) or filesystem (testing)
+
+3. **File Locations**:
+   ```
+   Database (servers table):
+   └── gateway.py definition (boot image loads this text into database)
+
+   Filesystem (application code):
+   └── reference/templates/servers/definitions/
+       ├── gateway.py (source file, becomes boot CID, loaded into database)
+       └── gateway/ (package, stays on filesystem, never goes to database)
+           ├── __init__.py
+           ├── models.py
+           ├── core.py
+           └── ... (all other modules)
+   ```
+
+4. **Why This Works**:
+   - Boot image loads `gateway.py` source into database as Server.definition
+   - At runtime, database text is executed via `exec()`
+   - Import statements in executed code use normal Python import mechanism
+   - Python searches `sys.path` and finds `gateway/` package on filesystem
+   - Same import path works for filesystem tests and database execution
+
+5. **No Special Handling Needed**:
+   - No import hooks required
+   - No sys.path modifications needed
+   - Standard Python package structure
+   - Works transparently in both execution modes
 
 ### Service Locator Pattern
 
@@ -1464,42 +1509,259 @@ def _load_user_context(**kwargs):
 
 ### Research Tasks (Before Phase 1)
 
-#### 1. Import Behavior from Database Storage
+#### 1. Import Behavior from Database Storage ✅ **COMPLETE**
 **Question**: How do Python imports work when code is stored in database vs. filesystem?
 
-**Research Areas**:
-- How `server_execution` loads and executes code from database
-- Whether package imports work automatically or need special handling
-- If `sys.path` or import hooks are modified
-- How other multi-file servers (if any) handle this
+**Research Findings**:
+Database-stored code is executed via `exec()` in a dynamic namespace without filesystem context:
 
-**Expected Outcome**:
-- Document how imports work from database
-- Identify if `from gateway.models import RequestDetails` works automatically
-- Determine if special handling needed for package structure
+1. **Code Storage**: Server definitions stored as text in `Server.definition` field
+2. **Execution Method**: Code is wrapped in a function and executed via `exec()`
+   ```python
+   # From text_function_runner.py
+   fn_name = f"_fn_{hash}"
+   src = f"def {fn_name}({params}):\n{indented_body}"
+   exec(src, namespace, namespace)  # Execute in namespace
+   fn = namespace[fn_name]
+   return fn(**kwargs)
+   ```
+3. **No __file__ Variable**: Code executed via `exec()` has no `__file__` (raises NameError)
+4. **Standard Imports Work**: Can import from application modules (e.g., `from flask import request`)
+5. **Database-to-Database Imports Don't Work**: Cannot do `from gateway import models` when both are in database
 
-#### 2. Boot Image Loading Process
+**Critical Constraint**: Database-stored code can only import from:
+- Standard library (e.g., `import json`)
+- Application codebase on filesystem (e.g., `from flask import request`)
+- Builtins and helpers in namespace (e.g., `save()`, `load()`)
+
+**Cannot Import**:
+- Other database-stored server definitions
+- Other database-stored CID files
+- Package structures stored in database
+
+**Workaround for Multi-Module Servers**:
+- Entry point (`gateway.py`) stored in database
+- Supporting package (`gateway/`) must be on filesystem
+- Entry point imports from filesystem: `from gateway.models import RequestDetails`
+- Imports work because Python looks for `gateway/` package in application directory
+
+**Alternative Access Methods**:
+- Access other servers via `context["servers"]["server_name"]` (returns source code as string)
+- Access variables via `context["variables"]["var_name"]`
+- Access secrets via `context["secrets"]["secret_name"]`
+- Load CIDs via helper: `load(cid)` or `load_content_from_cid(cid)`
+
+**Key Files Researched**:
+- `/home/user/Viewer/text_function_runner.py` - Dynamic code execution via exec()
+- `/home/user/Viewer/server_execution/code_execution.py` - Context building and execution flow
+- `/home/user/Viewer/models.py` - Server and CID database models
+
+#### 2. Boot Image Loading Process ✅ **COMPLETE**
 **Question**: How does the boot image loading script work?
 
-**Research Areas**:
-- Location of boot image loading script
-- How it reads from `cids/` folder
-- How it determines what to load
-- If it handles directories/packages automatically
+**Research Findings**:
 
-**Expected Outcome**:
-- Understand if `gateway/` package auto-included or needs explicit configuration
-- Know if we need to modify boot script
-- Document the boot image format/structure
+**Step 1 - CID Directory Loading** (`cid_directory_loader.py`):
+- Reads all files from `cids/` folder (configured via `CID_DIRECTORY` or defaults to `app.root_path/cids`)
+- Validates each filename matches content hash: `generate_cid(file_bytes) == filename`
+- Stores raw bytes in `CID` table with `path=/{cid}` and `file_data=bytes`
+- Called at application startup from `app.py`
 
-#### 3. In-Memory DB Integration Tests
+**Step 2 - Boot JSON Generation** (`generate_boot_image.py`):
+- Reads template files from `reference/templates/`
+- Generates CIDs for each file
+- Creates `.boot.json` files mapping server names to definition CIDs
+- Example:
+  ```json
+  {
+    "servers": [
+      {
+        "name": "gateway",
+        "definition_cid": "abc123...",
+        "enabled": true
+      }
+    ]
+  }
+  ```
+
+**Step 3 - Boot CID Import** (`boot_cid_importer.py`):
+- `import_boot_cid(boot_cid)` loads boot JSON from database
+- Resolves each `definition_cid` by loading CID content from database
+- Creates `Server` records with:
+  - `name`: Server name (e.g., "gateway")
+  - `definition`: Source code as text (resolved from CID)
+  - `definition_cid`: CID reference for tracking
+  - `enabled`: True
+
+**Package Handling**:
+- Boot image only handles individual files, not directory structures
+- Each file becomes a CID in the database
+- No automatic package structure support
+- Supporting packages (like `gateway/`) must exist on filesystem
+
+**Key Files Researched**:
+- `/home/user/Viewer/cid_directory_loader.py` - CID loading from filesystem to database
+- `/home/user/Viewer/generate_boot_image.py` - Boot image generation script
+- `/home/user/Viewer/boot_cid_importer.py` - Boot CID import into database
+
+#### 3. In-Memory DB Integration Tests ✅ **COMPLETE**
 **Question**: Where are existing in-memory DB integration tests?
 
-**Research Areas**:
-- Location of integration tests using in-memory DB
-- How they set up database with server definitions
-- Testing patterns we should follow
+**Research Findings**:
 
-**Expected Outcome**:
-- Use same pattern for new database execution tests
-- Understand how to test database-stored gateway execution
+**Test Fixture Patterns** (`tests/conftest.py`):
+
+1. **Global Fixtures**:
+   ```python
+   @pytest.fixture()
+   def memory_db_app():
+       """Flask app configured with in-memory database."""
+       DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+       app = create_app({
+           "TESTING": True,
+           "WTF_CSRF_ENABLED": False,
+       })
+       with app.app_context():
+           db.create_all()
+           yield app
+           db.session.remove()
+           db.drop_all()
+       DatabaseConfig.reset()
+
+   @pytest.fixture()
+   def memory_client(memory_db_app):
+       """Test client bound to memory database app."""
+       return memory_db_app.test_client()
+   ```
+
+2. **Integration Test Fixtures** (`tests/integration/conftest.py`):
+   ```python
+   @pytest.fixture()
+   def integration_app():
+       """Return a Flask app configured for integration testing."""
+       os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+       app = create_app({
+           "TESTING": True,
+           "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+           "WTF_CSRF_ENABLED": False,
+       })
+       with app.app_context():
+           db.create_all()
+           yield app
+           db.session.remove()
+           db.drop_all()
+   ```
+
+**Server Definition Loading Pattern**:
+
+Pattern 1 - Unittest style (`tests/integration/test_gateway_cids.py`):
+```python
+def setUp(self):
+    """Set up test fixtures."""
+    app.config["TESTING"] = True
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    self.app_context = app.app_context()
+    self.app_context.push()
+    db.create_all()
+
+    # Read server definitions from filesystem
+    with open("reference/templates/servers/definitions/gateway.py", "r") as f:
+        gateway_definition = f.read()
+
+    # Create Server records in database
+    gateway_server = Server(
+        name="gateway",
+        definition=gateway_definition,
+        enabled=True
+    )
+    db.session.add(gateway_server)
+    db.session.commit()
+
+    self.client = app.test_client()
+```
+
+Pattern 2 - Modern style (`tests/test_server_execution_error_pages.py`):
+```python
+def setUp(self) -> None:
+    self.app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "WTF_CSRF_ENABLED": False,
+    })
+    self.app_context = self.app.app_context()
+    self.app_context.push()
+    db.create_all()
+
+    # Read server definition using pathlib
+    template_path = (
+        Path(self.app.root_path)
+        / "reference/templates/servers/definitions/jinja_renderer.py"
+    )
+    definition = template_path.read_text(encoding="utf-8")
+
+    # Create and store server
+    self.server = Server(name="jinja_renderer", definition=definition)
+    db.session.add(self.server)
+    db.session.commit()
+
+    self.client = self.app.test_client()
+```
+
+**Testing Database-Stored Execution**:
+```python
+# After setup, execute via HTTP (server loaded from database)
+response = self.client.get("/gateway/some/path")
+
+# Or execute directly via server_execution functions
+from server_execution.code_execution import execute_server_code
+result = execute_server_code(gateway_server, "gateway")
+```
+
+**Key Insights**:
+1. **In-Memory DB**: Use `"sqlite:///:memory:"` as database URI
+2. **Server Loading**: Read from filesystem, store in database, execute from database
+3. **Dual Execution**: Tests validate both filesystem and database execution paths
+4. **Gateway-Specific Setup**: Load both gateway.py and gateways.source.json variable
+5. **Integration Tests Location**: `tests/integration/` and mixed throughout `tests/`
+
+**Example Files to Follow**:
+- `tests/conftest.py` - Standard test fixtures (memory_db_app, memory_client)
+- `tests/integration/conftest.py` - Integration-specific fixtures
+- `tests/integration/test_gateway_cids.py` - Gateway integration test example
+- `tests/test_server_execution_error_pages.py` - Modern unittest style
+
+**Pattern for New Gateway Tests**:
+```python
+@pytest.fixture
+def gateway_app(memory_db_app):
+    """App with gateway server loaded in database."""
+    with memory_db_app.app_context():
+        # Read gateway definition from filesystem
+        gateway_path = Path("reference/templates/servers/definitions/gateway.py")
+        gateway_def = gateway_path.read_text(encoding="utf-8")
+
+        # Store in database
+        gateway_server = Server(
+            name="gateway",
+            definition=gateway_def,
+            enabled=True
+        )
+        db.session.add(gateway_server)
+
+        # Load gateway config variable
+        config_path = Path("reference/templates/gateways.source.json")
+        config = json.loads(config_path.read_text())
+        gateways_var = Variable(name="gateways", definition=json.dumps(config))
+        db.session.add(gateways_var)
+
+        db.session.commit()
+        yield memory_db_app
+
+def test_gateway_with_package_imports(gateway_app):
+    """Test that gateway.py can import from gateway/ package."""
+    client = gateway_app.test_client()
+    # gateway.py stored in DB, gateway/ package on filesystem
+    response = client.get("/gateway/some/path")
+    # Should work - imports resolve to filesystem
+    assert response.status_code in [200, 302, 404]  # Not 500 (import error)
+```
