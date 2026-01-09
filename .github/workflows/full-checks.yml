@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+      - dev
+      - test
   workflow_dispatch:
 
 permissions:
@@ -669,7 +671,7 @@ jobs:
       - integration-tests
       - gauge-specs
       - ai-eval
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
@@ -679,6 +681,47 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Determine deployment path
+        id: deployment_path
+        run: |
+          # Determine the branch-specific subdirectory
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "branch_subdir=dev" >> "$GITHUB_OUTPUT"
+            echo "public_base_url=https://curtcox.github.io/Viewer/dev" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/test" ]; then
+            echo "branch_subdir=test" >> "$GITHUB_OUTPUT"
+            echo "public_base_url=https://curtcox.github.io/Viewer/test" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch_subdir=" >> "$GITHUB_OUTPUT"
+            echo "public_base_url=https://curtcox.github.io/Viewer" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download existing GitHub Pages (for merging)
+        continue-on-error: true
+        run: |
+          BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
+          
+          # Only download existing pages if we're deploying to a subdirectory
+          if [ -n "$BRANCH_SUBDIR" ]; then
+            echo "Downloading existing GitHub Pages content to merge with new reports..."
+            
+            # Download the current GitHub Pages site
+            curl -L -o pages.tar.gz \
+              "https://github.com/${{ github.repository }}/archive/gh-pages.tar.gz" \
+              || echo "Could not download existing pages (this is normal for first deployment)"
+            
+            if [ -f pages.tar.gz ]; then
+              mkdir -p existing-pages
+              tar -xzf pages.tar.gz -C existing-pages --strip-components=1 || true
+              
+              # If we have existing content, use it as the base
+              if [ -d existing-pages ]; then
+                echo "Found existing pages content"
+                mkdir -p site-base
+                # Copy everything except the subdirectory we're about to update
+                rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ || true
+              fi
+            fi
+          fi
       - name: Capture job statuses
         env:
           RUFF_STATUS: ${{ needs.ruff.result }}
@@ -801,6 +844,37 @@ jobs:
           path: artifacts/ai-eval
       - name: Prepare site content
         run: ./scripts/ci/prepare_report_site.sh
+        env:
+          PUBLIC_BASE_URL: ${{ steps.deployment_path.outputs.public_base_url }}
+      - name: Organize site for branch deployment
+        run: |
+          BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
+          
+          if [ -n "$BRANCH_SUBDIR" ]; then
+            echo "Organizing site for $BRANCH_SUBDIR subdirectory deployment..."
+            
+            # Start with existing pages as base if available
+            if [ -d site-base ]; then
+              echo "Merging with existing GitHub Pages content"
+              mkdir -p site-final
+              cp -r site-base/* site-final/ || true
+            else
+              echo "No existing pages found, creating fresh structure"
+              mkdir -p site-final
+            fi
+            
+            # Add the new branch-specific content
+            mkdir -p site-final/$BRANCH_SUBDIR
+            cp -r site/* site-final/$BRANCH_SUBDIR/
+            
+            # Replace site directory with merged content
+            rm -rf site
+            mv site-final site
+          fi
+          
+          # Verify the structure
+          echo "Final site structure:"
+          find site -type f -name "*.html" | head -20
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
