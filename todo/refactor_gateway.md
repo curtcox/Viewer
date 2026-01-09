@@ -74,10 +74,17 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 - **Gateway Relationships**: Independent (no inheritance or composition)
 - **Test/Production Diffs**: External concern (use separate comparison services, not built into gateway)
 
+### Deployment & Storage
+- **Runtime Source**: Database (server definition stored in servers table)
+- **Boot Image**: Filesystem gateway.py loaded into database at startup
+- **Testing**: Direct filesystem execution for tests
+- **Registration**: Explicitly registered in servers table with `enabled=True`
+- **Refactoring Strategy**: In-place refactoring, maintain compatibility throughout
+
 ### Migration
-- **Compatibility Shim**: None needed (no existing users)
-- **Migration Tools**: None needed
-- **API Versioning**: None
+- **Compatibility Shim**: Not needed - maintain interface compatibility throughout refactor
+- **Migration Tools**: None needed (in-place refactoring)
+- **API Versioning**: None (single version, backwards compatible)
 - **Rollback Strategy**: No rollback - branch won't merge if problems can't be resolved
 
 ## Current Issues
@@ -115,45 +122,56 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 
 ### Module Structure
 
+The gateway is refactored into focused modules while maintaining a single entry point for database storage:
+
 ```
-reference/templates/servers/definitions/gateway/
-├── __init__.py                    # Main entry point with service locator
-├── core.py                        # Core gateway orchestration
-├── routing.py                     # Route parsing and dispatch (simple pattern matching)
-├── middleware.py                  # Middleware support
-├── config.py                      # Gateway configuration loading & validation
-├── logging_config.py              # Centralized logging configuration
-├── transforms/
-│   ├── __init__.py
-│   ├── loader.py                  # Transform loading and compilation (no cache)
-│   ├── validator.py               # Transform validation
-│   ├── request.py                 # Request transformation logic
-│   └── response.py                # Response transformation logic
-├── templates/
-│   ├── __init__.py
-│   ├── loader.py                  # Template file loading (lazy)
-│   └── resolver.py                # Template name resolution
-├── execution/
-│   ├── __init__.py
-│   ├── target.py                  # Target resolution
-│   ├── internal.py                # Internal server execution
-│   └── redirects.py               # Redirect following logic
-├── cid/
-│   ├── __init__.py
-│   ├── resolver.py                # CID content resolution (no cache)
-│   └── normalizer.py              # CID path normalization
-├── handlers/
-│   ├── __init__.py
-│   ├── request.py                 # Gateway request handler
-│   ├── test.py                    # Test mode handler
-│   ├── meta.py                    # Meta page handler
-│   └── forms.py                   # Form handlers (HTTP-only)
-├── rendering/
-│   ├── __init__.py
-│   ├── error.py                   # Error page rendering (per-gateway customizable)
-│   └── diagnostic.py              # Diagnostic info extraction
-└── models.py                      # Data classes for type safety
+reference/templates/servers/definitions/
+├── gateway.py                     # Entry point (stored in database, imports from gateway/)
+└── gateway/                       # Package with modular implementation
+    ├── __init__.py                # Package initialization, service locator
+    ├── core.py                    # Core gateway orchestration
+    ├── routing.py                 # Route parsing and dispatch (simple pattern matching)
+    ├── middleware.py              # Middleware support
+    ├── config.py                  # Gateway configuration loading & validation
+    ├── logging_config.py          # Centralized logging configuration
+    ├── transforms/
+    │   ├── __init__.py
+    │   ├── loader.py              # Transform loading and compilation (no cache)
+    │   ├── validator.py           # Transform validation
+    │   ├── request.py             # Request transformation logic
+    │   └── response.py            # Response transformation logic
+    ├── templates/
+    │   ├── __init__.py
+    │   ├── loader.py              # Template file loading (lazy)
+    │   └── resolver.py            # Template name resolution
+    ├── execution/
+    │   ├── __init__.py
+    │   ├── target.py              # Target resolution
+    │   ├── internal.py            # Internal server execution
+    │   └── redirects.py           # Redirect following logic
+    ├── cid/
+    │   ├── __init__.py
+    │   ├── resolver.py            # CID content resolution (no cache)
+    │   └── normalizer.py          # CID path normalization
+    ├── handlers/
+    │   ├── __init__.py
+    │   ├── request.py             # Gateway request handler
+    │   ├── test.py                # Test mode handler
+    │   ├── meta.py                # Meta page handler
+    │   └── forms.py               # Form handlers (HTTP-only)
+    ├── rendering/
+    │   ├── __init__.py
+    │   ├── error.py               # Error page rendering (per-gateway customizable)
+    │   └── diagnostic.py          # Diagnostic info extraction
+    └── models.py                  # Data classes for type safety
 ```
+
+**Key Points:**
+- `gateway.py` is the entry point (stored in database, loaded as boot image)
+- `gateway/` package contains modular implementation
+- Entry point imports from package: `from gateway import main`
+- Works from filesystem (tests, boot) and database (runtime)
+- Maintains backwards compatible interface throughout refactor
 
 ### Service Locator Pattern
 
@@ -1068,48 +1086,94 @@ def test_redirect_following_handles_all_status_codes(status_code)
 
 ## Implementation Priorities
 
+### In-Place Refactoring Strategy
+
+Since the gateway runs from the database and must remain compatible:
+
+1. **Maintain Entry Point**: Keep `gateway.py` as single entry point with `main()` function
+2. **Incremental Extraction**: Extract code into `gateway/` package modules one piece at a time
+3. **Import from Package**: `gateway.py` imports from `gateway/` package as modules are created
+4. **Continuous Testing**: All tests pass after each extraction
+5. **Database Updates**: Boot image automatically includes new package structure
+
+**Example Evolution:**
+```python
+# gateway.py - Phase 1 (current)
+def main(rest="", **kwargs):
+    # All 2479 lines here
+    ...
+
+# gateway.py - Phase 2 (after extracting models)
+from gateway.models import RequestDetails, GatewayConfig
+def main(rest="", **kwargs):
+    # Still mostly here, but using data classes
+    ...
+
+# gateway.py - Final (after full refactor)
+from gateway import handle_gateway_request
+def main(rest="", **kwargs):
+    """Gateway entry point - delegates to package."""
+    return handle_gateway_request(rest, **kwargs)
+```
+
 ### Phase 1 (Week 1): Foundation
-1. Create module structure
-2. Extract pure functions (no side effects)
-3. Create data classes
-4. Implement service locator
-5. Write unit tests for extracted functions
-6. Validate 100% test pass rate
+1. Create `gateway/` package structure (empty modules)
+2. Extract data classes to `gateway/models.py`
+3. Update `gateway.py` to import data classes
+4. Extract pure utility functions to `gateway/cid/normalizer.py` and `gateway/rendering/diagnostic.py`
+5. Write unit tests for extracted code
+6. Validate all existing tests still pass
+7. Test boot image load with new structure
 
 ### Phase 2 (Week 2): Core Services
-1. Extract CID resolution logic (no caching)
-2. Extract transform loading/validation (no caching, no sandboxing)
-3. Extract template resolution (lazy, no caching)
-4. Write unit tests for services
-5. Validate integration tests still pass
+1. Extract CID resolution to `gateway/cid/resolver.py` (no caching)
+2. Extract transform loading to `gateway/transforms/loader.py` (no caching, no sandboxing)
+3. Extract template resolution to `gateway/templates/resolver.py` (lazy, no caching)
+4. Update `gateway.py` to use extracted services
+5. Write unit tests for services
+6. Validate all integration tests still pass
+7. Test database-loaded version still works
 
 ### Phase 3 (Week 3): Request Handling
-1. Refactor request handler (no timeouts, no pooling)
-2. Refactor test mode handler
-3. Extract target execution
-4. Implement direct response with response transform
+1. Extract request handler to `gateway/handlers/request.py`
+2. Extract test mode handler to `gateway/handlers/test.py`
+3. Extract target execution to `gateway/execution/internal.py`
+4. Update `gateway.py` to delegate to handlers
 5. Write integration tests
 6. Validate end-to-end tests pass
+7. Test CLI and direct invocation paths
 
 ### Phase 4 (Week 4): Forms & Meta Pages
-1. Refactor form handlers
-2. Refactor meta page handler
-3. Implement custom error pages per gateway
-4. Write integration tests
+1. Extract form handlers to `gateway/handlers/forms.py`
+2. Extract meta page handler to `gateway/handlers/meta.py`
+3. Implement custom error pages in `gateway/rendering/error.py`
+4. Update `gateway.py` routing to use handlers
+5. Write integration tests
+6. Validate database version compatibility
 
 ### Phase 5 (Week 5): Middleware & Routing
-1. Implement middleware system
-2. Implement first-match-wins routing with reserved names
-3. Add routing tests for shadowed server names
-4. Write integration tests
+1. Implement middleware system in `gateway/middleware.py`
+2. Implement routing in `gateway/routing.py` (first-match-wins with reserved names)
+3. Update `gateway.py` to use router
+4. Add routing tests for shadowed server names
+5. Write integration tests
+6. Validate backwards compatibility
 
 ### Phase 6 (Week 6): Configuration & Polish
-1. Implement new configuration format
+1. Implement new configuration format in `gateway/config.py`
 2. Add hot-reloading support
 3. Add load-time validation
-4. Implement pluggable logging delegation
-5. Update documentation
-6. Final review and merge
+4. Implement centralized logging in `gateway/logging_config.py`
+5. Simplify `gateway.py` to minimal entry point
+6. Update documentation
+7. Final review and merge
+
+**Success Criteria Each Phase:**
+- ✅ All existing tests pass
+- ✅ Boot image loads successfully
+- ✅ Database-stored version works
+- ✅ CLI/testing invocation works
+- ✅ No regression in functionality
 
 ## Notes for Implementation
 
@@ -1155,6 +1219,14 @@ def test_redirect_following_handles_all_status_codes(status_code)
 - Servers with reserved names need aliases to be accessible
 - Example: Server named "meta" must use alias like "meta-server" in gateway config
 - All routing scoped to /gateway/ prefix only
+
+**Boot Image & Database Integration:**
+- Entry point (`gateway.py`) remains stable throughout refactor
+- Package structure (`gateway/`) automatically included in boot image
+- After each phase, test that boot image loads successfully
+- Validate database-stored version executes correctly
+- Ensure imports work when code is in database vs. filesystem
+- Test both execution paths: from filesystem (tests) and from database (runtime)
 
 ### Edge Cases to Cover
 
@@ -1353,21 +1425,37 @@ def _load_user_context(**kwargs):
 
 ---
 
-**Document Status**: **FINAL v5.0** - Implementation ready
+**Document Status**: **FINAL v6.0** - Implementation ready
 **Last Updated**: 2026-01-09
 **Owner**: Development Team
-**All Design Decisions**: Complete (52/52 questions resolved)
+**All Design Decisions**: Complete (55/55 questions resolved)
 
-**Key Additions in v5.0**:
-- **Internal server pattern**: Gateway follows standard server contract (uses `main(rest, **kwargs)`)
-- Invocation via `try_server_execution("/gateway/...")` like other servers
-- Uses `server_execution` framework utilities (`_load_user_context`, request parsing)
-- Compatible with existing CLI tools, testing framework, batch processing
-- Method defaults to "GET" for non-HTTP invocations
-- Headers/cookies/request IDs relayed but not used by gateway logic
+**Key Additions in v6.0**:
+- **Deployment model**: Runtime from database, boot image from filesystem, tests from filesystem
+- **Storage strategy**: Server definition in servers table (`enabled=True`), code in boot image
+- **Refactoring approach**: In-place incremental extraction maintaining compatibility
+- **Package structure**: `gateway.py` entry point imports from `gateway/` package
+- **Testing requirements**: Validate boot image loading and database execution each phase
 
 **Previous versions**:
+- v5.0: Internal server pattern with `main(rest, **kwargs)` signature
 - v4.0: Simple routing, centralized logging, RequestDetails factory methods
 - v3.0: All 50 original questions resolved, middleware & routing design
 - v2.0: Design decisions documented
 - v1.0: Initial plan with open questions
+
+## Final Clarification Questions
+
+Before beginning implementation, please confirm understanding of:
+
+### Boot Image Process
+1. How does the boot image loading work exactly? Is it a script that reads filesystem files and inserts them into the database?
+2. Are there any special considerations for importing packages when the code runs from database vs. filesystem?
+3. Do we need to update the boot image loading script to include the `gateway/` package directory?
+
+### Testing Strategy
+4. Do existing gateway tests execute from filesystem or from database-loaded version?
+5. Should we add new tests specifically for database-loaded execution, or will existing tests cover both paths?
+6. How do we validate that imports work correctly when code is stored in database?
+
+These answers will help ensure Phase 1 implementation goes smoothly.
