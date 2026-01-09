@@ -1220,6 +1220,150 @@ def main(rest="", **kwargs):
 - ✅ CLI/testing invocation works
 - ✅ No regression in functionality
 
+### Phase Checkpoints
+
+**After completing each phase, update this document with:**
+
+1. **What Was Actually Done**
+   - List actual changes made (may differ from plan)
+   - Modules created/modified
+   - Files added/removed
+   - Tests written
+
+2. **Lessons Learned**
+   - Unexpected challenges encountered
+   - Solutions that worked better than planned
+   - Technical discoveries about the codebase
+   - Database/import behavior insights
+
+3. **New Open Questions**
+   - Questions raised during implementation
+   - Edge cases discovered
+   - Unclear requirements found
+   - Technical decisions deferred
+
+4. **Items Needing Further Study**
+   - Code patterns that need investigation
+   - Performance considerations
+   - Security implications
+   - Integration points requiring research
+
+5. **Plan Adjustments for Next Phase**
+   - Changes to remaining phases based on learnings
+   - New tasks to add
+   - Tasks to remove or defer
+   - Reprioritization needed
+
+**Checkpoint Template:**
+
+```markdown
+## Phase [N] Checkpoint - [Date]
+
+### Completed Work
+- [x] Task 1: Description
+- [x] Task 2: Description
+- [Actual module changes, file paths with line counts]
+
+### Lessons Learned
+1. **[Category]**: Description of learning and implications
+2. **[Category]**: Description of learning and implications
+
+### New Open Questions
+1. **[Question]**: Why/what/how... [context]
+2. **[Question]**: Why/what/how... [context]
+
+### Items for Further Study
+1. **[Topic]**: What needs investigation and why
+2. **[Topic]**: What needs investigation and why
+
+### Plan Adjustments
+**Next Phase Changes**:
+- Add: [New tasks]
+- Remove: [Deferred tasks]
+- Modify: [Changed approach]
+
+**Remaining Phases Impact**:
+- Phase [N+2]: [How it's affected]
+- Phase [N+3]: [How it's affected]
+```
+
+**Example Checkpoint Entry:**
+
+```markdown
+## Phase 1 Checkpoint - 2026-01-10
+
+### Completed Work
+- [x] Created gateway/ package structure (13 files, 45 LOC)
+- [x] Extracted RequestDetails, GatewayConfig to gateway/models.py (120 LOC)
+- [x] Extracted 8 pure functions to gateway/rendering/diagnostic.py (180 LOC)
+- [x] Updated gateway.py to import from gateway.models (2 import statements)
+- [x] Wrote 24 unit tests for models and utilities (480 LOC)
+- [x] All 342 existing tests still pass
+- [x] Verified boot image loads with package structure
+- [x] Tested database execution with imports - works as expected
+
+### Lessons Learned
+1. **Import Paths**: Using absolute imports (from gateway.models) works better than
+   relative imports when code is stored in database. No changes needed from research
+   findings.
+
+2. **Data Classes**: Python dataclasses with default_factory work well for nested
+   structures. Using field(default_factory=dict) instead of mutable defaults prevents
+   shared state bugs.
+
+3. **Test Isolation**: Need to ensure gateway/ package is on PYTHONPATH for tests.
+   Added to conftest.py setup.
+
+### New Open Questions
+1. **RequestDetails Construction**: Should we validate method parameter (only GET/POST/PUT/DELETE)?
+   Currently accepts any string. Need to decide on strictness vs flexibility.
+
+2. **Error Rendering**: Custom error templates per gateway - should template loading
+   happen in rendering.error module or delegated to templates.resolver? Current plan
+   shows both, need to clarify.
+
+### Items for Further Study
+1. **Memory Usage**: Data classes create many objects - should profile memory usage
+   with large request volumes before Phase 3.
+
+2. **Type Hints**: Started adding type hints to extracted code. Should we add mypy
+   to CI pipeline? Would catch issues early but adds build time.
+
+### Plan Adjustments
+**Phase 2 Changes**:
+- Add: Create helper for building RequestDetails from various sources (factory pattern)
+- Add: Add RequestDetails validation tests for edge cases
+- Defer: Service locator setup until Phase 3 (not needed yet for simple imports)
+
+**Remaining Phases Impact**:
+- Phase 3: RequestDetails construction helper will simplify handler code
+- Phase 5: May need to add route parameter validation similar to method validation
+```
+
+**Where to Document Checkpoints:**
+
+Add checkpoint entries to this file (`todo/refactor_gateway.md`) in a new section at the end:
+
+```markdown
+## Implementation Checkpoints
+
+### Phase 1 Checkpoint - [Date]
+[Content here]
+
+### Phase 2 Checkpoint - [Date]
+[Content here]
+
+[etc.]
+```
+
+**Why This Matters:**
+
+1. **Captures Institutional Knowledge**: Documents why decisions were made
+2. **Tracks Evolution**: Shows how understanding evolved during implementation
+3. **Prevents Regression**: Records pitfalls discovered so they're not repeated
+4. **Guides Future Work**: Helps next phase leverage previous learnings
+5. **Enables Better Planning**: Real data improves estimation for remaining phases
+
 ## Notes for Implementation
 
 ### Critical Implementation Details
@@ -1765,3 +1909,55 @@ def test_gateway_with_package_imports(gateway_app):
     # Should work - imports resolve to filesystem
     assert response.status_code in [200, 302, 404]  # Not 500 (import error)
 ```
+
+---
+
+## Implementation Checkpoints
+
+This section records what was actually accomplished in each phase, lessons learned, and how the plan evolved based on implementation experience.
+
+### Phase 0 Checkpoint - 2026-01-09 (Research Phase)
+
+#### Completed Work
+- [x] Created comprehensive refactoring plan v6.0 with 55 design decisions resolved
+- [x] Researched database code execution mechanism (text_function_runner.py, server_execution/)
+- [x] Researched boot image loading process (cid_directory_loader.py, boot_cid_importer.py)
+- [x] Researched in-memory DB integration test patterns (tests/conftest.py, tests/integration/)
+- [x] Documented 280+ test cases across unit, integration, and e2e categories
+- [x] Created 6-phase implementation plan with clear success criteria
+
+#### Lessons Learned
+1. **Database Execution Model**: Code stored in database is executed via `exec()` without `__file__` context. This has profound implications for imports - database code can only import from filesystem packages, not other database-stored code. This is not a limitation but a design constraint to work with.
+
+2. **Package Structure Strategy**: The winning architecture is gateway.py (database) + gateway/ package (filesystem). The entry point in the database imports from the filesystem package using normal Python imports. No special handling needed - it just works.
+
+3. **Boot Image Simplicity**: Boot image only handles individual files (CIDs). Package directories must be part of the application codebase on filesystem. This is simpler than trying to serialize entire package structures into CIDs.
+
+4. **Test Pattern Consistency**: Existing tests already follow the pattern we need: read from filesystem → store in database → execute from database. This validates our approach is compatible with current testing infrastructure.
+
+5. **No Special Handling Needed**: No import hooks, no sys.path modifications, no custom module loaders. Standard Python package structure works transparently for both execution modes.
+
+#### New Open Questions
+None at this time - research phase answered all critical questions about database execution and imports.
+
+#### Items for Further Study
+1. **Import Performance**: Does importing from filesystem packages add measurable latency when database-stored code executes? Should profile this during Phase 1.
+
+2. **Package Discovery**: How does Python find the gateway/ package? Is it on sys.path by default or added by app.py? Should verify in Phase 1.
+
+3. **Hot Reload**: If gateway/ package modules change on filesystem, does database-stored gateway.py automatically pick up changes? Or is there caching at the Python import level?
+
+#### Plan Adjustments
+**Phase 1 Changes**:
+- Add: Verify Python's sys.path includes reference/templates/servers/definitions/
+- Add: Test hot reload behavior (change gateway/models.py, execute from database)
+- Add: Profile import overhead (measure latency difference with/without imports)
+
+**No changes needed to Phases 2-6**: Research confirmed the planned architecture will work as designed.
+
+#### Status
+✅ Research phase complete. All critical architectural questions answered. Ready to begin Phase 1 implementation.
+
+---
+
+**Note**: Future checkpoints will be added here as each phase completes. Each checkpoint should follow the template structure defined in the Phase Checkpoints section above.
