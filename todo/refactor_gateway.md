@@ -1444,18 +1444,62 @@ def _load_user_context(**kwargs):
 - v2.0: Design decisions documented
 - v1.0: Initial plan with open questions
 
-## Final Clarification Questions
+## Final Implementation Details
 
-Before beginning implementation, please confirm understanding of:
+### Boot Image Process (Confirmed)
+1. **Loading Mechanism**: Import/export CID specified at boot
+2. **Source**: Files loaded from `cids/` folder to database
+3. **Package Support**: Need to research if `gateway/` package requires special handling
+4. **Testing Required**: Write tests to validate boot image includes package structure
 
-### Boot Image Process
-1. How does the boot image loading work exactly? Is it a script that reads filesystem files and inserts them into the database?
-2. Are there any special considerations for importing packages when the code runs from database vs. filesystem?
-3. Do we need to update the boot image loading script to include the `gateway/` package directory?
+### Testing Strategy (Confirmed)
+1. **Current Tests**: Mix of unit and integration tests
+2. **Execution Paths**: Some tests run from filesystem, some from database
+3. **New Tests Needed**: Add targeted tests for:
+   - Boot image loading with package structure
+   - Database-stored code execution with imports
+   - Filesystem vs database execution equivalence
+4. **Validation Method**: Use tests (integration tests with in-memory DB already exist)
+5. **General Approach**: When in doubt, add new targeted tests
 
-### Testing Strategy
-4. Do existing gateway tests execute from filesystem or from database-loaded version?
-5. Should we add new tests specifically for database-loaded execution, or will existing tests cover both paths?
-6. How do we validate that imports work correctly when code is stored in database?
+### Research Tasks (Before Phase 1)
 
-These answers will help ensure Phase 1 implementation goes smoothly.
+#### 1. Import Behavior from Database Storage
+**Question**: How do Python imports work when code is stored in database vs. filesystem?
+
+**Research Areas**:
+- How `server_execution` loads and executes code from database
+- Whether package imports work automatically or need special handling
+- If `sys.path` or import hooks are modified
+- How other multi-file servers (if any) handle this
+
+**Expected Outcome**:
+- Document how imports work from database
+- Identify if `from gateway.models import RequestDetails` works automatically
+- Determine if special handling needed for package structure
+
+#### 2. Boot Image Loading Process
+**Question**: How does the boot image loading script work?
+
+**Research Areas**:
+- Location of boot image loading script
+- How it reads from `cids/` folder
+- How it determines what to load
+- If it handles directories/packages automatically
+
+**Expected Outcome**:
+- Understand if `gateway/` package auto-included or needs explicit configuration
+- Know if we need to modify boot script
+- Document the boot image format/structure
+
+#### 3. In-Memory DB Integration Tests
+**Question**: Where are existing in-memory DB integration tests?
+
+**Research Areas**:
+- Location of integration tests using in-memory DB
+- How they set up database with server definitions
+- Testing patterns we should follow
+
+**Expected Outcome**:
+- Use same pattern for new database execution tests
+- Understand how to test database-stored gateway execution
