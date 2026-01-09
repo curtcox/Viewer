@@ -4,12 +4,20 @@ from __future__ import annotations
 
 import importlib.metadata
 import os
+import sys
+from pathlib import Path
 
 import pytest
 
 from app import create_app
 from database import db
 from db_config import DatabaseConfig, DatabaseMode
+
+
+# Add gateway_lib package to Python path
+gateway_package_path = Path(__file__).parent.parent / "reference" / "templates" / "servers" / "definitions"
+if str(gateway_package_path) not in sys.path:
+    sys.path.insert(0, str(gateway_package_path))
 
 
 def pytest_configure(config):

@@ -32,82 +32,21 @@ from flask import current_app, request as flask_request
 from jinja2 import Template
 
 from cid_presenter import extract_cid_from_path, render_cid_link
+from gateway_lib.rendering.diagnostic import (
+    format_exception_summary as _format_exception_summary,
+    derive_exception_summary_from_traceback as _derive_exception_summary_from_traceback,
+    extract_exception_summary_from_internal_error_html as _extract_exception_summary_from_internal_error_html,
+    extract_stack_trace_list_from_internal_error_html as _extract_stack_trace_list_from_internal_error_html,
+)
+from gateway_lib.cid.normalizer import (
+    normalize_cid_lookup as _normalize_cid_lookup,
+    parse_hrx_gateway_args as _parse_hrx_gateway_args,
+)
 
 logger = logging.getLogger(__name__)
 
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
-
-
-def _format_exception_summary(exc: Exception) -> str:
-    exc_type = type(exc).__name__
-    exc_msg = str(exc)
-    return f"{exc_type}: {exc_msg}" if exc_msg else exc_type
-
-
-def _derive_exception_summary_from_traceback(error_detail: str | None) -> str | None:
-    if not isinstance(error_detail, str) or not error_detail.strip():
-        return None
-
-    lines = [line.strip() for line in error_detail.splitlines() if line.strip()]
-    if not lines:
-        return None
-
-    last_line = lines[-1]
-    if ":" not in last_line:
-        return None
-
-    return last_line
-
-
-def _extract_exception_summary_from_internal_error_html(html: str | None) -> str | None:
-    if not isinstance(html, str) or not html:
-        return None
-
-    match = re.search(r"Exception:</strong>\s*([^<]+)", html)
-    if not match:
-        return None
-
-    return match.group(1).strip() or None
-
-
-def _extract_stack_trace_list_from_internal_error_html(html: str | None) -> str | None:
-    if not isinstance(html, str) or not html:
-        return None
-
-    exception_match = re.search(r"Exception:</strong>\s*([^<]+)", html)
-    ol_match = re.search(r"(<ol[^>]*>.*?</ol>)", html, re.DOTALL)
-    if not ol_match:
-        return None
-
-    exception_text = exception_match.group(1).strip() if exception_match else "Exception"
-    ol_html = ol_match.group(1)
-    return f"<div class=\"stack-trace\"><h2>Stack trace</h2><div><strong>{escape(exception_text)}</strong></div>{ol_html}</div>"
-
-
-def _parse_hrx_gateway_args(rest_path: str | None) -> tuple[str, str]:
-    if not isinstance(rest_path, str):
-        return "", ""
-
-    parts = rest_path.strip("/").split("/", 1)
-    archive = parts[0] if parts and parts[0] else ""
-    file_path = parts[1] if len(parts) > 1 else ""
-    return archive, file_path
-
-
-def _normalize_cid_lookup(value: str | None) -> str | None:
-    if not isinstance(value, str) or not value:
-        return None
-
-    cleaned = value.strip()
-    if not cleaned:
-        return None
-
-    cid_value = extract_cid_from_path(cleaned)
-    if cid_value:
-        return f"/{cid_value}"
-
-    return cleaned
 
 
 def main(context=None):
