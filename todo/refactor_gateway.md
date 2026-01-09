@@ -13,6 +13,7 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 - **Configuration Format**: No versioning; open to improved format if proposed
 - **Configuration Reloading**: Hot-reloadable without restart
 - **Configuration Validation**: Yes, at load time
+- **HTTP Independence**: Must work without Flask request context (supports non-HTTP invocation)
 
 ### Error Handling
 - **Transform Errors**: Fatal with detailed diagnostics for correction
@@ -116,9 +117,10 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 reference/templates/servers/definitions/gateway/
 ├── __init__.py                    # Main entry point with service locator
 ├── core.py                        # Core gateway orchestration
-├── routing.py                     # Route parsing and dispatch
+├── routing.py                     # Route parsing and dispatch (simple pattern matching)
 ├── middleware.py                  # Middleware support
 ├── config.py                      # Gateway configuration loading & validation
+├── logging_config.py              # Centralized logging configuration
 ├── transforms/
 │   ├── __init__.py
 │   ├── loader.py                  # Transform loading and compilation (no cache)
@@ -143,7 +145,7 @@ reference/templates/servers/definitions/gateway/
 │   ├── request.py                 # Gateway request handler
 │   ├── test.py                    # Test mode handler
 │   ├── meta.py                    # Meta page handler
-│   └── forms.py                   # Form handlers
+│   └── forms.py                   # Form handlers (HTTP-only)
 ├── rendering/
 │   ├── __init__.py
 │   ├── error.py                   # Error page rendering (per-gateway customizable)
@@ -241,7 +243,16 @@ class GatewayConfig:
 
 @dataclass
 class RequestDetails:
-    """Details of an incoming gateway request."""
+    """Details of an incoming gateway request.
+
+    Can be constructed from various sources:
+    - Flask request context (HTTP)
+    - Direct function parameters (programmatic)
+    - CLI arguments
+    - Batch processing data
+
+    This decoupling allows gateway to work without Flask/HTTP layer.
+    """
     path: str
     method: str = "GET"
     query_string: str = ""
@@ -249,6 +260,28 @@ class RequestDetails:
     json: Optional[Any] = None
     data: Optional[str] = None
     url: Optional[str] = None
+
+    @classmethod
+    def from_flask_request(cls, flask_request, rest_path: str) -> 'RequestDetails':
+        """Build from Flask request object."""
+        try:
+            json_body = flask_request.get_json(silent=True)
+        except Exception:
+            json_body = None
+
+        return cls(
+            path=rest_path,
+            method=flask_request.method,
+            query_string=flask_request.query_string.decode("utf-8"),
+            headers={k: v for k, v in flask_request.headers if k.lower() != "cookie"},
+            json=json_body,
+            data=flask_request.get_data(as_text=True)
+        )
+
+    @classmethod
+    def from_params(cls, path: str, method: str = "GET", **kwargs) -> 'RequestDetails':
+        """Build from direct parameters (non-HTTP invocation)."""
+        return cls(path=path, method=method, **kwargs)
 
 @dataclass
 class ResponseDetails:
@@ -723,6 +756,11 @@ def test_route_removes_gateway_prefix()
 def test_route_handles_empty_path()
 def test_route_not_found()
 def test_route_middleware_execution_order()  # New: middleware
+def test_pattern_match_exact_string()  # New: simple routing
+def test_pattern_match_single_segment_var()  # New: simple routing
+def test_pattern_match_greedy_path_var()  # New: simple routing
+def test_pattern_match_mixed_literal_and_vars()  # New: simple routing
+def test_reserved_names_shadow_server_names()  # New: reserved names
 ```
 
 #### 12. Direct Response Tests (transforms/response.py)
@@ -833,6 +871,11 @@ def test_gateway_request_transforms_access_secrets()  # New
 def test_gateway_request_transforms_call_internal_servers()  # New
 def test_gateway_request_with_middleware()  # New
 def test_gateway_request_with_custom_error_page()  # New
+def test_gateway_request_via_http()  # New: HTTP invocation
+def test_gateway_request_via_direct_call()  # New: direct Python call
+def test_gateway_request_without_flask_context()  # New: no Flask
+def test_gateway_request_build_from_params()  # New: RequestDetails.from_params
+def test_gateway_request_build_from_flask_request()  # New: RequestDetails.from_flask_request
 ```
 
 #### 2. Test Mode Integration Tests
@@ -935,6 +978,7 @@ def test_redirect_following_handles_all_status_codes(status_code)
 - **Transform scope**: Only request and response transforms (no additional types needed)
 - **External concerns**: Test/prod diffs, metrics, monitoring handled by separate services
 - **Reserved names**: Special routes (meta, request, response, test) take precedence; conflicting server names need aliases
+- **HTTP independence**: Gateway works without Flask - supports direct invocation, CLI, batch processing
 
 ### Developer Experience
 - **Rich diagnostics** - All errors provide detailed context for correction
@@ -1144,47 +1188,133 @@ def test_redirect_following_handles_all_status_codes(status_code)
 4. **Create detailed task breakdown for Phase 1**
 5. **Begin implementation** starting with pure function extraction
 
-## Open Questions for Implementation
+## Implementation Decisions
 
-### Routing Implementation Details
-**Question:** How should the pattern matching work internally?
+### Routing Implementation
+**Decision:** Use simplest approach (string splitting and matching)
 
-The `GatewayRouter._match()` method needs implementation. Options:
-- **A.** Simple string splitting and matching (fastest, most explicit)
-- **B.** Regex-based matching (more flexible, standard approach)
-- **C.** Use existing library like werkzeug.routing (less code, well-tested)
-
-**Recommendation:** Start with option C (werkzeug.routing) unless there's a reason to avoid dependencies.
-
-### Pluggable Logging Interface
-**Question:** What interface should the gateway expect for logging delegation?
-
-Since we're delegating to pluggable logging, we need to define what that interface looks like:
+- No external dependencies (werkzeug.routing not needed)
+- Simple pattern matching: exact strings, single segment `{var}`, multi-segment `{var:path}`
+- Requests may come from non-HTTP sources (direct function calls, CLI, batch processing)
+- Keep routing logic decoupled from Flask/HTTP layer
 
 ```python
-# Option A: Standard Python logging
-import logging
-logger = logging.getLogger('gateway')
-logger.info("Request", extra={"gateway": name, "path": path})
+def _match(self, pattern: str, path: str) -> Optional[dict]:
+    """Simple pattern matching without external dependencies.
 
-# Option B: Structured logging interface
-class LoggingDelegate:
-    def log_request(self, gateway: str, path: str, method: str):
-        ...
-    def log_error(self, gateway: str, error: Exception, context: dict):
+    Patterns:
+    - "" matches empty path
+    - "foo" matches "foo" exactly
+    - "foo/bar" matches "foo/bar" exactly
+    - "{var}" matches one segment
+    - "{var:path}" matches remaining path (greedy)
+    """
+    if pattern == "":
+        return {} if path == "" else None
+
+    pattern_parts = pattern.split("/")
+    path_parts = path.split("/") if path else []
+
+    # Check for greedy path match
+    if "{" in pattern_parts[-1] and ":path}" in pattern_parts[-1]:
+        # Handle greedy match
         ...
 
-# Option C: Simple callable
-log_fn = context.get('log_gateway_event')
-if log_fn:
-    log_fn(event_type='request', gateway=name, path=path)
+    # Exact segment count match
+    if len(pattern_parts) != len(path_parts):
+        return None
+
+    params = {}
+    for p_part, path_part in zip(pattern_parts, path_parts):
+        if p_part.startswith("{") and p_part.endswith("}"):
+            var_name = p_part[1:-1].split(":")[0]
+            params[var_name] = path_part
+        elif p_part != path_part:
+            return None
+
+    return params
 ```
 
-**Recommendation:** Start with Option A (standard Python logging with structured extras) - most flexible and integrates with existing logging infrastructure.
+### Logging Interface
+**Decision:** Centralized Python logging with interception point
+
+- Use standard Python `logging` module
+- Centralized logger: `logging.getLogger('gateway')`
+- Single point of configuration for easy interception/replacement
+- Structured logging via `extra` parameter
+
+```python
+# logging_config.py
+import logging
+
+def get_gateway_logger():
+    """Get centralized gateway logger.
+
+    This is the single point where logging can be intercepted and replaced.
+    Configure this logger to redirect to custom handlers as needed.
+    """
+    return logging.getLogger('gateway')
+
+# Usage throughout gateway
+logger = get_gateway_logger()
+logger.info("Gateway request", extra={
+    "gateway": server_name,
+    "path": path,
+    "method": method,
+    "request_id": request_id
+})
+logger.error("Transform error", extra={
+    "gateway": server_name,
+    "error_type": type(exc).__name__,
+    "error_message": str(exc)
+}, exc_info=True)
+```
+
+**Interception Example:**
+```python
+# Custom handler can be added at application startup
+gateway_logger = logging.getLogger('gateway')
+gateway_logger.addHandler(CustomStructuredLogHandler())
+gateway_logger.setLevel(logging.INFO)
+```
+
+### Non-HTTP Request Handling
+**Important:** Gateway must work without Flask request context
+
+Since requests may come from non-HTTP sources, the gateway needs to:
+
+1. **Accept request details as parameters** (not from `flask_request`)
+2. **Return Python dictionaries** (not Flask Response objects)
+3. **Be callable without Flask application context**
+
+```python
+# Gateway entry point - works with or without HTTP
+def main(server_name: str = None, path: str = "", context: dict = None):
+    """Gateway entry point.
+
+    Can be called:
+    - Via Flask: main() with flask_request in context
+    - Directly: main(server_name="man", path="ls", context={...})
+    - CLI: main(**parse_cli_args())
+    """
+    # Extract from Flask if available, otherwise use parameters
+    if server_name is None:
+        # Parse from flask_request.path if available
+        server_name, path = _parse_from_flask_request()
+
+    # Route and handle
+    return router.route(server_name, path, context or {})
+```
 
 ---
 
-**Document Status**: **APPROVED v3.0** - Ready for implementation
+**Document Status**: **FINAL v4.0** - Implementation ready
 **Last Updated**: 2026-01-09
 **Owner**: Development Team
-**All Design Decisions**: Complete (50/50 questions resolved)
+**All Design Decisions**: Complete (52/52 questions resolved)
+**Key Additions in v4.0**:
+- Simple pattern matching routing (no external dependencies)
+- Centralized logging with interception point
+- Non-HTTP invocation support (direct calls, CLI, batch)
+- RequestDetails factory methods for various sources
+- Updated test plan with 280+ tests including non-HTTP scenarios
