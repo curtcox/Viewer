@@ -1961,3 +1961,59 @@ None at this time - research phase answered all critical questions about databas
 ---
 
 **Note**: Future checkpoints will be added here as each phase completes. Each checkpoint should follow the template structure defined in the Phase Checkpoints section above.
+
+### Phase 1 Checkpoint - 2026-01-09 (In Progress)
+
+#### Completed Work
+- [x] Created `gateway_lib/` package structure (8 subdirectories, 13 files)
+- [x] Extracted data classes to `gateway_lib/models.py` (184 LOC)
+  - GatewayConfig, RequestDetails, ResponseDetails, TransformResult, Target, DirectResponse
+  - Added factory methods: RequestDetails.from_flask_request(), RequestDetails.from_params()
+- [x] Extracted diagnostic functions to `gateway_lib/rendering/diagnostic.py` (145 LOC)
+  - format_exception_summary, derive_exception_summary_from_traceback
+  - extract_exception_summary_from_internal_error_html, extract_stack_trace_list_from_internal_error_html
+  - safe_preview_request_details, format_exception_detail
+- [x] Extracted CID utilities to `gateway_lib/cid/normalizer.py` (60 LOC)
+  - normalize_cid_lookup, parse_hrx_gateway_args
+- [x] Updated `gateway.py` to import from `gateway_lib` package (13 import statements)
+- [x] Reduced gateway.py from 2478 to 2417 lines (61 lines removed)
+- [x] Wrote 51 unit tests for extracted modules (638 LOC)
+  - 17 tests for models
+  - 20 tests for diagnostic functions
+  - 14 tests for normalizer functions
+- [x] Added gateway_lib path to conftest.py for test imports
+- [x] All 78 gateway tests passing (51 new + 27 existing)
+
+#### Lessons Learned
+1. **Package Naming Conflict**: When both `gateway.py` and `gateway/` directory exist in the same location, Python's import system prefers the package over the module. This caused existing tests to fail because they import `gateway` expecting the module but got the package instead.
+   - **Solution**: Renamed package to `gateway_lib` to avoid shadowing the gateway.py module
+   - **Implication**: The refactoring plan assumed gateway/ package name, but this creates import conflicts. Using gateway_lib maintains the architecture while preserving compatibility.
+
+2. **Import Path for Tests**: Tests needed explicit Python path configuration to import the gateway_lib package. Added `sys.path.insert()` in conftest.py pointing to `reference/templates/servers/definitions/`.
+
+3. **Data Classes Work Well**: Python dataclasses with `field(default_factory=dict)` prevent shared mutable default issues and provide clean APIs.
+
+4. **Incremental Extraction**: Extracting pure functions first (diagnostic, normalizer) was low-risk and immediately reduced file size without breaking existing functionality.
+
+#### New Open Questions
+None at this time - Phase 1 proceeding as planned.
+
+#### Items for Further Study
+1. **Alternative Package Names**: Consider if `gateway_lib` is the best name or if other options (like `gateway_internals`, `gateway_pkg`) would be clearer.
+
+2. **Database Execution Testing**: Need to verify that database-stored gateway.py can successfully import from filesystem gateway_lib/ package (test boot image loading).
+
+#### Plan Adjustments
+**Phase 1 Remaining Tasks**:
+- [ ] Verify boot image loads successfully with gateway_lib package
+- [ ] Test database-stored version executes correctly
+- [ ] Run full integration test suite to ensure no regressions
+
+**Phase 2 Changes**:
+- No changes needed - extraction pattern is working well
+
+**Documentation Update**:
+- Update refactoring plan to note package naming conflict and resolution (gateway_lib instead of gateway)
+
+#### Status
+✅ Phase 1 approximately 60% complete. Core infrastructure in place, data classes and pure functions extracted. All tests passing. Ready to proceed with remaining Phase 1 tasks.
