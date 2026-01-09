@@ -51,11 +51,25 @@ The `gateway.py` file is currently 2479 lines with multiple responsibilities mix
 - **Streaming**: No
 - **Size Limits**: None
 - **Caching**: Not cacheable
+- **Custom Headers**: Not supported initially (add later if needed)
 
 ### Routing
+- **Scope**: Internal to /gateway/ only (does not touch Flask routing elsewhere)
+- **Strategy**: First-match-wins (ordered routing, no priorities)
+- **Reserved Names**: Servers named "meta", "request", "response", or "test" need aliases to be accessible via gateway
 - **Regex Support**: Internal implementation detail
 - **Middleware**: Yes
 - **Constraints**: No (gateway delegates, doesn't constrain)
+
+### Observability
+- **Instrumentation**: None built-in
+- **Logging**: Delegate to pluggable logging (not implemented in gateway directly)
+- **Metrics**: External concern (use separate services)
+
+### Gateway Organization
+- **Transform Types**: Only request and response transforms (no additional pluggable types)
+- **Gateway Relationships**: Independent (no inheritance or composition)
+- **Test/Production Diffs**: External concern (use separate comparison services, not built into gateway)
 
 ### Migration
 - **Compatibility Shim**: None needed (no existing users)
@@ -377,7 +391,7 @@ class GatewayRequestHandler:
         )
 ```
 
-### Phase 5: Add Middleware Support (Medium Risk)
+### Phase 5: Add Middleware & Routing (Medium Risk)
 
 ```python
 # middleware.py
@@ -422,6 +436,85 @@ class MiddlewareChain:
         """Execute all on_error middleware."""
         for mw in self.middleware:
             mw.on_error(error, context)
+
+# routing.py
+class GatewayRouter:
+    """Routes gateway requests using first-match-wins strategy.
+
+    Routing is scoped to /gateway/ only - does not affect Flask routing elsewhere.
+
+    Reserved route patterns (checked first):
+    - "" (empty) -> instruction page
+    - "request" -> request form
+    - "response" -> response form
+    - "meta/<server>" -> meta page
+    - "meta/test/<test_path>/as/<server>" -> meta test page
+    - "test/<test_path>/as/<server>/<rest>" -> test mode
+
+    Gateway server routes (checked last):
+    - "<server>/<rest>" -> gateway request with path
+    - "<server>" -> gateway request without path
+
+    Important: Servers named "meta", "request", "response", or "test" will be
+    shadowed by reserved routes and need aliases to be accessible via gateway.
+    """
+
+    def __init__(self, handlers):
+        self.handlers = handlers
+        self._init_routes()
+
+    def _init_routes(self):
+        """Initialize routes in first-match-wins order.
+
+        Order matters! More specific routes must come before general patterns.
+        """
+        # Reserved routes come first
+        self.routes = [
+            ("", self.handlers.instruction),
+            ("request", self.handlers.request_form),
+            ("response", self.handlers.response_form),
+            ("meta/test/{test_path:path}/as/{server}", self.handlers.meta_test),
+            ("meta/{server}", self.handlers.meta),
+            ("test/{test_path:path}/as/{server}/{rest:path}", self.handlers.test),
+            ("test/{test_path:path}/as/{server}", self.handlers.test),
+            # Gateway server routes come last
+            ("{server}/{rest:path}", self.handlers.gateway_request),
+            ("{server}", self.handlers.gateway_request),
+        ]
+
+    def route(self, path: str, context: dict):
+        """Match path to handler using first-match-wins.
+
+        Args:
+            path: Request path after /gateway/ prefix
+            context: Request context
+
+        Returns:
+            Handler result
+        """
+        # Strip leading/trailing slashes
+        path = path.strip("/")
+
+        for pattern, handler in self.routes:
+            params = self._match(pattern, path)
+            if params is not None:
+                return handler(**params, context=context)
+
+        # No match found
+        return self.handlers.not_found(path=path, context=context)
+
+    def _match(self, pattern: str, path: str) -> Optional[dict]:
+        """Match path against pattern, return params or None.
+
+        Pattern syntax:
+        - "" matches empty path only
+        - "foo" matches "foo" exactly
+        - "{var}" matches one segment, captures as 'var'
+        - "{var:path}" matches remaining path, captures as 'var'
+        """
+        # Implement simple pattern matching (can be regex internally)
+        # This is a simplified example - actual implementation may vary
+        ...
 ```
 
 ## Proposed Configuration Format
@@ -827,163 +920,28 @@ def test_cid_normalization_always_returns_string_or_none(cid)
 def test_redirect_following_handles_all_status_codes(status_code)
 ```
 
-## Remaining Open Questions
+## Design Philosophy Summary
 
-### 1. Transform Types (Q1.5 Follow-up)
-**Question:** Should we support pluggable transform types beyond request/response?
+### Simplicity First
+- **No caching** - Keep it simple, load fresh every time
+- **No sandboxing** - Trust developers, provide full Python access
+- **No timeouts** - Let operations complete naturally
+- **No built-in instrumentation** - Delegate to external logging
+- **No inheritance/composition** - Keep gateways independent and explicit
+- **Fatal errors** - Fail fast with rich diagnostics for quick debugging
 
-**Context Needed:**
-- What other transform types would be useful?
-- Examples: header transforms, body transforms, error transforms, pre/post hooks?
-- Would these be different CIDs or part of the same transform function?
+### Clear Separation of Concerns
+- **Gateway scope**: Only handles routing under /gateway/, doesn't touch Flask routing elsewhere
+- **Transform scope**: Only request and response transforms (no additional types needed)
+- **External concerns**: Test/prod diffs, metrics, monitoring handled by separate services
+- **Reserved names**: Special routes (meta, request, response, test) take precedence; conflicting server names need aliases
 
-### 2. Instrumentation (Q5.5 Follow-up)
-**Question:** What instrumentation/metrics would be useful?
-
-**Proposal:**
-- Request count per gateway
-- Request duration histogram per gateway
-- Transform execution time
-- Target execution time
-- Error rate per gateway
-- Error types distribution
-
-Would you want:
-- A. Logging-based metrics (log structured events)
-- B. Metrics API (Prometheus-style counters/histograms)
-- C. Both
-- D. None (keep it simple)
-
-### 3. Gateway Inheritance/Composition (Q6.5 Follow-up)
-**Question:** Should we support gateway inheritance/composition?
-
-**Examples:**
-
-**Inheritance:**
-```python
-{
-    "_base_api": {
-        "transforms": {
-            "response": "/common_error_handling"
-        },
-        "error_handling": {
-            "custom_error_template": "/base_error"
-        }
-    },
-    "api_v1": {
-        "inherits": "_base_api",
-        "transforms": {
-            "request": "/v1_auth",
-            # response inherited from _base_api
-        }
-    }
-}
-```
-
-**Composition:**
-```python
-{
-    "complex_gateway": {
-        "transform_chain": [
-            {"request": "/auth_check"},
-            {"request": "/rate_limit"},
-            {"request": "/transform"}
-        ]
-    }
-}
-```
-
-Do you want:
-- A. Inheritance (extend base configs)
-- B. Composition (chain multiple transforms)
-- C. Both
-- D. Neither (keep gateways independent)
-
-### 4. Test/Production Diffs (Q7.5 Follow-up)
-**Question:** What diffs between test and production behavior would be useful?
-
-**Possible interpretations:**
-- A. Visual diff of responses (test vs production for same request)
-- B. Behavior tracking (log differences in transform outputs)
-- C. Validation mode (test mode warns about differences but doesn't fail)
-- D. Configuration diff (show differences between test and prod configs)
-
-Which did you have in mind, or something else?
-
-### 5. Custom Headers for Direct Responses (Q8.3 Follow-up)
-**Question:** What custom headers would direct responses need to set?
-
-**Current direct response format:**
-```python
-{
-    "response": {
-        "output": "<html>...",
-        "content_type": "text/html",
-        "status_code": 200
-    }
-}
-```
-
-**With custom headers:**
-```python
-{
-    "response": {
-        "output": "<html>...",
-        "content_type": "text/html",
-        "status_code": 200,
-        "headers": {
-            "Cache-Control": "no-cache",
-            "X-Custom-Header": "value"
-        }
-    }
-}
-```
-
-Examples needed:
-- Cache-Control headers?
-- CORS headers?
-- Security headers (CSP, X-Frame-Options)?
-- Custom application headers?
-- Other?
-
-### 6. Routing Clarifications (Q9.3 Follow-up)
-**Question:** "Which routing?" - Need clarification.
-
-**Context:** You asked "Which routing?" in response to "Should routing be declarative (annotations) or imperative (registration)?"
-
-Did you mean:
-- A. Which routing system (internal gateway routing vs. Flask app routing)?
-- B. Clarify what "declarative" vs "imperative" means?
-- C. Something else?
-
-For context:
-- **Imperative**: `router.register("/foo", handler)` (current approach)
-- **Declarative**: `@route("/foo") def handler(...)` (decorator-based)
-
-### 7. Route Priorities (Q9.5 Follow-up)
-**Question:** "For what routes?" - Need clarification.
-
-**Context:** You asked "For what routes?" in response to "Should we add route priorities or keep them ordered?"
-
-Did you mean:
-- A. What routes need priorities (gateway routes, all routes, specific routes)?
-- B. Why would priorities be needed?
-- C. Clarify what "ordered" means?
-
-For context:
-- **Ordered**: Routes checked in registration order (first match wins)
-- **Priorities**: Routes have explicit priority numbers (highest priority wins)
-
-Example where priorities matter:
-```python
-# Ordered (first match wins)
-/gateway/<server>/<path>  # Would match before specific routes
-/gateway/meta/<server>    # Never reached!
-
-# With priorities
-/gateway/meta/<server>    priority=10
-/gateway/<server>/<path>  priority=5
-```
+### Developer Experience
+- **Rich diagnostics** - All errors provide detailed context for correction
+- **Hot-reload** - Configuration changes without restart
+- **Middleware support** - Extensibility without modifying core
+- **Type safety** - Data classes for clear APIs
+- **Red-green-refactor** - Test-driven development, no arbitrary coverage targets
 
 ## Test Coverage Requirements
 
@@ -1086,20 +1044,25 @@ Example where priorities matter:
 5. Write integration tests
 6. Validate end-to-end tests pass
 
-### Phase 4 (Week 4): Routing, Forms & Middleware
-1. Implement new routing system
-2. Add middleware support
-3. Refactor form handlers
-4. Refactor meta page handler
-5. Implement custom error pages per gateway
-6. Write integration tests
+### Phase 4 (Week 4): Forms & Meta Pages
+1. Refactor form handlers
+2. Refactor meta page handler
+3. Implement custom error pages per gateway
+4. Write integration tests
 
-### Phase 5 (Week 5): Configuration & Polish
+### Phase 5 (Week 5): Middleware & Routing
+1. Implement middleware system
+2. Implement first-match-wins routing with reserved names
+3. Add routing tests for shadowed server names
+4. Write integration tests
+
+### Phase 6 (Week 6): Configuration & Polish
 1. Implement new configuration format
 2. Add hot-reloading support
 3. Add load-time validation
-4. Update documentation
-5. Final review and merge
+4. Implement pluggable logging delegation
+5. Update documentation
+6. Final review and merge
 
 ## Notes for Implementation
 
@@ -1138,6 +1101,14 @@ Example where priorities matter:
 - Can choose to return unmodified or transform further
 - Provides consistency and flexibility
 
+**First-Match-Wins Routing:**
+- Routes checked in registration order
+- More specific patterns registered before general patterns
+- Reserved names (meta, request, response, test) have dedicated routes
+- Servers with reserved names need aliases to be accessible
+- Example: Server named "meta" must use alias like "meta-server" in gateway config
+- All routing scoped to /gateway/ prefix only
+
 ### Edge Cases to Cover
 
 1. Circular redirects in internal requests → Detect and error
@@ -1167,15 +1138,53 @@ Example where priorities matter:
 
 ## Next Steps
 
-1. **Answer remaining open questions** (7 questions above)
-2. **Review proposed configuration format** - approve or suggest changes
-3. **Review middleware design** - approve or suggest changes
-4. **Create detailed task breakdown** for Phase 1
+1. ✅ ~~Answer all open questions~~ - **COMPLETE**
+2. ✅ ~~Review proposed configuration format~~ - **APPROVED**
+3. ✅ ~~Review middleware design~~ - **APPROVED**
+4. **Create detailed task breakdown for Phase 1**
 5. **Begin implementation** starting with pure function extraction
+
+## Open Questions for Implementation
+
+### Routing Implementation Details
+**Question:** How should the pattern matching work internally?
+
+The `GatewayRouter._match()` method needs implementation. Options:
+- **A.** Simple string splitting and matching (fastest, most explicit)
+- **B.** Regex-based matching (more flexible, standard approach)
+- **C.** Use existing library like werkzeug.routing (less code, well-tested)
+
+**Recommendation:** Start with option C (werkzeug.routing) unless there's a reason to avoid dependencies.
+
+### Pluggable Logging Interface
+**Question:** What interface should the gateway expect for logging delegation?
+
+Since we're delegating to pluggable logging, we need to define what that interface looks like:
+
+```python
+# Option A: Standard Python logging
+import logging
+logger = logging.getLogger('gateway')
+logger.info("Request", extra={"gateway": name, "path": path})
+
+# Option B: Structured logging interface
+class LoggingDelegate:
+    def log_request(self, gateway: str, path: str, method: str):
+        ...
+    def log_error(self, gateway: str, error: Exception, context: dict):
+        ...
+
+# Option C: Simple callable
+log_fn = context.get('log_gateway_event')
+if log_fn:
+    log_fn(event_type='request', gateway=name, path=path)
+```
+
+**Recommendation:** Start with Option A (standard Python logging with structured extras) - most flexible and integrates with existing logging infrastructure.
 
 ---
 
-**Document Status**: Draft v2.0 - Awaiting answers to 7 remaining questions
+**Document Status**: **APPROVED v3.0** - Ready for implementation
 **Last Updated**: 2026-01-09
 **Owner**: Development Team
-**Decisions**: 43 of 50 questions resolved
+**All Design Decisions**: Complete (50/50 questions resolved)
