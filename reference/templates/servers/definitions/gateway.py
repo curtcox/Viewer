@@ -42,8 +42,12 @@ from gateway_lib.cid.normalizer import (
     normalize_cid_lookup as _normalize_cid_lookup,
     parse_hrx_gateway_args as _parse_hrx_gateway_args,
 )
+from gateway_lib.cid.resolver import CIDResolver
 
 logger = logging.getLogger(__name__)
+
+# Create shared CID resolver instance (no caching - always loads fresh)
+_cid_resolver = CIDResolver()
 
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
@@ -129,55 +133,11 @@ def _main_impl(context=None):
 
 
 def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
-    """Resolve a CID value to its content."""
-    try:
-        # Try database first - CID paths are stored with leading slash
-        from cid_storage import get_cid_content
-        cid_path = f"/{cid_value}" if not cid_value.startswith("/") else cid_value
-        content = get_cid_content(cid_path)
-        if content:
-            if hasattr(content, "file_data"):
-                data = content.file_data
-                if as_bytes:
-                    return bytes(data) if isinstance(data, (bytes, bytearray)) else str(data).encode("utf-8")
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            if hasattr(content, "data"):
-                data = content.data
-                if as_bytes:
-                    return bytes(data) if isinstance(data, (bytes, bytearray)) else str(data).encode("utf-8")
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            if as_bytes:
-                return content if isinstance(content, (bytes, bytearray)) else str(content).encode("utf-8")
-            return content.decode("utf-8") if isinstance(content, bytes) else content
-    except Exception:
-        pass
-
-    # Try filesystem path resolution (e.g. reference/templates/...)
-    try:
-        candidate = str(cid_value) if cid_value is not None else ""
-        if candidate:
-            normalized = candidate.lstrip("/")
-            candidate_path = Path(normalized)
-            if candidate_path.exists() and candidate_path.is_file():
-                if as_bytes:
-                    return candidate_path.read_bytes()
-                return candidate_path.read_text(encoding="utf-8")
-    except Exception:
-        pass
-
-    # Try file system as fallback
-    try:
-        # Remove leading slash if present for filesystem lookup
-        bare_cid = cid_value.lstrip("/")
-        cid_file = Path("cids") / bare_cid
-        if cid_file.exists():
-            if as_bytes:
-                return cid_file.read_bytes()
-            return cid_file.read_text(encoding="utf-8")
-    except Exception:
-        pass
-
-    return None
+    """Resolve a CID value to its content.
+    
+    Delegates to CIDResolver for consistent resolution logic.
+    """
+    return _cid_resolver.resolve(cid_value, as_bytes=as_bytes)
 
 
 def _load_gateways(context):
