@@ -87,8 +87,6 @@
 
     <h2>Configured Gateways</h2>
 
-    {% set mock_server_cid = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w" %}
-
     <div class="card">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -143,6 +141,7 @@
                 {%- endmacro %}
 
                 {% for name, config in gateways.items() %}
+                {% set mock_server_cid = mock_server_cids.get(name, "") if mock_server_cids else "" %}
                 <tr>
                     <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
                         <span class="gateway-name">{{ name }}</span>
@@ -169,6 +168,7 @@
 
                 {% for server in external_servers or [] %}
                     {% if server.name and server.name not in gateways %}
+                    {% set mock_server_cid = mock_server_cids.get(server.name, "") if mock_server_cids else "" %}
                     <tr>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #333;">
                             <span class="gateway-name">{{ server.name }}</span>

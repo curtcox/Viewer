@@ -2,9 +2,9 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 6112
+**Total Tests:** 6116
 - Unit Tests: 5359
-- Integration Tests: 586
+- Integration Tests: 590
 - Property Tests: 14
 - Gauge Tests: 153
 
@@ -5374,7 +5374,7 @@ Total: 5359 tests
 
 ## Integration Tests
 
-Total: 586 tests
+Total: 590 tests
 
 - [TestAiEditorIntegration.test_ai_editor_contains_navigation_and_info_menu](tests/integration/test_ai_editor_integration.py:74)
 - [TestAiEditorIntegration.test_ai_editor_escapes_payload_attribute](tests/integration/test_ai_editor_integration.py:104)
@@ -5452,6 +5452,8 @@ Total: 586 tests
 - [Test string starting with http:// is treated as URL.](tests/integration/test_cli_integration.py:321)
 - [Test string starting with https:// is treated as URL.](tests/integration/test_cli_integration.py:328)
 - [Test string starting with / is treated as URL.](tests/integration/test_cli_integration.py:314)
+- [TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_sample_links_use_service_specific_cids](tests/integration/test_gateway_table_links.py:304)
+- [TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_test_links_return_html_with_links](tests/integration/test_gateway_table_links.py:263)
 - [Test that gateway correctly parses CID and path.](tests/integration/test_gateway_cids.py:77)
 - [Test that gateway with invalid CID shows error.](tests/integration/test_gateway_cids.py:71)
 - [Test that gateway without archive CID shows error.](tests/integration/test_gateway_cids.py:65)
@@ -5488,7 +5490,7 @@ Total: 586 tests
 - [Test that SystemExit from expected failures propagates correctly.](tests/integration/test_main_exception_handling.py:89)
 - [Test that unexpected exceptions in handle_boot_cid_import produce helpful error messages.](tests/integration/test_main_exception_handling.py:48)
 - [Test that unexpected exceptions during app startup produce helpful error messages.](tests/integration/test_main_exception_handling.py:113)
-- [Meta link should return without error and contain transform references.](tests/integration/test_gateway_table_links.py:109)
+- [Meta link should return without error and contain transform references.](tests/integration/test_gateway_table_links.py:178)
 - [Test that --help completes within reasonable time without hanging.](tests/integration/test_cli_integration.py:510)
 - [Test --help exits immediately without starting server.](tests/integration/test_cli_integration.py:347)
 - [Test that -h completes within reasonable time without hanging.](tests/integration/test_cli_integration.py:534)
@@ -5531,9 +5533,9 @@ Total: 586 tests
 - [GET requests should work in read-only mode.](tests/integration/test_readonly_mode.py:52)
 - [DELETE requests should return 405 in read-only mode.](tests/integration/test_readonly_mode.py:39)
 - [POST requests should return 405 in read-only mode.](tests/integration/test_readonly_mode.py:22)
-- [Sample links should return without error.](tests/integration/test_gateway_table_links.py:171)
-- [Server link should return without error.](tests/integration/test_gateway_table_links.py:96)
-- [Test link should return without error and contain resource links.](tests/integration/test_gateway_table_links.py:143)
+- [Sample links should return without error.](tests/integration/test_gateway_table_links.py:248)
+- [Server link should return without error.](tests/integration/test_gateway_table_links.py:165)
+- [Test link should return without error and contain resource links.](tests/integration/test_gateway_table_links.py:212)
 - [Test alias view page shows configured UIs.](tests/integration/test_ui_suggestions_integration.py:121)
 - [Test server view page shows configured UIs in Details tab.](tests/integration/test_ui_suggestions_integration.py:138)
 - [Test variable view page shows configured UIs.](tests/integration/test_ui_suggestions_integration.py:153)
@@ -5700,6 +5702,8 @@ Total: 586 tests
 - [Gateway instruction page should include archived external-service servers.](tests/integration/test_gateway_server.py:204)
 - [Gateway instruction page should include links for gateways loaded from gateways.source.json.](tests/integration/test_gateway_server.py:145)
 - [Test that /gateway shows instruction page with configured gateways.](tests/integration/test_gateway_hrx.py:686)
+- [test_gateway_instruction_page_sample_links_use_service_specific_cids](tests/integration/test_gateway_table_links.py:304)
+- [test_gateway_instruction_page_test_links_return_html_with_links](tests/integration/test_gateway_table_links.py:263)
 - [Test that /gateway/man/ls routes to /servers/man/ls.](tests/integration/test_gateway_hrx.py:669)
 - [Test that /gateway/man/grep returns the man page without HTTP proxying.](tests/integration/test_gateway_hrx.py:558)
 - [Gateway meta page should show error for unknown gateway.](tests/integration/test_gateway_server.py:487)
@@ -5795,7 +5799,7 @@ Total: 586 tests
 - [Test that local_jsonplaceholder alias exists but is disabled.](tests/integration/test_gateway_test_server.py:169)
 - [Test that local_jsonplaceholder alias works when enabled.](tests/integration/test_gateway_test_server.py:182)
 - [Test that unexpected exceptions during app startup produce helpful error messages.](tests/integration/test_main_exception_handling.py:113)
-- [Meta link should return without error and contain transform references.](tests/integration/test_gateway_table_links.py:109)
+- [Meta link should return without error and contain transform references.](tests/integration/test_gateway_table_links.py:178)
 - [Test that minimal boot CID loads only the ai_stub server.](tests/integration/test_boot_image_reference_template_files.py:397)
 - [Test providing multiple URLs shows error.](tests/integration/test_cli_integration.py:177)
 - [Alias targets should execute and feed their output into auto-main servers.](tests/integration/test_server_execution_auto_main.py:108)
@@ -5833,7 +5837,7 @@ Total: 586 tests
 - [CID paths should display CID helper markup.](tests/integration/test_route_details_page.py:126)
 - [Server-backed routes should report the server definition.](tests/integration/test_route_details_page.py:96)
 - [The overview should include built-in, alias, and server entries.](tests/integration/test_routes_overview_page.py:14)
-- [Sample links should return without error.](tests/integration/test_gateway_table_links.py:171)
+- [Sample links should return without error.](tests/integration/test_gateway_table_links.py:248)
 - [The search page should render with all filters enabled and helpful copy.](tests/integration/test_search_page.py:19)
 - [Test that /search returns same HTML page via HTTP and CLI.](tests/integration/test_one_shot_equivalence.py:635)
 - [Test that /search/results returns same JSON with empty query via HTTP and CLI.](tests/integration/test_one_shot_equivalence.py:654)
@@ -5866,7 +5870,7 @@ Total: 586 tests
 - [The server events page should respect time range filters.](tests/integration/test_server_events_page.py:61)
 - [The server events page should render recorded invocations.](tests/integration/test_server_events_page.py:18)
 - [Test that a server created from the template functions as expected.](tests/integration/test_boot_image_dynamic_content.py:699)
-- [Server link should return without error.](tests/integration/test_gateway_table_links.py:96)
+- [Server link should return without error.](tests/integration/test_gateway_table_links.py:165)
 - [View and edit pages should surface detected implementation language.](tests/integration/test_server_pages.py:50)
 - [Test server view page shows configured UIs in Details tab.](tests/integration/test_ui_suggestions_integration.py:138)
 - [Test server view page shows 'No additional UIs' when none configured.](tests/integration/test_ui_suggestions_integration.py:52)
@@ -5891,7 +5895,7 @@ Total: 586 tests
 - [The instance page should enumerate database tables and their columns.](tests/integration/test_source_browser_page.py:78)
 - [Viewing a specific table should render its rows in an HTML table.](tests/integration/test_source_browser_page.py:93)
 - [Bash servers without $1 should continue to work as before.](tests/integration/test_bash_path_parameters.py:444)
-- [Test link should return without error and contain resource links.](tests/integration/test_gateway_table_links.py:143)
+- [Test link should return without error and contain resource links.](tests/integration/test_gateway_table_links.py:212)
 - [Test providing too many positional arguments.](tests/integration/test_cli_integration.py:160)
 - [Verify awk, sed, grep are available.](tests/integration/test_diagnostics.py:50)
 - [Test that content with unicode characters renders identically.](tests/integration/test_one_shot_equivalence.py:531)
