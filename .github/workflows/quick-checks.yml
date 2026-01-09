@@ -5,10 +5,14 @@ on:
     branches:
       - main
       - master
+      - dev
+      - test
   pull_request:
     branches:
       - main
       - master
+      - dev
+      - test
     types:
       - opened
       - reopened
