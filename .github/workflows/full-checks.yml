@@ -705,20 +705,48 @@ jobs:
             echo "Downloading existing GitHub Pages content to merge with new reports..."
             
             # Download the current GitHub Pages site
-            curl -L -o pages.tar.gz \
+            CURL_EXIT=0
+            curl -L -f -o pages.tar.gz \
               "https://github.com/${{ github.repository }}/archive/gh-pages.tar.gz" \
-              || echo "Could not download existing pages (this is normal for first deployment)"
+              || CURL_EXIT=$?
             
-            if [ -f pages.tar.gz ]; then
-              mkdir -p existing-pages
-              tar -xzf pages.tar.gz -C existing-pages --strip-components=1 || true
-              
-              # If we have existing content, use it as the base
-              if [ -d existing-pages ]; then
-                echo "Found existing pages content"
-                mkdir -p site-base
-                # Copy everything except the subdirectory we're about to update
-                rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ || true
+            if [ $CURL_EXIT -ne 0 ]; then
+              echo "Could not download existing pages (exit code: $CURL_EXIT)"
+              echo "This is normal for first deployment or if gh-pages branch doesn't exist yet"
+            elif [ -f pages.tar.gz ]; then
+              # Verify the tar.gz file is valid before extraction
+              if tar -tzf pages.tar.gz > /dev/null 2>&1; then
+                echo "Downloaded tar.gz is valid, extracting..."
+                mkdir -p existing-pages
+                
+                TAR_EXIT=0
+                tar -xzf pages.tar.gz -C existing-pages --strip-components=1 || TAR_EXIT=$?
+                
+                if [ $TAR_EXIT -ne 0 ]; then
+                  echo "Warning: tar extraction failed with exit code: $TAR_EXIT"
+                  echo "Continuing without merging existing content"
+                fi
+                
+                # If we have existing content, use it as the base
+                if [ -d existing-pages ] && [ "$(ls -A existing-pages 2>/dev/null)" ]; then
+                  echo "Found existing pages content with $(du -sh existing-pages | cut -f1) of data"
+                  mkdir -p site-base
+                  
+                  # Copy everything except the subdirectory we're about to update
+                  RSYNC_EXIT=0
+                  rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ || RSYNC_EXIT=$?
+                  
+                  if [ $RSYNC_EXIT -ne 0 ]; then
+                    echo "Warning: rsync failed with exit code: $RSYNC_EXIT"
+                    echo "Continuing with partial or no merge of existing content"
+                  else
+                    echo "Successfully merged existing pages content"
+                  fi
+                else
+                  echo "No existing pages content found or directory is empty"
+                fi
+              else
+                echo "Downloaded file is not a valid tar.gz archive, skipping extraction"
               fi
             fi
           fi
