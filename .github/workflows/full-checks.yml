@@ -885,7 +885,8 @@ jobs:
             if [ -d site-base ]; then
               echo "Merging with existing GitHub Pages content"
               mkdir -p site-final
-              cp -r site-base/* site-final/ || true
+              # Copy may fail if site-base is empty, which is fine - we still create site-final
+              cp -r site-base/* site-final/ 2>/dev/null || echo "No files to copy from site-base (directory may be empty)"
             else
               echo "No existing pages found, creating fresh structure"
               mkdir -p site-final
