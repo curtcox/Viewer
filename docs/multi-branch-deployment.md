@@ -41,16 +41,23 @@ else
 fi
 ```
 
-### Content Merging
+### Content Merging (Overlay Approach)
 
-For dev and test branches, the workflow:
+**All branches now preserve content from other branches using an overlay approach:**
 
-1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch content
-2. **Preserves other branch reports**: Copies all content except the subdirectory being updated
-3. **Merges new reports**: Adds the new branch-specific reports to the subdirectory
-4. **Deploys merged content**: Uploads the complete site with all branch reports
+#### Main Branch Deployment
+1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
+2. **Preserves all subdirectories**: Copies all existing content including `dev/` and `test/` subdirectories
+3. **Updates root content**: Overwrites root-level files with new main branch reports
+4. **Deploys merged content**: Uploads the complete site with main reports at root and preserved subdirectories
 
-For the main branch, it simply deploys to the root, overwriting previous main content but preserving subdirectories.
+#### Dev/Test Branch Deployment
+1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
+2. **Preserves other branch content**: Copies all content except the subdirectory being updated
+3. **Updates branch subdirectory**: Places new reports in the appropriate subdirectory (`dev/` or `test/`)
+4. **Deploys merged content**: Uploads the complete site with all branch reports preserved
+
+**Key Difference from Previous Behavior**: The main branch now explicitly preserves the `dev/` and `test/` subdirectories instead of erasing them. This ensures that builds from any branch overlay and coexist with builds from other branches.
 
 ### URL Structure
 
@@ -121,10 +128,18 @@ If dev/test reports don't appear in their subdirectories:
 
 ### Existing Content Being Overwritten
 
-If reports from other branches disappear:
-1. Check the "Download existing GitHub Pages" step for errors
-2. Verify the rsync command is excluding the correct subdirectory
-3. Check that the merge logic is working in "Organize site for branch deployment"
+**This issue has been fixed in the current implementation.** All branches now preserve content from other branches:
+- Main branch preserves `dev/` and `test/` subdirectories
+- Dev branch preserves root content and `test/` subdirectory
+- Test branch preserves root content and `dev/` subdirectory
+
+If content is still being overwritten:
+1. Check the "Download existing GitHub Pages" step runs for **all branches** (not just subdirectories)
+2. Verify the rsync command uses the correct exclude logic:
+   - Main: No exclusions (preserves all subdirectories)
+   - Dev: Excludes only `dev/`
+   - Test: Excludes only `test/`
+3. Check that the merge logic in "Organize site for branch deployment" handles both main and branch deployments correctly
 
 ### Links Not Working
 
