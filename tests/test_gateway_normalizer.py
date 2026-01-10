@@ -1,7 +1,6 @@
 """Tests for gateway_lib.cid.normalizer module."""
 
-import pytest
-from gateway_lib.cid.normalizer import normalize_cid_lookup, parse_hrx_gateway_args
+from definitions.gateway_lib.cid.normalizer import normalize_cid_lookup, parse_hrx_gateway_args
 
 
 class TestNormalizeCidLookup:
