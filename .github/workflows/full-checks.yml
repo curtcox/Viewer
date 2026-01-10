@@ -903,7 +903,7 @@ jobs:
           
           # Verify the structure
           echo "Final site structure:"
-          find site -type f -name "*.html" | head -20
+          find site -type f -name "*.html" | head -20 || true
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
