@@ -2067,3 +2067,71 @@ None - Phase 2 complete. All services working as designed with clean delegation 
 #### Status
 ✅ **PHASE 2 COMPLETE**. Core services extracted (transforms, templates, config) with 437 LOC added to gateway_lib. Gateway.py reduced by 260 lines (11%). All 110 tests passing. Ready to begin Phase 3.
 
+### Phase 3 Checkpoint - 2026-01-10 (COMPLETE)
+
+#### Completed Work
+- [x] Created 2 new execution modules in `gateway_lib/execution/` (281 LOC total)
+  - `redirects.py` - Redirect following logic with RedirectFollower class (140 LOC)
+  - `internal.py` - Internal target execution with TargetExecutor class (189 LOC)
+- [x] Extracted utility functions to execution modules
+  - `extract_internal_target_path_from_server_args_json()` - Path extraction utility
+  - `resolve_target()` - Target resolution from config
+  - `as_requests_like_response()` - Response adaptation
+- [x] Updated `gateway.py` to use extracted execution services (175 lines removed)
+- [x] Added backwards compatibility wrappers for test compatibility
+  - `_follow_internal_redirects()` wrapper delegates to RedirectFollower
+  - `_execute_target_request()` wrapper delegates to TargetExecutor
+  - `_resolve_target()` wrapper delegates to resolve_target utility
+- [x] Updated test to patch new service architecture
+  - `test_gateway_internal_redirect_resolution_preserves_bytes` now patches `_redirect_follower.cid_resolver.resolve`
+- [x] All 110 gateway unit tests passing
+- [x] All 3 gateway integration tests passing
+- [x] Gateway.py reduced from 2,217 to 2,042 lines (175 lines removed, 7.9% reduction)
+- [x] Gateway_lib increased from 677 to 958 lines (281 lines added)
+- [x] Net Phase 3 extraction: 281 new LOC in gateway_lib, 175 LOC removed from gateway.py
+
+#### Cumulative Progress
+- **Total extracted**: 670 LOC into gateway_lib (Phases 1-3)
+- **Total removed from gateway.py**: 436 lines (17.6% reduction from original 2,478)
+- **Current gateway.py size**: 2,042 lines (from 2,478 original)
+- **Current gateway_lib size**: 958 lines across 15 modules
+
+#### Lessons Learned
+1. **Service Composition**: RedirectFollower depends on CIDResolver, TargetExecutor depends on RedirectFollower. This layered composition creates clear dependency chains and makes testing straightforward.
+
+2. **Test Patching Strategy**: When code is extracted into services, tests need to patch at the service level rather than module-level functions. Pattern: `patch.object(gateway_definition._service_instance.dependency, "method")`.
+
+3. **Wrapper Functions for Compatibility**: Keeping thin wrapper functions like `_follow_internal_redirects()` in gateway.py maintains backwards compatibility with existing tests while still delegating to extracted services.
+
+4. **Module Organization**: Separating redirect logic from execution logic (redirects.py vs internal.py) creates focused modules with clear responsibilities, even though they work together.
+
+5. **No Direct Flask Dependencies in Services**: The TargetExecutor needs Flask (for test_request_context) but this is acceptable since gateway is Flask-specific. Other services (CIDResolver, RedirectFollower) remain Flask-agnostic.
+
+#### New Open Questions
+None - Phase 3 complete. Execution services working cleanly with proper separation of concerns.
+
+#### Items for Further Study
+1. **Further Extraction**: The `_handle_gateway_request()` function (200+ lines) and `_handle_gateway_test_request()` function (350+ lines) are still in gateway.py. These are the main targets for Phase 4-5.
+
+2. **Response Transformation Logic**: The response transform logic in `_handle_gateway_request()` could potentially be extracted to a separate handler, similar to request transforms.
+
+#### Plan Adjustments for Phase 4
+**Phase 4 Focus** (Revised based on progress):
+- Extract main request handler logic to `gateway_lib/handlers/request.py`
+  - This is a large extraction (~200 lines) with complex error handling
+  - Will create RequestHandler class to encapsulate orchestration
+- Extract test mode handler to `gateway_lib/handlers/test.py`  
+  - This is even larger (~350 lines) with test-specific logic
+  - Will create TestHandler class
+- Consider extracting form handlers if time permits
+  - `_handle_request_form()` and `_handle_response_form()`
+  - These are lower priority (Phases 4-5 boundary)
+
+**Expected Results**:
+- Gateway.py reduced by another ~400-500 lines to ~1,500-1,600 lines
+- Cleaner separation between routing logic and handler logic
+- All tests still passing with minimal changes
+
+#### Status
+✅ **PHASE 3 COMPLETE**. Execution services extracted (redirects, internal target) with 281 LOC added to gateway_lib. Gateway.py reduced by 175 lines (7.9%). All 113 tests passing (110 unit + 3 integration). Cumulative reduction: 436 lines (17.6%) from original 2,478. Ready to begin Phase 4.
+

@@ -22,7 +22,6 @@ import traceback
 from html import escape
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urljoin
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -46,6 +45,8 @@ from gateway_lib.transforms.loader import TransformLoader
 from gateway_lib.transforms.validator import TransformValidator
 from gateway_lib.templates.loader import TemplateLoader
 from gateway_lib.config import ConfigLoader
+from gateway_lib.execution.redirects import RedirectFollower, extract_internal_target_path_from_server_args_json
+from gateway_lib.execution.internal import TargetExecutor, resolve_target
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ _transform_validator = TransformValidator(_cid_resolver)
 # Use lambda to allow late binding for test monkey-patching
 _template_loader = TemplateLoader(_cid_resolver, resolve_fn=lambda cid, as_bytes: _resolve_cid_content(cid, as_bytes=as_bytes))
 _config_loader = ConfigLoader(_cid_resolver)
+_redirect_follower = RedirectFollower(_cid_resolver)
+_target_executor = TargetExecutor(_redirect_follower)
 
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
@@ -1551,208 +1554,37 @@ def _handle_meta_page_with_test(server_name, test_server_path, gateways, context
 def _execute_target_request(target, request_details):
     """Execute a request to the target server.
 
-    The gateway server is internal-only: it always executes another internal
-    server and never performs outbound HTTP requests.
+    Delegates to TargetExecutor for execution logic.
+    This wrapper exists for backwards compatibility.
     """
-    if isinstance(request_details, dict):
-        explicit_url = request_details.get("url")
-        if isinstance(explicit_url, str) and explicit_url and not explicit_url.startswith("/"):
-            raise ValueError("Gateway requests must not specify an external URL")
-
-    if isinstance(target, dict):
-        mode = target.get("mode")
-        if mode != "internal":
-            raise ValueError(f"Unsupported target mode: {mode!r}")
-        return _execute_internal_target(target, request_details)
-
-    if isinstance(target, str):
-        if not target.startswith("/"):
-            raise ValueError("Gateway target must be an internal path")
-        return _execute_internal_target({"mode": "internal", "url": target}, request_details)
-
-    raise TypeError(f"Unsupported target type: {type(target).__name__}")
+    return _target_executor.execute_target_request(target, request_details)
 
 
 def _resolve_target(config: dict, server_name: str, request_details: dict) -> dict:
     """Resolve the final gateway target.
 
-    The gateway server is internal-only and always targets an internal server.
+    Delegates to resolve_target utility function.
+    This wrapper exists for backwards compatibility.
     """
-    explicit_url = request_details.get("url")
-    if isinstance(explicit_url, str) and explicit_url:
-        if explicit_url.startswith("/"):
-            return {"mode": "internal", "url": explicit_url}
-        raise ValueError("Gateway target must be an internal path")
-
-    return {"mode": "internal", "url": f"/{server_name}"}
-
-
-def _execute_internal_target(target: dict, request_details: dict):
-    """Execute an internal target (server/alias/CID) without making HTTP requests."""
-    internal_path = target.get("url")
-    if not isinstance(internal_path, str) or not internal_path.startswith("/"):
-        raise ValueError(f"Invalid internal target: {internal_path!r}")
-
-    path = internal_path
-    extra_path = request_details.get("path")
-    if isinstance(extra_path, str) and extra_path:
-        path = urljoin(path.rstrip("/") + "/", extra_path.lstrip("/"))
-
-    query_string = request_details.get("query_string")
-    if isinstance(query_string, str) and query_string:
-        path = f"{path}?{query_string.lstrip('?')}"
-
-    method = request_details.get("method", "GET")
-
-    import server_execution
-
-    # Create a nested request context so server execution that depends on
-    # request.path sees the intended internal path (e.g. /man/grep).
-    with current_app.test_request_context(
-        path,
-        method=method,
-        headers=request_details.get("headers") or {},
-        data=request_details.get("data"),
-        json=request_details.get("json"),
-    ):
-        result = server_execution.try_server_execution(flask_request.path)
-        if result is None:
-            raise LookupError(f"No internal target handled path: {flask_request.path}")
-
-        adapted = _as_requests_like_response(result)
-        resolved = _follow_internal_redirects(adapted)
-        return resolved
+    return resolve_target(config, server_name, request_details)
 
 
 def _follow_internal_redirects(response, max_hops: int = 3):
-    """Resolve internal redirect responses into final CID-backed content."""
-    current = response
-    for _ in range(max_hops):
-        status = getattr(current, "status_code", 200)
-        if status not in (301, 302, 303, 307, 308):
-            return current
-
-        headers = getattr(current, "headers", {}) or {}
-        location = headers.get("Location") or headers.get("location")
-        if not isinstance(location, str) or not location:
-            return current
-
-        cid_value, content_type = _try_resolve_location_to_content(location)
-        if cid_value is None:
-            return current
-
-        class _ResolvedResponse:
-            def __init__(self, *, body: bytes, content_type: str):
-                self.status_code = 200
-                self.headers = {"Content-Type": content_type}
-                self.content = body
-                self.text = body.decode("utf-8", errors="replace")
-
-            def json(self):
-                return json.loads(self.text)
-
-        return _ResolvedResponse(body=cid_value, content_type=content_type)
-
-    return current
+    """Resolve internal redirect responses into final CID-backed content.
+    
+    Delegates to RedirectFollower for redirect logic.
+    This wrapper exists for backwards compatibility with tests.
+    """
+    return _redirect_follower.follow_redirects(response, max_hops)
 
 
-def _extract_internal_target_path_from_server_args_json(server_args_json: str | None) -> str | None:
-    if not isinstance(server_args_json, str) or not server_args_json.strip():
-        return None
-
-    try:
-        payload = json.loads(server_args_json)
-    except Exception:
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-
-    target = payload.get("target")
-    if isinstance(target, dict):
-        url = target.get("url")
-        if isinstance(url, str) and url:
-            return url
-    if isinstance(target, str) and target:
-        return target
-    return None
-
-
-def _try_resolve_location_to_content(location: str) -> tuple[bytes | None, str]:
-    """Try to resolve a redirect Location to CID content bytes and content type."""
-    if not isinstance(location, str):
-        return None, "text/plain"
-
-    raw_path = location.split("?", 1)[0]
-    raw_path = raw_path.lstrip("/")
-    if not raw_path:
-        return None, "text/plain"
-
-    if "/" in raw_path:
-        # Not a simple /{cid}[.ext] path.
-        return None, "text/plain"
-
-    if "." in raw_path:
-        cid_candidate, ext = raw_path.split(".", 1)
-    else:
-        cid_candidate, ext = raw_path, ""
-
-    cid_body = _resolve_cid_content(cid_candidate, as_bytes=True)
-    if cid_body is None:
-        return None, "text/plain"
-
-    body = bytes(cid_body) if isinstance(cid_body, (bytes, bytearray)) else str(cid_body).encode("utf-8")
-
-    content_type = {
-        "html": "text/html",
-        "txt": "text/plain",
-        "json": "application/json",
-        "md": "text/markdown",
-    }.get(ext.lower() if isinstance(ext, str) else "", "text/html")
-
-    return body, content_type
-
-
-def _as_requests_like_response(result):
-    """Convert a Flask Response or server result dict into a requests-like object."""
-    if hasattr(result, "status_code") and hasattr(result, "headers"):
-        class _FlaskResponseAdapter:
-            def __init__(self, response):
-                self._response = response
-                self.status_code = getattr(response, "status_code", 200)
-                self.headers = dict(getattr(response, "headers", {}) or {})
-                self.content = getattr(response, "data", b"")
-                try:
-                    self.text = self.content.decode("utf-8", errors="replace")
-                except Exception:
-                    self.text = ""
-
-            def json(self):
-                return json.loads(self.text)
-
-        return _FlaskResponseAdapter(result)
-
-    if isinstance(result, dict) and "output" in result:
-        class _DictResponseAdapter:
-            def __init__(self, payload):
-                self.status_code = 200
-                self.headers = {
-                    "Content-Type": payload.get("content_type", "text/html")
-                }
-                output = payload.get("output", "")
-                self.content = (
-                    output
-                    if isinstance(output, (bytes, bytearray))
-                    else str(output).encode("utf-8")
-                )
-                self.text = self.content.decode("utf-8", errors="replace")
-
-            def json(self):
-                return json.loads(self.text)
-
-        return _DictResponseAdapter(result)
-
-    raise TypeError(f"Unsupported internal execution result type: {type(result).__name__}")
+def _extract_internal_target_path_from_server_args_json(server_args_json):
+    """Extract internal target path from server args JSON.
+    
+    Delegates to extract_internal_target_path_from_server_args_json utility.
+    This wrapper exists for backwards compatibility.
+    """
+    return extract_internal_target_path_from_server_args_json(server_args_json)
 
 
 def _safe_preview_request_details(request_details: dict) -> dict:
