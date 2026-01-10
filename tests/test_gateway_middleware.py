@@ -1,6 +1,5 @@
 """Tests for gateway middleware module."""
 
-import pytest
 from reference.templates.servers.definitions.gateway_lib.middleware import (
     Middleware,
     MiddlewareChain,
@@ -146,8 +145,6 @@ class TestMiddlewareChain:
         context = mw2.before_request(context)
         
         # after_request should apply mw2 first, then mw1
-        result = chain.execute_after_request("test", context)
-        
         # Since mw2 is applied first (reverse order), context["prefix"] = "B:"
         # But we need to track this differently...
         # Let's use a different test
