@@ -43,11 +43,30 @@ from gateway_lib.cid.normalizer import (
     parse_hrx_gateway_args as _parse_hrx_gateway_args,
 )
 from gateway_lib.cid.resolver import CIDResolver
+from gateway_lib.transforms.loader import TransformLoader
+from gateway_lib.transforms.validator import TransformValidator
+from gateway_lib.templates.loader import TemplateLoader
+from gateway_lib.config import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
-# Create shared CID resolver instance (no caching - always loads fresh)
+# Forward declaration of _resolve_cid_content for use in service initialization
+def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
+    """Resolve a CID value to its content.
+    
+    Delegates to CIDResolver for consistent resolution logic.
+    This wrapper exists for backwards compatibility with tests.
+    """
+    return _cid_resolver.resolve(cid_value, as_bytes=as_bytes)
+
+
+# Create shared service instances (no caching - always load fresh)
 _cid_resolver = CIDResolver()
+_transform_loader = TransformLoader(_cid_resolver)
+_transform_validator = TransformValidator(_cid_resolver)
+# Use lambda to allow late binding for test monkey-patching
+_template_loader = TemplateLoader(_cid_resolver, resolve_fn=lambda cid, as_bytes: _resolve_cid_content(cid, as_bytes=as_bytes))
+_config_loader = ConfigLoader(_cid_resolver)
 
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
@@ -132,65 +151,12 @@ def _main_impl(context=None):
     return _handle_gateway_request(server_name, rest_path, gateways, context)
 
 
-def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
-    """Resolve a CID value to its content.
-    
-    Delegates to CIDResolver for consistent resolution logic.
-    """
-    return _cid_resolver.resolve(cid_value, as_bytes=as_bytes)
-
-
 def _load_gateways(context):
-    """Load gateway configurations from the gateways variable."""
-    try:
-        # Try to get gateways from context variables
-        # Context is a dict with {"variables": {...}, "secrets": {...}, "servers": {...}}
-        gateways_value = None
-        if context and isinstance(context, dict):
-            variables = context.get("variables", {})
-            if isinstance(variables, dict):
-                gateways_value = variables.get("gateways")
-
-        if gateways_value:
-            if isinstance(gateways_value, dict):
-                return gateways_value
-            if isinstance(gateways_value, str):
-                # Try to parse as JSON first
-                try:
-                    return json.loads(gateways_value)
-                except json.JSONDecodeError:
-                    # Value might be a CID - try to resolve it
-                    if gateways_value.startswith("AAAAA"):
-                        cid_content = _resolve_cid_content(gateways_value)
-                        if cid_content:
-                            return json.loads(cid_content)
-
-        # Try to resolve from named value resolver
-        from server_execution.request_parsing import resolve_named_value
-
-        # Build base_args with context for named value resolution
-        base_args = {}
-        if context and isinstance(context, dict):
-            base_args["context"] = context
-
-        value = resolve_named_value("gateways", base_args)
-        if value:
-            if isinstance(value, dict):
-                return value
-            if isinstance(value, str):
-                try:
-                    return json.loads(value)
-                except json.JSONDecodeError:
-                    # Value might be a CID - try to resolve it
-                    if value.startswith("AAAAA"):
-                        cid_content = _resolve_cid_content(value)
-                        if cid_content:
-                            return json.loads(cid_content)
-
-    except Exception as e:
-        logger.warning("Failed to load gateways: %s", e)
-
-    return {}
+    """Load gateway configurations from the gateways variable.
+    
+    Delegates to ConfigLoader for consistent loading logic.
+    """
+    return _config_loader.load_gateways(context)
 
 
 def _load_template(template_name):
@@ -614,70 +580,27 @@ def _handle_meta_page(server_name, gateways, context):
 
 def _validate_direct_response(direct_response: dict) -> tuple[bool, str | None]:
     """Validate a direct response dict from request transform.
-
+    
+    Delegates to TransformValidator for consistent validation logic.
+    
     Returns: (is_valid, error_message)
     """
-    if not isinstance(direct_response, dict):
-        return False, "Direct response must be a dict"
-
-    # 'output' is required (can be str or bytes, but must be present)
-    if "output" not in direct_response:
-        return False, "Direct response must contain 'output' key"
-
-    output = direct_response.get("output")
-    if output is not None and not isinstance(output, (str, bytes)):
-        return False, f"Direct response 'output' must be str or bytes, got {type(output).__name__}"
-
-    # 'content_type' is optional but must be string if present
-    content_type = direct_response.get("content_type")
-    if content_type is not None and not isinstance(content_type, str):
-        return False, f"Direct response 'content_type' must be str, got {type(content_type).__name__}"
-
-    # 'status_code' is optional but must be int if present
-    status_code = direct_response.get("status_code")
-    if status_code is not None and not isinstance(status_code, int):
-        return False, f"Direct response 'status_code' must be int, got {type(status_code).__name__}"
-
-    return True, None
+    return _transform_validator.validate_direct_response(direct_response)
 
 
 def _create_template_resolver(config: dict, context: dict):
     """Create a template resolution function for a gateway config.
-
+    
+    Delegates to TemplateLoader for consistent template resolution logic.
+    
     Args:
         config: Gateway configuration dict with optional 'templates' key
         context: Server execution context
-
+        
     Returns:
         Function that takes template name and returns Jinja2 Template
     """
-    templates_config = config.get("templates", {})
-
-    def resolve_template(template_name: str):
-        """Resolve a template by name from the gateway's templates config.
-
-        Args:
-            template_name: Name of the template (e.g., "man_page.html")
-
-        Returns:
-            jinja2.Template object
-
-        Raises:
-            ValueError: If template not found in config
-            LookupError: If template CID cannot be resolved
-        """
-        if template_name not in templates_config:
-            raise ValueError(f"Template '{template_name}' not found in gateway config. "
-                           f"Available templates: {list(templates_config.keys())}")
-
-        template_cid = templates_config[template_name]
-        content = _resolve_cid_content(template_cid)
-        if content is None:
-            raise LookupError(f"Could not resolve template CID: {template_cid}")
-
-        return Template(content)
-
-    return resolve_template
+    return _template_loader.create_template_resolver(config, context)
 
 
 def _apply_response_transform_for_test(
@@ -1863,129 +1786,47 @@ def _format_exception_detail(exc: Exception, *, debug_context: dict | None = Non
 
 
 def _load_transform_function(cid, context):
-    """Load a transform function from a CID."""
-    try:
-        # Try direct file path first (for development)
-        if isinstance(cid, str) and Path(cid).exists():
-            with open(cid, "r", encoding="utf-8") as f:
-                source = f.read()
-            return _compile_transform(source)
-
-        # Try to load from CID store
-        from db_access import get_cid_by_path
-
-        cid_lookup = _normalize_cid_lookup(cid)
-        cid_record = get_cid_by_path(cid_lookup) if cid_lookup else None
-        if cid_record and cid_record.file_data:
-            source = cid_record.file_data.decode("utf-8")
-            return _compile_transform(source)
-
-    except Exception as e:
-        logger.error("Failed to load transform from CID %s: %s", cid, e)
-
-    return None
+    """Load a transform function from a CID.
+    
+    Delegates to TransformLoader for consistent loading logic.
+    """
+    return _transform_loader.load_transform(cid, context)
 
 
 def _compile_transform(source):
-    """Compile transform source code and return the transform function."""
-    # Create a namespace for execution
-    namespace = {"__builtins__": __builtins__}
-
-    # Execute the source
-    exec(source, namespace)
-
-    # Look for transform functions
-    for name in ("transform_request", "transform_response"):
-        if name in namespace and callable(namespace[name]):
-            return namespace[name]
-
-    return None
+    """Compile transform source code and return the transform function.
+    
+    Delegates to TransformLoader for consistent compilation logic.
+    """
+    return _transform_loader.compile_transform(source)
 
 
 def _load_and_validate_transform(cid, expected_fn_name, context):
     """Load transform source and validate it.
-
+    
+    Delegates to TransformValidator for consistent validation logic.
+    
     Returns: (source, error, warnings)
     """
-    source = None
-    warnings = []
-
-    try:
-        # Try file path first (for development)
-        if isinstance(cid, str) and Path(cid).exists():
-            with open(cid, "r", encoding="utf-8") as f:
-                source = f.read()
-
-        # Try to load source
-        from db_access import get_cid_by_path
-
-        cid_lookup = _normalize_cid_lookup(cid)
-        cid_record = get_cid_by_path(cid_lookup) if cid_lookup else None
-        if cid_record and cid_record.file_data:
-            source = cid_record.file_data.decode("utf-8")
-
-        if not source:
-            return None, f"Transform not found at CID: {cid}", []
-
-        # Syntax validation
-        try:
-            tree = ast.parse(source)
-        except SyntaxError as e:
-            return source, f"Syntax error at line {e.lineno}: {e.msg}", []
-
-        # Check for expected function
-        function_found = False
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == expected_fn_name:
-                function_found = True
-                # Check signature
-                args = node.args
-                if len(args.args) < 2:
-                    warnings.append(f"Function {expected_fn_name} should have at least 2 parameters (request_details, context)")
-                break
-
-        if not function_found:
-            return source, f"Missing required function: {expected_fn_name}", []
-
-        return source, None, warnings
-
-    except Exception as e:
-        return source, f"Validation error: {str(e)}", []
+    return _transform_validator.load_and_validate_transform(cid, expected_fn_name, context)
 
 
 def _load_and_validate_template(cid, context):
     """Load and validate a Jinja template.
-
+    
+    Delegates to TemplateLoader for consistent validation logic.
+    
     Args:
         cid: Template CID to load
         context: Server execution context
-
+        
     Returns:
         (source, error, variables) tuple where:
         - source: Template source code (str) or None if not found
         - error: Error message (str) or None if valid
         - variables: List of detected template variables (list[str])
     """
-    try:
-        cid_lookup = _normalize_cid_lookup(cid)
-        content = _resolve_cid_content(cid_lookup)
-        if not content:
-            return None, f"Template not found at CID: {cid}", []
-
-        # Try to parse as Jinja template
-        from jinja2 import Environment, meta
-        env = Environment()
-        try:
-            ast_node = env.parse(content)
-            # Extract referenced variables
-            variables = sorted(list(meta.find_undeclared_variables(ast_node)))
-        except Exception as e:
-            return content, f"Jinja syntax error: {e}", []
-
-        return content, None, variables
-
-    except Exception as e:
-        return None, f"Validation error: {e}", []
+    return _template_loader.load_and_validate_template(cid, context)
 
 
 def _check_server_exists(server_name, context):
