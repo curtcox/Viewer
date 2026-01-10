@@ -902,11 +902,11 @@ jobs:
           echo "Organizing site to preserve all branch content..."
           
           # Start with existing pages as base if available
-          if [ -d site-base ]; then
+          if [ -d site-base ] && [ "$(ls -A site-base 2>/dev/null)" ]; then
             echo "Merging with existing GitHub Pages content"
             mkdir -p site-final
-            # Copy may fail if site-base is empty, which is fine - we still create site-final
-            cp -r site-base/* site-final/ 2>/dev/null || echo "No files to copy from site-base (directory may be empty)"
+            # Use . notation to safely copy directory contents
+            cp -r site-base/. site-final/
           else
             echo "No existing pages found, creating fresh structure"
             mkdir -p site-final
@@ -916,12 +916,14 @@ jobs:
             # Branch deployment (dev or test): put new content in subdirectory
             echo "Branch deployment: placing new content in $BRANCH_SUBDIR/"
             mkdir -p site-final/$BRANCH_SUBDIR
-            cp -r site/* site-final/$BRANCH_SUBDIR/
+            # Use . notation to safely copy directory contents
+            cp -r site/. site-final/$BRANCH_SUBDIR/
           else
             # Main branch deployment: put new content in root, preserve subdirectories
             echo "Main branch deployment: placing new content in root, preserving subdirectories"
             # Copy new content to root (this will overwrite root files but preserve subdirectories)
-            cp -r site/* site-final/
+            # Use . notation to safely copy directory contents
+            cp -r site/. site-final/
           fi
           
           # Replace site directory with merged content
