@@ -16,7 +16,6 @@ Routes:
 """
 
 import json
-import logging
 import re
 import traceback
 from html import escape
@@ -25,7 +24,6 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from flask import current_app, request as flask_request
-from jinja2 import Template
 
 from cid_presenter import render_cid_link
 from gateway_lib.rendering.diagnostic import (
@@ -51,8 +49,16 @@ from gateway_lib.handlers.meta import GatewayMetaHandler
 from gateway_lib.handlers.forms import GatewayFormsHandler
 from gateway_lib.routing import create_gateway_router
 from gateway_lib.middleware import MiddlewareChain
+from gateway_lib.logging_config import get_gateway_logger
+from gateway_lib.utils import (
+    safe_preview_request_details,
+    format_exception_detail,
+    load_template as _load_template,
+    default_mock_server_cid as _default_mock_server_cid,
+    collect_mock_server_cids as _collect_mock_server_cids,
+)
 
-logger = logging.getLogger(__name__)
+logger = get_gateway_logger()
 
 # Forward declaration of _resolve_cid_content for use in service initialization
 def _resolve_cid_content(cid_value, *, as_bytes: bool = False):
@@ -167,43 +173,6 @@ def _load_gateways(context):
     return _config_loader.load_gateways(context)
 
 
-def _load_template(template_name):
-    """Load a Jinja2 template from the gateway templates directory.
-
-    Tries multiple paths to find templates:
-    1. Flask app root + reference/templates/servers/templates/gateway/
-    2. Current working directory relative paths
-    """
-    template_paths = []
-
-    # Try Flask app root path
-    try:
-        app_root = Path(current_app.root_path)
-        template_paths.append(app_root / "reference/templates" / "servers" / "templates" / "gateway" / template_name)
-    except RuntimeError:
-        # No Flask app context
-        pass
-
-    # Try current working directory
-    cwd = Path.cwd()
-    template_paths.append(cwd / "reference/templates" / "servers" / "templates" / "gateway" / template_name)
-
-    for template_path in template_paths:
-        if template_path.exists():
-            with open(template_path, "r", encoding="utf-8") as f:
-                return Template(f.read())
-
-    # Fallback: return a simple error template
-    tried_paths = ", ".join(str(p) for p in template_paths)
-    return Template(
-        f"""<!DOCTYPE html><html><body>
-        <h1>Template Not Found</h1>
-        <p>Could not load template: {{{{ template_name }}}}</p>
-        <p>Tried paths: {tried_paths}</p>
-        </body></html>"""
-    )
-
-
 def _handle_instruction_page(gateways, context):
     """Render the main gateway instruction page."""
     template = _load_template("instruction.html")
@@ -211,17 +180,10 @@ def _handle_instruction_page(gateways, context):
         gateways=gateways,
         external_servers=_collect_external_service_servers(),
         mock_server_cids=_collect_mock_server_cids(),
-        mock_server_cid_default=_default_mock_server_cid(),
+        mock_server_cid_default=_default_mock_server_cid(_DEFAULT_TEST_CIDS_ARCHIVE_CID),
     )
     return {"output": html, "content_type": "text/html"}
 
-
-def _default_mock_server_cid() -> str:
-    cid_file = Path.cwd() / "cids" / _DEFAULT_TEST_CIDS_ARCHIVE_CID
-    return _DEFAULT_TEST_CIDS_ARCHIVE_CID if cid_file.exists() else ""
-
-
-def _collect_mock_server_cids() -> dict[str, str]:
     files_dir_candidates: list[Path] = []
 
     try:
@@ -621,10 +583,10 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
         load_transform_fn=_load_transform_function,
         create_template_resolver_fn=_create_template_resolver,
         normalize_cid_fn=_normalize_cid_lookup,
-        safe_preview_fn=_safe_preview_request_details,
+        safe_preview_fn=safe_preview_request_details,
         extract_exception_summary_fn=_extract_exception_summary_from_internal_error_html,
         extract_stack_trace_fn=_extract_stack_trace_list_from_internal_error_html,
-        format_exception_detail_fn=_format_exception_detail,
+        format_exception_detail_fn=format_exception_detail,
         format_exception_summary_fn=_format_exception_summary,
         parse_hrx_args_fn=_parse_hrx_gateway_args,
         render_error_fn=_render_error,
@@ -645,10 +607,10 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
         apply_response_transform_for_test_fn=_apply_response_transform_for_test,
         execute_target_fn=_execute_target_request,
         create_template_resolver_fn=_create_template_resolver,
-        safe_preview_fn=_safe_preview_request_details,
+        safe_preview_fn=safe_preview_request_details,
         extract_exception_summary_fn=_extract_exception_summary_from_internal_error_html,
         extract_stack_trace_fn=_extract_stack_trace_list_from_internal_error_html,
-        format_exception_detail_fn=_format_exception_detail,
+        format_exception_detail_fn=format_exception_detail,
         format_exception_summary_fn=_format_exception_summary,
         render_error_fn=_render_error,
     )
@@ -710,34 +672,6 @@ def _extract_internal_target_path_from_server_args_json(server_args_json):
     """
     return extract_internal_target_path_from_server_args_json(server_args_json)
 
-
-def _safe_preview_request_details(request_details: dict) -> dict:
-    if not isinstance(request_details, dict):
-        return {"type": type(request_details).__name__}
-    preview = {}
-    for key in ("url", "path", "query_string", "method"):
-        if key in request_details:
-            preview[key] = request_details.get(key)
-    headers = request_details.get("headers")
-    if isinstance(headers, dict):
-        preview["headers"] = {
-            k: v
-            for k, v in headers.items()
-            if str(k).lower() not in ("cookie", "authorization")
-        }
-    return preview
-
-
-def _format_exception_detail(exc: Exception, *, debug_context: dict | None = None) -> str:
-    detail = {
-        "exception_type": type(exc).__name__,
-        "exception": str(exc),
-    }
-    if debug_context:
-        detail["debug_context"] = debug_context
-
-    detail["traceback"] = traceback.format_exc()
-    return json.dumps(detail, indent=2, default=str)
 
 
 def _load_transform_function(cid, context):
