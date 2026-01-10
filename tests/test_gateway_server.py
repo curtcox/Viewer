@@ -122,7 +122,8 @@ def test_gateway_internal_redirect_resolution_preserves_bytes():
         content = b""
         text = ""
 
-    with patch.object(gateway_definition, "_resolve_cid_content", return_value=raw_json) as mock_resolve:
+    # Patch the CID resolver that the redirect follower uses
+    with patch.object(gateway_definition._redirect_follower.cid_resolver, "resolve", return_value=raw_json) as mock_resolve:
         resolved = gateway_definition._follow_internal_redirects(_FakeResponse())
 
     mock_resolve.assert_called_once_with("AAAAATEST", as_bytes=True)
