@@ -15,7 +15,6 @@ Routes:
     /gateway/{server}/{rest} - Issue request to gateway server with path
 """
 
-import ast
 import json
 import logging
 import re
@@ -31,7 +30,7 @@ from urllib.parse import urlparse
 from flask import current_app, request as flask_request
 from jinja2 import Template
 
-from cid_presenter import extract_cid_from_path, render_cid_link
+from cid_presenter import render_cid_link
 from gateway_lib.rendering.diagnostic import (
     format_exception_summary as _format_exception_summary,
     derive_exception_summary_from_traceback as _derive_exception_summary_from_traceback,

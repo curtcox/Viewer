@@ -11,7 +11,7 @@ Design decisions:
 
 import json
 import logging
-from typing import Optional, Dict
+from typing import Dict
 
 logger = logging.getLogger('gateway')
 
