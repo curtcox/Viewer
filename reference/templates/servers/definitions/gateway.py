@@ -49,6 +49,8 @@ from gateway_lib.execution.redirects import RedirectFollower, extract_internal_t
 from gateway_lib.execution.internal import TargetExecutor, resolve_target
 from gateway_lib.handlers.request import GatewayRequestHandler
 from gateway_lib.handlers.test import GatewayTestHandler
+from gateway_lib.handlers.meta import GatewayMetaHandler
+from gateway_lib.handlers.forms import GatewayFormsHandler
 
 logger = logging.getLogger(__name__)
 
@@ -346,239 +348,61 @@ def _infer_external_api_for_server(server_name: str) -> str | None:
 
 
 def _handle_request_form(gateways, context):
-    """Handle the request experimentation form."""
-    template = _load_template("request_form.html")
-
-    # Get form data
-    form_data = dict(flask_request.form) if flask_request.form else {}
-    action = form_data.get("action", "")
-
-    # Initialize context
-    ctx = {
-        "gateways": gateways,
-        "selected_server": form_data.get("server", ""),
-        "method": form_data.get("method", "GET"),
-        "path": form_data.get("path", ""),
-        "query_string": form_data.get("query_string", ""),
-        "headers": form_data.get("headers", "{}"),
-        "body": form_data.get("body", ""),
-        "transform_override": form_data.get("transform_override", ""),
-        "invocation_cid": form_data.get("invocation_cid", ""),
-        "error": None,
-        "success": None,
-        "preview": None,
-        "response": None,
-        "gateway_defined": False,
-        "invocation_server": None,
-        "default_transform": _get_default_request_transform(),
-    }
-
-    # Handle actions
-    if action == "load" and ctx["invocation_cid"]:
-        ctx = _load_invocation_for_request(ctx, gateways)
-    elif action == "preview" and ctx["selected_server"]:
-        ctx = _preview_request_transform(ctx, gateways)
-    elif action == "execute" and ctx["selected_server"]:
-        ctx = _execute_gateway_request(ctx, gateways, context)
-
-    html = template.render(**ctx)
-    return {"output": html, "content_type": "text/html"}
+    """Handle the request experimentation form.
+    
+    This is a thin wrapper that delegates to GatewayFormsHandler.
+    """
+    # Create handler inline (no caching - always create fresh)
+    handler = GatewayFormsHandler(
+        load_template_fn=_load_template,
+        get_default_request_transform_fn=_get_default_request_transform,
+        get_default_response_transform_fn=_get_default_response_transform,
+        load_invocation_for_request_fn=_load_invocation_for_request,
+        preview_request_transform_fn=_preview_request_transform,
+        execute_gateway_request_fn=_execute_gateway_request,
+        load_invocation_for_response_fn=_load_invocation_for_response,
+        transform_response_fn=_transform_response,
+    )
+    return handler.handle_request_form(gateways, context, flask_request)
 
 
 def _handle_response_form(gateways, context):
-    """Handle the response experimentation form."""
-    template = _load_template("response_form.html")
-
-    # Get form data
-    form_data = dict(flask_request.form) if flask_request.form else {}
-    action = form_data.get("action", "")
-
-    # Initialize context
-    ctx = {
-        "gateways": gateways,
-        "selected_server": form_data.get("server", ""),
-        "status_code": int(form_data.get("status_code", 200)),
-        "request_path": form_data.get("request_path", ""),
-        "response_headers": form_data.get("response_headers", '{"Content-Type": "application/json"}'),
-        "response_body": form_data.get("response_body", ""),
-        "transform_override": form_data.get("transform_override", ""),
-        "invocation_cid": form_data.get("invocation_cid", ""),
-        "error": None,
-        "success": None,
-        "preview": None,
-        "preview_html": None,
-        "gateway_defined": False,
-        "invocation_server": None,
-        "default_transform": _get_default_response_transform(),
-    }
-
-    # Handle actions
-    if action == "load" and ctx["invocation_cid"]:
-        ctx = _load_invocation_for_response(ctx, gateways)
-    elif action == "transform":
-        ctx = _transform_response(ctx, gateways, context)
-
-    html = template.render(**ctx)
-    return {"output": html, "content_type": "text/html"}
+    """Handle the response experimentation form.
+    
+    This is a thin wrapper that delegates to GatewayFormsHandler.
+    """
+    # Create handler inline (no caching - always create fresh)
+    handler = GatewayFormsHandler(
+        load_template_fn=_load_template,
+        get_default_request_transform_fn=_get_default_request_transform,
+        get_default_response_transform_fn=_get_default_response_transform,
+        load_invocation_for_request_fn=_load_invocation_for_request,
+        preview_request_transform_fn=_preview_request_transform,
+        execute_gateway_request_fn=_execute_gateway_request,
+        load_invocation_for_response_fn=_load_invocation_for_response,
+        transform_response_fn=_transform_response,
+    )
+    return handler.handle_response_form(gateways, context, flask_request)
 
 
 def _handle_meta_page(server_name, gateways, context):
-    """Handle the gateway meta page showing transform source and validation."""
-    if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
-        return _render_error(
-            "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
-            gateways,
-        )
-
-    config = gateways[server_name]
-    template = _load_template("meta.html")
-
-    # Load and validate transforms
-    request_transform_source = None
-    request_transform_status = "error"
-    request_transform_status_text = "Not Found"
-    request_transform_error = None
-    request_transform_warnings = []
-
-    response_transform_source = None
-    response_transform_status = "error"
-    response_transform_status_text = "Not Found"
-    response_transform_error = None
-    response_transform_warnings = []
-
-    request_cid_link_html = ""
-    response_cid_link_html = ""
-
-    # Load request transform
-    request_cid = config.get("request_transform_cid")
-    request_cid_lookup = _normalize_cid_lookup(request_cid)
-    if request_cid_lookup and request_cid_lookup.startswith("/"):
-        request_cid_link_html = str(render_cid_link(request_cid_lookup))
-    if request_cid:
-        source, error, warnings = _load_and_validate_transform(request_cid_lookup, "transform_request", context)
-        request_transform_source = source
-        if error:
-            request_transform_error = error
-            request_transform_status = "error"
-            request_transform_status_text = "Error"
-        elif warnings:
-            request_transform_warnings = warnings
-            request_transform_status = "warning"
-            request_transform_status_text = "Valid with Warnings"
-        else:
-            request_transform_status = "valid"
-            request_transform_status_text = "Valid"
-
-    # Load response transform
-    response_cid = config.get("response_transform_cid")
-    response_cid_lookup = _normalize_cid_lookup(response_cid)
-    if response_cid_lookup and response_cid_lookup.startswith("/"):
-        response_cid_link_html = str(render_cid_link(response_cid_lookup))
-    if response_cid:
-        source, error, warnings = _load_and_validate_transform(response_cid_lookup, "transform_response", context)
-        response_transform_source = source
-        if error:
-            response_transform_error = error
-            response_transform_status = "error"
-            response_transform_status_text = "Error"
-        elif warnings:
-            response_transform_warnings = warnings
-            response_transform_status = "warning"
-            response_transform_status_text = "Valid with Warnings"
-        else:
-            response_transform_status = "valid"
-            response_transform_status_text = "Valid"
-
-    # Check if server exists
-    server_exists = _check_server_exists(server_name, context)
-
-    server_definition_info = _get_server_definition_info(server_name)
-    server_definition_diagnostics_url = None
-    if server_exists:
-        server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
-
-    # Load template information
-    templates_config = config.get("templates", {})
-    templates_info = []
-
-    def _extract_resolve_template_calls(source: str | None) -> set[str]:
-        if not source or not isinstance(source, str):
-            return set()
-        pattern = r"resolve_template\(\s*[\"\']([^\"\']+)[\"\']\s*\)"
-        return set(re.findall(pattern, source))
-
-    referenced_template_names = set(templates_config.keys())
-    referenced_template_names |= _extract_resolve_template_calls(request_transform_source)
-    referenced_template_names |= _extract_resolve_template_calls(response_transform_source)
-
-    for template_name in sorted(referenced_template_names):
-        template_cid = templates_config.get(template_name)
-        template_info = {
-            "name": template_name,
-            "cid": template_cid,
-            "cid_link_html": "",
-            "source": None,
-            "status": "error",
-            "status_text": "Not Found",
-            "error": None,
-            "variables": [],
-        }
-
-        if not template_cid:
-            template_info["error"] = "Template referenced by gateway transforms but not configured in gateway templates map"
-            template_info["status"] = "error"
-            template_info["status_text"] = "Missing Mapping"
-            templates_info.append(template_info)
-            continue
-
-        # Generate CID link
-        template_cid_lookup = _normalize_cid_lookup(template_cid)
-        if template_cid_lookup and template_cid_lookup.startswith("/"):
-            template_info["cid_link_html"] = str(render_cid_link(template_cid_lookup))
-
-        # Load and validate template
-        source, error, variables = _load_and_validate_template(template_cid, context)
-        template_info["source"] = source
-        if error:
-            template_info["error"] = error
-            template_info["status"] = "error"
-            template_info["status_text"] = "Error"
-        else:
-            template_info["status"] = "valid"
-            template_info["status_text"] = "Valid"
-            template_info["variables"] = variables
-
-        templates_info.append(template_info)
-
-    # Generate test paths based on server type
-    test_paths = _get_test_paths(server_name)
-
-    html = template.render(
-        server_name=server_name,
-        config=config,
-        server_exists=server_exists,
-        server_definition_info=server_definition_info,
-        server_definition_diagnostics_url=server_definition_diagnostics_url,
-        request_cid_lookup=request_cid_lookup,
-        response_cid_lookup=response_cid_lookup,
-        request_cid_link_html=request_cid_link_html,
-        response_cid_link_html=response_cid_link_html,
-        request_transform_source=request_transform_source,
-        request_transform_status=request_transform_status,
-        request_transform_status_text=request_transform_status_text,
-        request_transform_error=request_transform_error,
-        request_transform_warnings=request_transform_warnings,
-        response_transform_source=response_transform_source,
-        response_transform_status=response_transform_status,
-        response_transform_status_text=response_transform_status_text,
-        response_transform_error=response_transform_error,
-        response_transform_warnings=response_transform_warnings,
-        templates_info=templates_info,
-        test_paths=test_paths,
+    """Handle the gateway meta page showing transform source and validation.
+    
+    This is a thin wrapper that delegates to GatewayMetaHandler.
+    """
+    # Create handler inline (no caching - always create fresh)
+    handler = GatewayMetaHandler(
+        load_template_fn=_load_template,
+        load_and_validate_transform_fn=_load_and_validate_transform,
+        load_and_validate_template_fn=_load_and_validate_template,
+        normalize_cid_fn=_normalize_cid_lookup,
+        check_server_exists_fn=_check_server_exists,
+        get_server_definition_info_fn=_get_server_definition_info,
+        get_test_paths_fn=_get_test_paths,
+        render_cid_link_fn=render_cid_link,
+        render_error_fn=_render_error,
     )
-    return {"output": html, "content_type": "text/html"}
+    return handler.handle(server_name, gateways, context)
 
 
 def _validate_direct_response(direct_response: dict) -> tuple[bool, str | None]:
@@ -830,166 +654,22 @@ def _handle_gateway_test_request(server_name, rest_path, test_server_path, gatew
 
 def _handle_meta_page_with_test(server_name, test_server_path, gateways, context):
     """Handle meta page with test server information.
-
-    Shows information about both the configured server and the test server that will be used.
+    
+    This is a thin wrapper that delegates to GatewayMetaHandler.
     """
-    if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
-        return _render_error(
-            "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
-            gateways,
-        )
-
-    config = gateways[server_name]
-    template = _load_template("meta.html")
-
-    # Load and validate transforms (same as regular meta page)
-    request_transform_source = None
-    request_transform_status = "error"
-    request_transform_status_text = "Not Found"
-    request_transform_error = None
-    request_transform_warnings = []
-
-    response_transform_source = None
-    response_transform_status = "error"
-    response_transform_status_text = "Not Found"
-    response_transform_error = None
-    response_transform_warnings = []
-
-    request_cid_link_html = ""
-    response_cid_link_html = ""
-
-    # Load request transform
-    request_cid = config.get("request_transform_cid")
-    request_cid_lookup = _normalize_cid_lookup(request_cid)
-    if request_cid_lookup and request_cid_lookup.startswith("/"):
-        request_cid_link_html = str(render_cid_link(request_cid_lookup))
-    if request_cid:
-        source, error, warnings = _load_and_validate_transform(request_cid_lookup, "transform_request", context)
-        request_transform_source = source
-        if error:
-            request_transform_error = error
-            request_transform_status = "error"
-            request_transform_status_text = "Error"
-        elif warnings:
-            request_transform_warnings = warnings
-            request_transform_status = "warning"
-            request_transform_status_text = "Valid with Warnings"
-        else:
-            request_transform_status = "valid"
-            request_transform_status_text = "Valid"
-
-    # Load response transform
-    response_cid = config.get("response_transform_cid")
-    response_cid_lookup = _normalize_cid_lookup(response_cid)
-    if response_cid_lookup and response_cid_lookup.startswith("/"):
-        response_cid_link_html = str(render_cid_link(response_cid_lookup))
-    if response_cid:
-        source, error, warnings = _load_and_validate_transform(response_cid_lookup, "transform_response", context)
-        response_transform_source = source
-        if error:
-            response_transform_error = error
-            response_transform_status = "error"
-            response_transform_status_text = "Error"
-        elif warnings:
-            response_transform_warnings = warnings
-            response_transform_status = "warning"
-            response_transform_status_text = "Valid with Warnings"
-        else:
-            response_transform_status = "valid"
-            response_transform_status_text = "Valid"
-
-    server_exists = _check_server_exists(server_name, context)
-
-    server_definition_info = _get_server_definition_info(server_name)
-    server_definition_diagnostics_url = None
-    if server_exists:
-        server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
-
-    # Load template information
-    templates_config = config.get("templates", {})
-    templates_info = []
-
-    def _extract_resolve_template_calls(source: str | None) -> set[str]:
-        if not source or not isinstance(source, str):
-            return set()
-        pattern = r"resolve_template\(\s*[\"\']([^\"\']+)[\"\']\s*\)"
-        return set(re.findall(pattern, source))
-
-    referenced_template_names = set(templates_config.keys())
-    referenced_template_names |= _extract_resolve_template_calls(request_transform_source)
-    referenced_template_names |= _extract_resolve_template_calls(response_transform_source)
-
-    for template_name in sorted(referenced_template_names):
-        template_cid = templates_config.get(template_name)
-        template_info = {
-            "name": template_name,
-            "cid": template_cid,
-            "cid_link_html": "",
-            "source": None,
-            "status": "error",
-            "status_text": "Not Found",
-            "error": None,
-            "variables": [],
-        }
-
-        if not template_cid:
-            template_info["error"] = "Template referenced by gateway transforms but not configured in gateway templates map"
-            template_info["status"] = "error"
-            template_info["status_text"] = "Missing Mapping"
-            templates_info.append(template_info)
-            continue
-
-        # Generate CID link
-        template_cid_lookup = _normalize_cid_lookup(template_cid)
-        if template_cid_lookup and template_cid_lookup.startswith("/"):
-            template_info["cid_link_html"] = str(render_cid_link(template_cid_lookup))
-
-        # Load and validate template
-        source, error, variables = _load_and_validate_template(template_cid, context)
-        template_info["source"] = source
-        if error:
-            template_info["error"] = error
-            template_info["status"] = "error"
-            template_info["status_text"] = "Error"
-        else:
-            template_info["status"] = "valid"
-            template_info["status_text"] = "Valid"
-            template_info["variables"] = variables
-
-        templates_info.append(template_info)
-
-    # Generate test paths based on server type
-    test_paths = _get_test_paths(server_name)
-
-    html = template.render(
-        server_name=server_name,
-        config=config,
-        server_exists=server_exists,
-        server_definition_info=server_definition_info,
-        server_definition_diagnostics_url=server_definition_diagnostics_url,
-        request_cid_lookup=request_cid_lookup,
-        response_cid_lookup=response_cid_lookup,
-        request_cid_link_html=request_cid_link_html,
-        response_cid_link_html=response_cid_link_html,
-        request_transform_source=request_transform_source,
-        request_transform_status=request_transform_status,
-        request_transform_status_text=request_transform_status_text,
-        request_transform_error=request_transform_error,
-        request_transform_warnings=request_transform_warnings,
-        response_transform_source=response_transform_source,
-        response_transform_status=response_transform_status,
-        response_transform_status_text=response_transform_status_text,
-        response_transform_error=response_transform_error,
-        response_transform_warnings=response_transform_warnings,
-        templates_info=templates_info,
-        test_paths=test_paths,
-        # Test mode specific
-        test_mode=True,
-        test_server_path=test_server_path,
+    # Create handler inline (no caching - always create fresh)
+    handler = GatewayMetaHandler(
+        load_template_fn=_load_template,
+        load_and_validate_transform_fn=_load_and_validate_transform,
+        load_and_validate_template_fn=_load_and_validate_template,
+        normalize_cid_fn=_normalize_cid_lookup,
+        check_server_exists_fn=_check_server_exists,
+        get_server_definition_info_fn=_get_server_definition_info,
+        get_test_paths_fn=_get_test_paths,
+        render_cid_link_fn=render_cid_link,
+        render_error_fn=_render_error,
     )
-    return {"output": html, "content_type": "text/html"}
+    return handler.handle_with_test(server_name, test_server_path, gateways, context)
 
 
 def _execute_target_request(target, request_details):
