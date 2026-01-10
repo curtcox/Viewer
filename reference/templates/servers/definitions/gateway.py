@@ -22,7 +22,6 @@ import traceback
 from html import escape
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urljoin
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -47,7 +46,7 @@ from gateway_lib.transforms.validator import TransformValidator
 from gateway_lib.templates.loader import TemplateLoader
 from gateway_lib.config import ConfigLoader
 from gateway_lib.execution.redirects import RedirectFollower, extract_internal_target_path_from_server_args_json
-from gateway_lib.execution.internal import TargetExecutor, resolve_target, as_requests_like_response
+from gateway_lib.execution.internal import TargetExecutor, resolve_target
 
 logger = logging.getLogger(__name__)
 

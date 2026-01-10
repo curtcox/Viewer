@@ -6,7 +6,6 @@ without making external HTTP requests.
 
 import json
 from urllib.parse import urljoin
-from typing import Optional
 
 
 class TargetExecutor:
