@@ -47,6 +47,7 @@ from gateway_lib.templates.loader import TemplateLoader
 from gateway_lib.config import ConfigLoader
 from gateway_lib.execution.redirects import RedirectFollower, extract_internal_target_path_from_server_args_json
 from gateway_lib.execution.internal import TargetExecutor, resolve_target
+from gateway_lib.handlers.request import GatewayRequestHandler
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,6 @@ _template_loader = TemplateLoader(_cid_resolver, resolve_fn=lambda cid, as_bytes
 _config_loader = ConfigLoader(_cid_resolver)
 _redirect_follower = RedirectFollower(_cid_resolver)
 _target_executor = TargetExecutor(_redirect_follower)
-
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
 
@@ -782,217 +782,26 @@ def _apply_request_transform(
 
 
 def _handle_gateway_request(server_name, rest_path, gateways, context):
-    """Handle an actual gateway request to a configured server."""
-    if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
-        return _render_error(
-            "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
-            gateways,
-        )
-
-    config = gateways[server_name]
-
-    debug_context = {
-        "gateway": server_name,
-        "rest_path": rest_path,
-        "request_path": getattr(flask_request, "path", None),
-        "request_method": getattr(flask_request, "method", None),
-    }
-
-    # Build request details
-    try:
-        json_body = flask_request.get_json(silent=True)
-    except Exception:
-        json_body = None
-
-    try:
-        raw_body = flask_request.get_data(as_text=True)
-    except Exception:
-        raw_body = None
-
-    request_details = {
-        "path": rest_path,
-        "query_string": flask_request.query_string.decode("utf-8"),
-        "method": flask_request.method,
-        "headers": {k: v for k, v in flask_request.headers if k.lower() != "cookie"},
-        "json": json_body,
-        "data": raw_body,
-    }
-
-    original_rest_path = rest_path
-
-    gateway_archive = None
-    gateway_path = None
-    if server_name == "hrx":
-        archive, path = _parse_hrx_gateway_args(original_rest_path)
-        gateway_archive = archive
-        gateway_path = path
-
-    debug_context["request_details_before_transform"] = {
-        "path": request_details.get("path"),
-        "query_string": request_details.get("query_string"),
-        "method": request_details.get("method"),
-    }
-
-    # Create template resolver and enhance context
-    template_resolver = _create_template_resolver(config, context)
-    enhanced_context = {
-        **(context or {}),
-        "resolve_template": template_resolver,
-    }
-
-    # Load and execute request transform
-    request_cid = config.get("request_transform_cid")
-    response_details = None  # Will be set if request transform returns direct response
-
-    if request_cid:
-        try:
-            result = _apply_request_transform(
-                request_cid,
-                request_details,
-                enhanced_context,
-                rest_path,
-                server_name,
-                gateways,
-                debug_context,
-                gateway_archive,
-                gateway_path,
-            )
-            # Check if it's an error response (dict with specific keys)
-            if isinstance(result, dict) and "output" in result:
-                return result
-            # Otherwise it's a tuple (request_details, response_details)
-            request_details, response_details = result
-        except Exception as e:
-            logger.error("Request transform error: %s", e)
-            return _render_error(
-                "Request Transform Error",
-                f"Failed to execute request transform: {escape(str(e))}",
-                gateways,
-                exception_summary=f"RequestTransformError: {type(e).__name__}: {str(e)}",
-                error_detail=_format_exception_detail(
-                    e,
-                    debug_context={
-                        **debug_context,
-                        "request_transform_cid": request_cid,
-                    },
-                ),
-                gateway_archive=gateway_archive,
-                gateway_path=gateway_path,
-            )
-
-    # Skip server execution if we have a direct response
-    if response_details is None:
-        debug_context["request_details_after_transform"] = _safe_preview_request_details(
-            request_details
-        )
-
-        resolved_target = _resolve_target(config, server_name, request_details)
-        debug_context["resolved_target"] = resolved_target
-
-        try:
-            response = _execute_target_request(resolved_target, request_details)
-        except Exception as e:
-            logger.error("Target request error: %s", e)
-            return _render_error(
-                "Request Failed",
-                f"Failed to connect to target: {escape(str(e))}",
-                gateways,
-                exception_summary=f"TargetRequestError: {type(e).__name__}: {str(e)}",
-                error_detail=_format_exception_detail(e, debug_context=debug_context),
-                gateway_archive=gateway_archive,
-                gateway_path=gateway_path,
-            )
-
-        status_code = getattr(response, "status_code", 200)
-        response_text = getattr(response, "text", "")
-        if isinstance(status_code, int) and status_code >= 500:
-            exception_summary = _extract_exception_summary_from_internal_error_html(response_text)
-            stack_trace_html = _extract_stack_trace_list_from_internal_error_html(response_text)
-            return _render_error(
-                "Gateway Error",
-                "An internal server error occurred.",
-                gateways,
-                exception_summary=exception_summary,
-                stack_trace_html=stack_trace_html,
-                server_args_json=json.dumps(
-                    {
-                        "target": resolved_target,
-                        "request": {
-                            **_safe_preview_request_details(request_details),
-                            "original_rest_path": original_rest_path,
-                        },
-                    },
-                    indent=2,
-                ),
-                gateway_archive=gateway_archive,
-                gateway_path=gateway_path,
-            )
-
-        # Build response details
-        try:
-            response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
-        except Exception:
-            response_json = None
-
-        response_details = {
-            "status_code": response.status_code,
-            "headers": dict(response.headers),
-            "content": response.content,
-            "text": response.text,
-            "json": response_json,
-            "request_path": rest_path,
-            "source": "server",
-        }
-
-    # Load and execute response transform
-    response_cid = config.get("response_transform_cid")
-    if response_cid:
-        try:
-            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), enhanced_context)
-            if not transform_fn:
-                return _render_error(
-                    "Response Transform Not Found",
-                    f"Could not load response transform: {escape(str(response_cid))}",
-                    gateways,
-                    exception_summary=f"ResponseTransformNotFoundError: Could not load response transform: {escape(str(response_cid))}",
-                    error_detail=json.dumps(
-                        {
-                            "gateway": server_name,
-                            "response_transform_cid": response_cid,
-                        },
-                        indent=2,
-                    ),
-                    gateway_archive=gateway_archive,
-                    gateway_path=gateway_path,
-                )
-            if transform_fn:
-                result = transform_fn(response_details, enhanced_context)
-                if isinstance(result, dict) and "output" in result:
-                    return result
-        except Exception as e:
-            logger.error("Response transform error: %s", e)
-            return _render_error(
-                "Response Transform Error",
-                f"Failed to execute response transform: {escape(str(e))}",
-                gateways,
-                exception_summary=_format_exception_summary(e),
-                gateway_archive=gateway_archive,
-                gateway_path=gateway_path,
-            )
-
-    # Default: return raw response
-    # Use _original_output if available (from direct response), otherwise use content (from server)
-    if "_original_output" in response_details:
-        return {
-            "output": response_details["_original_output"],
-            "content_type": response_details.get("_original_content_type", "text/plain"),
-        }
-    return {
-        "output": response_details.get("content", b""),
-        "content_type": response_details.get("headers", {}).get("Content-Type", "text/plain"),
-    }
+    """Handle an actual gateway request to a configured server.
+    
+    This is a thin wrapper that delegates to GatewayRequestHandler.
+    """
+    # Create handler inline (no caching - always create fresh)
+    handler = GatewayRequestHandler(
+        apply_request_transform_fn=_apply_request_transform,
+        execute_target_fn=_execute_target_request,
+        load_transform_fn=_load_transform_function,
+        create_template_resolver_fn=_create_template_resolver,
+        normalize_cid_fn=_normalize_cid_lookup,
+        safe_preview_fn=_safe_preview_request_details,
+        extract_exception_summary_fn=_extract_exception_summary_from_internal_error_html,
+        extract_stack_trace_fn=_extract_stack_trace_list_from_internal_error_html,
+        format_exception_detail_fn=_format_exception_detail,
+        format_exception_summary_fn=_format_exception_summary,
+        parse_hrx_args_fn=_parse_hrx_gateway_args,
+        render_error_fn=_render_error,
+    )
+    return handler.handle(server_name, rest_path, gateways, context, flask_request)
 
 
 def _handle_gateway_test_request(server_name, rest_path, test_server_path, gateways, context):
