@@ -650,6 +650,12 @@ jobs:
 
   deploy-reports:
     name: Publish Test Reports
+    # This job deploys test reports to GitHub Pages with branch-specific directories:
+    # - main branch deploys to the root (https://curtcox.github.io/Viewer/)
+    # - dev branch deploys to /dev/ (https://curtcox.github.io/Viewer/dev/)
+    # - test branch deploys to /test/ (https://curtcox.github.io/Viewer/test/)
+    # Each deployment preserves content from other branches to create an overlay effect
+    # rather than erasing previous deployments.
     needs:
       - ruff
       - pylint
@@ -696,6 +702,12 @@ jobs:
             echo "public_base_url=https://curtcox.github.io/Viewer" >> "$GITHUB_OUTPUT"
           fi
       - name: Download existing GitHub Pages (for merging)
+        # This step downloads the current GitHub Pages content and merges it with new reports.
+        # Key behavior:
+        # - Main branch: Preserves dev/ and test/ subdirectories while updating root content
+        # - Dev branch: Preserves root and test/ while updating dev/ subdirectory
+        # - Test branch: Preserves root and dev/ while updating test/ subdirectory
+        # This ensures all branches coexist on GitHub Pages without erasing each other.
         continue-on-error: true
         run: |
           BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
