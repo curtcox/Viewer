@@ -1,7 +1,6 @@
 """Tests for gateway_lib.rendering.diagnostic module."""
 
-import pytest
-from gateway_lib.rendering.diagnostic import (
+from definitions.gateway_lib.rendering.diagnostic import (
     format_exception_summary,
     derive_exception_summary_from_traceback,
     extract_exception_summary_from_internal_error_html,

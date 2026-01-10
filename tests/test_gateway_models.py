@@ -1,7 +1,7 @@
 """Tests for gateway.models module."""
 
 import pytest
-from gateway_lib.models import (
+from definitions.gateway_lib.models import (
     GatewayConfig,
     RequestDetails,
     ResponseDetails,
