@@ -2,13 +2,9 @@
 
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
-# Add gateway_lib to path
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "reference/templates/servers/definitions"))
-
-from gateway_lib.cid.resolver import CIDResolver
+from definitions.gateway_lib.cid.resolver import CIDResolver
 
 
 class TestCIDResolver(unittest.TestCase):

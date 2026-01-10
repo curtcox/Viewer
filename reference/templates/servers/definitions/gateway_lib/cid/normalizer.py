@@ -3,7 +3,6 @@
 Functions for cleaning and normalizing CID values from various sources.
 """
 
-from typing import Optional
 
 
 def normalize_cid_lookup(value: str | None) -> str | None:

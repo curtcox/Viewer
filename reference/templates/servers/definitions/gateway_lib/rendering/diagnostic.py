@@ -6,7 +6,6 @@ tracebacks, and error HTML to help debug gateway issues.
 
 import re
 from html import escape
-from typing import Optional
 
 
 def format_exception_summary(exc: Exception) -> str:
