@@ -16,7 +16,6 @@ Routes:
 """
 
 import json
-import logging
 import re
 import traceback
 from html import escape
@@ -25,7 +24,6 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from flask import current_app, request as flask_request
-from jinja2 import Template
 
 from cid_presenter import render_cid_link
 from gateway_lib.rendering.diagnostic import (
@@ -58,7 +56,6 @@ from gateway_lib.utils import (
     load_template as _load_template,
     default_mock_server_cid as _default_mock_server_cid,
     collect_mock_server_cids as _collect_mock_server_cids,
-    infer_external_api_for_server as _infer_external_api_for_server,
 )
 
 logger = get_gateway_logger()

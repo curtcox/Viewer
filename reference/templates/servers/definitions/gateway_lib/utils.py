@@ -166,13 +166,7 @@ def collect_mock_server_cids() -> dict[str, str]:
 
     mock_servers = {}
 
-    # Look for known mock server CID files
-    known_servers = {
-        "alias": "AAA...",  # Will be updated with actual CID if file exists
-        "jsonplaceholder": "BBB...",
-        "cids": "CCC...",
-    }
-
+    # Scan cids directory for files
     for cid_file in cids_dir.glob("*"):
         if cid_file.is_file() and not cid_file.name.startswith('.'):
             # Try to match against known servers or use filename
