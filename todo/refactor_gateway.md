@@ -2019,3 +2019,51 @@ None - Phase 1 complete and ready for Phase 2.
 
 #### Status
 ✅ **PHASE 1 COMPLETE**. Foundation established with 389 lines of code extracted into gateway_lib package. All 112 gateway tests passing. Database execution verified. Ready to begin Phase 2.
+
+### Phase 2 Checkpoint - 2026-01-09 (COMPLETE)
+
+#### Completed Work
+- [x] Created 4 new service modules in `gateway_lib/` (437 LOC total)
+  - `transforms/loader.py` - Transform loading and compilation (93 LOC)
+  - `transforms/validator.py` - Transform validation (135 LOC)
+  - `templates/loader.py` - Template loading and resolution (109 LOC)
+  - `config.py` - Gateway configuration loading (100 LOC)
+- [x] Updated `gateway.py` to use extracted services (162 lines removed)
+- [x] Maintained backwards compatibility with test mocking via late-binding lambda
+- [x] All 110 gateway tests passing
+- [x] Gateway.py reduced from 2,478 to 2,218 lines (260 lines removed, 11% reduction)
+- [x] Gateway_lib increased from 358 to 677 lines (319 lines added)
+- [x] Net extraction: 437 new LOC in gateway_lib, 162 LOC removed from gateway.py
+
+#### Lessons Learned
+1. **Test Compatibility**: When extracting code into modules, tests that use `monkeypatch.setattr()` need careful handling. Using late-binding lambdas (`lambda: func()`) instead of direct function references allows tests to monkey-patch the original function name after module initialization.
+
+2. **Service Dependencies**: All service classes (TransformLoader, TransformValidator, TemplateLoader, ConfigLoader) depend on CIDResolver. Passing the same CIDResolver instance to all services creates a consistent resolution strategy and makes testing easier.
+
+3. **Optional Parameters**: Adding optional `resolve_fn` parameter to TemplateLoader allows dependency injection for testing while maintaining production behavior with default arguments.
+
+4. **Minimal Wrapper Functions**: Keeping `_resolve_cid_content`, `_load_gateways`, `_create_template_resolver`, etc. as thin wrappers in gateway.py maintains API compatibility while delegating to extracted services. This minimizes changes to calling code.
+
+5. **Keyword Arguments**: When passing functions that will be called with both positional and keyword arguments (like `resolve_fn(cid, as_bytes=False)`), always use keyword arguments in the implementation to avoid signature mismatches with test mocks.
+
+#### New Open Questions
+None - Phase 2 complete. All services working as designed with clean delegation pattern.
+
+#### Items for Further Study
+1. **Service Locator Pattern**: The plan calls for implementing service locator pattern in Phase 6, but current approach (module-level service instances) works well. Consider if service locator adds value or just complexity.
+
+2. **Error Handling Consistency**: Services return None on failure (transforms, templates) or empty dict (config). Should we standardize error handling? Maybe logging is sufficient.
+
+#### Plan Adjustments for Phase 3
+**Phase 3 Focus**:
+- Extract request handler to `gateway_lib/handlers/request.py`
+- Extract test mode handler to `gateway_lib/handlers/test.py`
+- Extract target execution to `gateway_lib/execution/internal.py`
+- Extract redirect handling to `gateway_lib/execution/redirects.py`
+- Continue pattern of thin wrappers in gateway.py for API compatibility
+
+**No major changes needed** - extraction pattern proven effective in Phases 1 and 2.
+
+#### Status
+✅ **PHASE 2 COMPLETE**. Core services extracted (transforms, templates, config) with 437 LOC added to gateway_lib. Gateway.py reduced by 260 lines (11%). All 110 tests passing. Ready to begin Phase 3.
+
