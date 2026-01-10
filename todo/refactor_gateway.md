@@ -2067,34 +2067,135 @@ None - Phase 2 complete. All services working as designed with clean delegation 
 #### Status
 ✅ **PHASE 2 COMPLETE**. Core services extracted (transforms, templates, config) with 437 LOC added to gateway_lib. Gateway.py reduced by 260 lines (11%). All 110 tests passing. Ready to begin Phase 3.
 
-### Phase 4 Checkpoint - 2026-01-10 (IN PROGRESS)
+### Phase 4 Checkpoint - 2026-01-10 (COMPLETE)
 
-#### Completed Work (Part 1)
-- [x] Created `gateway_lib/handlers/request.py` (348 LOC)
-  - Extracted `GatewayRequestHandler` class with clean separation of concerns
-  - Encapsulates request transformation, target execution, and response transformation flow
-  - Takes function dependencies via constructor for testability
-- [x] Updated `gateway.py` to use handler via thin wrapper (20 lines)
-  - `_handle_gateway_request()` now delegates to `GatewayRequestHandler.handle()`
-  - Maintains backwards compatibility with existing tests
-- [x] Gateway.py reduced from 2,049 to 1,858 lines (191 lines removed, 9.3% reduction)
-- [x] Gateway_lib increased from 958 to 1,306 lines (348 lines added)
-- [x] All 110 gateway unit tests passing ✅
+#### Completed Work
+- [x] Created 4 new handler modules in `gateway_lib/handlers/` (1,315 LOC total)
+  - `request.py` - GatewayRequestHandler for normal gateway requests (348 LOC)
+  - `test.py` - GatewayTestHandler for test mode requests (500 LOC)
+  - `meta.py` - GatewayMetaHandler for meta pages showing transform validation (328 LOC)
+  - `forms.py` - GatewayFormsHandler for request/response experimentation forms (139 LOC)
+- [x] Replaced large handler functions with thin wrapper pattern
+  - `_handle_gateway_request()` delegates to GatewayRequestHandler
+  - `_handle_gateway_test_request()` delegates to GatewayTestHandler
+  - `_handle_meta_page()` delegates to GatewayMetaHandler
+  - `_handle_meta_page_with_test()` delegates to GatewayMetaHandler.handle_with_test()
+  - `_handle_request_form()` delegates to GatewayFormsHandler
+  - `_handle_response_form()` delegates to GatewayFormsHandler
+- [x] Gateway.py reduced from 1,858 to 1,170 lines (688 lines removed in Phase 4)
+- [x] Gateway_lib increased from 1,306 to 2,573 lines (1,267 lines added in Phase 4)
+- [x] All 110 unit tests passing ✅
+- [x] All 3 integration tests passing ✅
+- [x] Total: 113 tests passing with no regressions
 
 #### Cumulative Progress
-- **Total extracted so far (Phases 1-4a)**: 1,018 LOC into gateway_lib
-- **Total removed from gateway.py**: 620 lines (25% reduction from original 2,478)
-- **Current gateway.py size**: 1,858 lines
-- **Current gateway_lib size**: 1,306 lines across 16 modules
+- **Total extracted (Phases 1-4)**: 2,391 LOC into gateway_lib
+- **Total removed from gateway.py**: 1,308 lines (52.8% reduction from original 2,478)
+- **Current gateway.py size**: 1,170 lines (from 2,478 original)
+- **Current gateway_lib size**: 2,573 lines across 19 modules
 
-#### Next Steps (Part 2 of Phase 4)
-- [ ] Extract `_handle_gateway_test_request()` - 369 lines → `gateway_lib/handlers/test.py`
-- [ ] Extract `_handle_meta_page()` - 158 lines → `gateway_lib/handlers/meta.py`
-- [ ] Extract `_handle_meta_page_with_test()` - 163 lines → `gateway_lib/handlers/meta.py`
-- [ ] Extract `_handle_request_form()` - 39 lines → `gateway_lib/handlers/forms.py`
-- [ ] Extract `_handle_response_form()` - 38 lines → `gateway_lib/handlers/forms.py`
+#### Module Breakdown (gateway_lib/)
+```
+handlers/
+  request.py     348 LOC  - Normal gateway request handling
+  test.py        500 LOC  - Test mode request handling
+  meta.py        328 LOC  - Meta page generation
+  forms.py       139 LOC  - Form handlers (request/response experimentation)
 
----
+execution/
+  internal.py    189 LOC  - Internal target execution
+  redirects.py   140 LOC  - Redirect following logic
+
+transforms/
+  loader.py       93 LOC  - Transform loading and compilation
+  validator.py   135 LOC  - Transform validation
+
+templates/
+  loader.py      109 LOC  - Template loading and resolution
+
+cid/
+  resolver.py    ~80 LOC  - CID content resolution
+  normalizer.py   60 LOC  - CID path normalization
+
+rendering/
+  diagnostic.py  145 LOC  - Exception formatting and extraction
+  error.py       ~90 LOC  - Error page rendering
+
+config.py        100 LOC  - Gateway configuration loading
+models.py        184 LOC  - Data classes (RequestDetails, etc.)
+```
+
+#### Lessons Learned
+
+1. **Handler Pattern Consistency**: All handlers follow the same pattern:
+   - Take function dependencies via constructor (dependency injection)
+   - Provide clean `handle()` method with clear parameters
+   - Gateway.py wrapper creates handler inline and delegates
+   - No caching - always create fresh instances
+   - Makes testing straightforward with mockable dependencies
+
+2. **Code Duplication Elimination**: `_handle_meta_page` and `_handle_meta_page_with_test` had 95% identical code. The new MetaHandler uses a shared implementation (`_handle_meta_page_impl`) with a `test_mode` flag, eliminating ~150 lines of duplication.
+
+3. **Thin Wrapper Benefits**:
+   - Maintains backwards compatibility with existing code
+   - Tests that patch wrappers continue to work
+   - Clear delegation pattern is easy to understand
+   - No changes needed to routing or calling code
+
+4. **Test Mode Special Cases**: Test handler has significant complexity for:
+   - CIDS archive listing generation
+   - URL rewriting (replacing /gateway/{server} with /gateway/test/{test_path}/as/{server})
+   - Special handling for CIDS query parameter construction
+   - These were previously intertwined with normal request handling
+
+5. **Form Handler Simplicity**: Form handlers are thin orchestrators that:
+   - Extract form data from Flask request
+   - Build context dict
+   - Delegate to helper functions for actions
+   - Render templates with results
+   - Clean separation from business logic
+
+#### New Open Questions
+None - Phase 4 complete with all handlers successfully extracted.
+
+#### Items for Further Study
+
+1. **Service Locator Pattern**: The plan calls for implementing service locator pattern in Phase 6, but current approach (module-level service instances with thin wrappers) works well. Consider if service locator adds value or just complexity.
+
+2. **Routing Abstraction**: Currently routing logic is still embedded in `_main_impl()`. Phase 5 should extract routing to `gateway_lib/routing.py` with pattern matching and handler dispatch.
+
+3. **Middleware Support**: Phase 5 includes middleware implementation. Need to decide if middleware should be:
+   - Applied at routing level (before handler)
+   - Injected into handlers
+   - Separate middleware chain class
+
+4. **Configuration Format**: Phase 6 proposes new configuration format with explicit structure. Consider backward compatibility migration strategy.
+
+#### Plan Adjustments for Phase 5
+
+**Phase 5 Focus** (Routing & Middleware):
+- Extract routing logic from `_main_impl()` to `gateway_lib/routing.py`
+  - Simple pattern matching (no werkzeug dependency needed)
+  - First-match-wins strategy with reserved routes
+  - Pattern syntax: "", "foo", "{var}", "{var:path}"
+- Implement middleware system in `gateway_lib/middleware.py`
+  - Base Middleware class with before_request, after_request, on_error hooks
+  - MiddlewareChain to manage execution order
+  - Integration points with existing handlers
+- Simplify `_main_impl()` to minimal routing dispatch
+  - Parse path and call router
+  - Router returns handler result
+  - Very thin coordination layer
+
+**Expected Results**:
+- Gateway.py reduced by another ~100-150 lines to ~1,020-1,070 lines
+- Clean separation of routing from handling
+- Extensibility via middleware without modifying core
+- All tests still passing
+
+#### Status
+✅ **PHASE 4 COMPLETE**. All handlers extracted (request, test, meta, forms) with 1,315 LOC added to gateway_lib. Gateway.py reduced by 688 lines (27.8% in Phase 4 alone). Cumulative reduction: 1,308 lines (52.8%) from original 2,478. All 113 tests passing. Ready to begin Phase 5.
+
 
 
 
