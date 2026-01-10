@@ -2265,3 +2265,137 @@ None - Phase 3 complete. Execution services working cleanly with proper separati
 #### Status
 ✅ **PHASE 3 COMPLETE**. Execution services extracted (redirects, internal target) with 281 LOC added to gateway_lib. Gateway.py reduced by 175 lines (7.9%). All 113 tests passing (110 unit + 3 integration). Cumulative reduction: 436 lines (17.6%) from original 2,478. Ready to begin Phase 4.
 
+### Phase 5 Checkpoint - 2026-01-10 (COMPLETE)
+
+#### Completed Work
+- [x] Created `gateway_lib/routing.py` (218 LOC)
+  - Route class for pattern matching (exact, variables, greedy path)
+  - GatewayRouter class with first-match-wins strategy
+  - create_gateway_router factory function
+  - Supports patterns: "", "foo", "{var}", "{var:path}"
+  - Complex greedy patterns: "test/{path:path}/as/{server}"
+- [x] Created `gateway_lib/middleware.py` (115 LOC)
+  - Middleware base class with before_request, after_request, on_error hooks
+  - MiddlewareChain for managing middleware execution order
+  - Reverse order for after_request (last-in-first-out)
+- [x] Wrote comprehensive tests (17 test files total)
+  - 26 routing tests in `tests/test_gateway_routing.py`
+  - 14 middleware tests in `tests/test_gateway_middleware.py`
+  - All tests passing ✅
+- [x] Integrated router into gateway.py
+  - Replaced 56-line manual routing logic in `_main_impl()` with 10-line router call
+  - Added `_create_router()` helper function (28 LOC)
+  - Integrated middleware chain hooks (before_request, after_request, on_error)
+- [x] Gateway.py reduced from 1,168 to 1,173 lines (slight increase due to router integration)
+- [x] Gateway_lib increased from 2,573 to 2,960 lines (387 lines added)
+- [x] All 170 gateway tests passing (130 original + 40 new for routing/middleware)
+- [x] Net Phase 5 extraction: 333 new LOC in gateway_lib (routing + middleware)
+
+#### Cumulative Progress (Phases 1-5)
+- **Total extracted**: 2,787 LOC into gateway_lib
+- **Gateway.py**: 1,173 lines (from 2,478 original)
+- **Reduction**: 1,305 lines removed (52.6% reduction)
+- **Gateway_lib**: 2,960 lines across 22 modules
+- **Test files**: 17 gateway test files (170 tests total)
+
+#### Module Breakdown (gateway_lib/)
+```
+routing.py         218 LOC  - Pattern-based routing with first-match-wins
+middleware.py      115 LOC  - Middleware system with chain execution
+
+handlers/
+  request.py       348 LOC  - Normal gateway request handling
+  test.py          500 LOC  - Test mode request handling
+  meta.py          328 LOC  - Meta page generation
+  forms.py         139 LOC  - Form handlers (request/response experimentation)
+
+execution/
+  internal.py      189 LOC  - Internal target execution
+  redirects.py     140 LOC  - Redirect following logic
+
+transforms/
+  loader.py         93 LOC  - Transform loading and compilation
+  validator.py     135 LOC  - Transform validation
+
+templates/
+  loader.py        109 LOC  - Template loading and resolution
+
+cid/
+  resolver.py      ~80 LOC  - CID content resolution
+  normalizer.py     60 LOC  - CID path normalization
+
+rendering/
+  diagnostic.py    145 LOC  - Exception formatting and extraction
+  error.py         ~90 LOC  - Error page rendering
+
+config.py          100 LOC  - Gateway configuration loading
+models.py          184 LOC  - Data classes (RequestDetails, etc.)
+```
+
+#### Lessons Learned
+
+1. **Pattern Matching Complexity**: Supporting greedy path variables with trailing segments (e.g., "test/{path:path}/as/{server}") required careful algorithm design. Used anchor-based matching where literal segments after greedy variables act as anchors to determine where to split the path.
+
+2. **Router Factory Pattern**: Creating router with handler closures (lambdas capturing gateways and context) keeps routing logic decoupled from handler implementation while maintaining access to necessary data.
+
+3. **Middleware Execution Order**: Implementing reverse order for after_request middleware (last-in-first-out) matches common middleware patterns where the last middleware added wraps around inner middleware.
+
+4. **Test Coverage Value**: Writing 40 new tests for routing and middleware paid off immediately - caught 4 bugs during initial implementation that would have been harder to debug in integration tests.
+
+5. **Line Count Paradox**: Gateway.py increased by 5 lines despite extracting routing logic. This is because the router integration code (_create_router factory + middleware hooks) is slightly longer than the old manual routing, but much cleaner and more maintainable.
+
+#### New Open Questions
+None - Phase 5 complete. Router and middleware systems working as designed.
+
+#### Items for Further Study
+
+1. **Middleware Use Cases**: Current implementation provides infrastructure but no actual middleware. Consider adding example middleware for:
+   - Request logging
+   - Performance timing
+   - Error reporting to external services
+   - Request ID tracking
+
+2. **Router Performance**: Current pattern matching is O(n*m) where n=number of routes, m=path length. For large route tables, could optimize with trie or radix tree. Not needed now (only ~10 routes).
+
+3. **Pattern Enhancements**: Could add support for:
+   - Regex patterns
+   - Type constraints (e.g., {id:int})
+   - Optional segments
+   - Default values
+   Not implementing now per "simplicity first" principle.
+
+#### Plan Adjustments for Phase 6
+
+**Phase 6 Focus** (Configuration & Polish):
+- Implement new configuration format in `gateway_lib/config.py`
+  - More explicit structure with transforms/templates/error_handling sections
+  - Backward compatibility not needed (no existing users)
+- Add hot-reloading support
+  - Config changes without restart
+  - Already works for transforms/CIDs (no caching)
+- Add load-time validation
+  - Validate config structure at load time
+  - Return helpful error messages
+- Implement centralized logging in `gateway_lib/logging_config.py`
+  - Single point for logging configuration
+  - Easy to intercept/redirect logs
+- Simplify gateway.py to minimal entry point
+  - Move more helper functions to gateway_lib modules
+  - Aim for < 1,000 lines in gateway.py
+- Final documentation update
+  - Update docstrings
+  - Add usage examples
+  - Document configuration format
+
+**Expected Results**:
+- Gateway.py reduced by another ~100-150 lines to ~1,020-1,070 lines
+- Cleaner configuration handling
+- Better observability through logging
+- Easier to extend and maintain
+- All tests still passing
+
+#### Status
+✅ **PHASE 5 COMPLETE**. Routing and middleware modules extracted (333 LOC) with pattern-based routing and middleware chain support. Gateway.py now uses router for clean dispatch. All 170 gateway tests passing (130 original + 40 new). Cumulative reduction: 1,305 lines (52.6%) from original 2,478. Ready to begin Phase 6.
+
+
+
