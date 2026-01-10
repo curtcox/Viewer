@@ -49,6 +49,8 @@ from gateway_lib.handlers.request import GatewayRequestHandler
 from gateway_lib.handlers.test import GatewayTestHandler
 from gateway_lib.handlers.meta import GatewayMetaHandler
 from gateway_lib.handlers.forms import GatewayFormsHandler
+from gateway_lib.routing import create_gateway_router
+from gateway_lib.middleware import MiddlewareChain
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +73,31 @@ _template_loader = TemplateLoader(_cid_resolver, resolve_fn=lambda cid, as_bytes
 _config_loader = ConfigLoader(_cid_resolver)
 _redirect_follower = RedirectFollower(_cid_resolver)
 _target_executor = TargetExecutor(_redirect_follower)
+_middleware_chain = MiddlewareChain()
 
 _DEFAULT_TEST_CIDS_ARCHIVE_CID = "AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w"
+
+
+def _create_router(gateways, context):
+    """Create configured gateway router with all handlers.
+    
+    Args:
+        gateways: Gateway configuration dict
+        context: Request context
+    
+    Returns:
+        Configured GatewayRouter instance
+    """
+    handlers = {
+        "instruction": lambda: _handle_instruction_page(gateways, context),
+        "request_form": lambda: _handle_request_form(gateways, context),
+        "response_form": lambda: _handle_response_form(gateways, context),
+        "meta": lambda server: _handle_meta_page(server, gateways, context),
+        "meta_test": lambda test_path, server: _handle_meta_page_with_test(server, test_path, gateways, context),
+        "test": lambda test_path, server, rest="": _handle_gateway_test_request(server, rest, test_path, gateways, context),
+        "gateway_request": lambda server, rest="": _handle_gateway_request(server, rest, gateways, context),
+    }
+    return create_gateway_router(handlers)
 
 
 def main(context=None):
@@ -99,59 +124,39 @@ def main(context=None):
 
 
 def _main_impl(context=None):
-    """Implementation of main gateway routing logic."""
+    """Implementation of main gateway routing logic.
+    
+    Uses router for clean pattern-based routing instead of manual path parsing.
+    """
     # Get the request path
     request_path = flask_request.path or "/"
-
-    # Parse the path to determine the route
-    path_parts = request_path.strip("/").split("/")
-
+    
     # Remove 'gateway' prefix if present
-    if path_parts and path_parts[0] == "gateway":
-        path_parts = path_parts[1:]
-
+    path = request_path.strip("/")
+    if path.startswith("gateway/"):
+        path = path[8:]  # Remove "gateway/" prefix
+    elif path == "gateway":
+        path = ""
+    
     # Load gateways configuration
     gateways = _load_gateways(context)
-
-    # Route to appropriate handler
-    if not path_parts or path_parts[0] == "":
-        return _handle_instruction_page(gateways, context)
-
-    first_part = path_parts[0]
-
-    if first_part == "request":
-        return _handle_request_form(gateways, context)
-
-    if first_part == "response":
-        return _handle_response_form(gateways, context)
-
-    if first_part == "meta":
-        if len(path_parts) > 1:
-            # Check for test meta pattern: /gateway/meta/test/{test-server-path}/as/{server}
-            if path_parts[1] == "test" and len(path_parts) > 4 and "as" in path_parts:
-                as_index = path_parts.index("as")
-                if as_index > 2 and as_index + 1 < len(path_parts):
-                    test_server_path = "/".join(path_parts[2:as_index])
-                    server_name = path_parts[as_index + 1]
-                    return _handle_meta_page_with_test(server_name, test_server_path, gateways, context)
-            else:
-                server_name = path_parts[1]
-                return _handle_meta_page(server_name, gateways, context)
-
-    # Check for test pattern: /gateway/test/{test-server-path}/as/{server}/{rest}
-    if first_part == "test" and len(path_parts) > 2 and "as" in path_parts:
-        as_index = path_parts.index("as")
-        if as_index > 1 and as_index + 1 < len(path_parts):
-            test_server_path = "/".join(path_parts[1:as_index])
-            server_name = path_parts[as_index + 1]
-            rest_path = "/".join(path_parts[as_index + 2:]) if len(path_parts) > as_index + 2 else ""
-            return _handle_gateway_test_request(server_name, rest_path, test_server_path, gateways, context)
-
-    # Otherwise, treat first part as server name
-    server_name = first_part
-    rest_path = "/".join(path_parts[1:]) if len(path_parts) > 1 else ""
-
-    return _handle_gateway_request(server_name, rest_path, gateways, context)
+    
+    # Apply before_request middleware
+    context = _middleware_chain.execute_before_request(context or {})
+    
+    try:
+        # Create router and route request
+        router = _create_router(gateways, context)
+        result = router.route(path)
+        
+        # Apply after_request middleware
+        result = _middleware_chain.execute_after_request(result, context)
+        
+        return result
+    except Exception as e:
+        # Apply on_error middleware
+        _middleware_chain.execute_on_error(e, context)
+        raise
 
 
 def _load_gateways(context):
