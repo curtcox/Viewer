@@ -1,0 +1,63 @@
+{
+  "label": "GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj",
+  "captured_at": "2026-01-11T18:35:11Z",
+  "preview": "clj:clj-right",
+  "request": {
+    "method": "GET",
+    "path": "/AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj?",
+    "url": "http://localhost/AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiMjc1M2NmMDc3YmM0MDA0YmM0M2YyZmU2ZjFlNjk1YzEzMDBjZmQyYSJ9.aWPtXw.E1t1LKS2Z0h2DmzjIKa7ZS3R18A"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/plain",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "13"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiMjc1M2NmMDc3YmM0MDA0YmM0M2YyZmU2ZjFlNjk1YzEzMDBjZmQyYSJ9.aWPtXw.E1t1LKS2Z0h2DmzjIKa7ZS3R18A; Expires=Wed, 11 Feb 2026 18:35:11 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "clj:clj-right"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

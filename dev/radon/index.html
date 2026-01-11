@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Radon complexity report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #d0d7de; padding: 0.5rem; text-align: left; }
+    th { background: #f6f8fa; }
+    td.numeric { text-align: right; }
+    section { margin-top: 2rem; }
+    ul { list-style: disc; padding-left: 1.5rem; }
+    .summary { background: #f1f8ff; border-left: 4px solid #0969da; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Radon complexity report</h1>
+  <div class="summary">
+    <p>This report summarises the cyclomatic complexity and maintainability index
+    metrics gathered by <code>radon</code>. Blocks graded worse than
+    <strong>E</strong> will fail the CI job. The tables below list the
+    most complex blocks and files with the lowest maintainability scores. Only
+    the top 25 results are shown to keep the report concise.</p>
+  </div>
+  <section>
+    <h2>Most complex code blocks</h2>
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>Complexity</th><th>Location</th><th>Block</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>E</td><td class="numeric">31.00</td><td>reference/templates/servers/definitions/insightly.py:61</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">31.00</td><td>reference/templates/servers/definitions/segment.py:38</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">31.00</td><td>reference/templates/servers/definitions/wix.py:47</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">34.00</td><td>reference/templates/servers/definitions/microsoft_outlook.py:63</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">35.00</td><td>reference/templates/servers/definitions/azure_blob.py:83</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">36.00</td><td>reference/templates/servers/definitions/google_calendar.py:64</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">37.00</td><td>app.py:125</td><td>create_app</td></tr>
+      <tr><td>E</td><td class="numeric">38.00</td><td>reference/templates/servers/definitions/microsoft_excel.py:64</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">38.00</td><td>reference/templates/servers/definitions/cloudconvert.py:22</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">38.00</td><td>reference/templates/servers/definitions/gcs.py:69</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">38.00</td><td>reference/templates/servers/definitions/shopify.py:88</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">39.00</td><td>reference/templates/servers/definitions/miro.py:68</td><td>main</td></tr>
+      <tr><td>E</td><td class="numeric">39.00</td><td>routes/import_export/github_pr.py:84</td><td>prepare_boot_image_update</td></tr>
+      <tr><td>D</td><td class="numeric">21.00</td><td>reference/templates/servers/definitions/mixpanel.py:39</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">21.00</td><td>reference/templates/servers/definitions/postgresql.py:34</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">21.00</td><td>reference/templates/servers/definitions/pymongo_pool.py:32</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">21.00</td><td>routes/uploads.py:423</td><td>edit_cid</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>scripts/generate_gauge_failure_report.py:39</td><td>parse_gauge_log_failures</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>reference/templates/servers/definitions/whatsapp.py:71</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>reference/templates/servers/definitions/gmail.py:63</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>reference/templates/servers/definitions/gateway_lib/routing.py:88</td><td>_match_with_greedy</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>routes/servers.py:408</td><td>upload_server_test_page</td></tr>
+      <tr><td>D</td><td class="numeric">22.00</td><td>routes/search.py:185</td><td>_alias_results</td></tr>
+      <tr><td>D</td><td class="numeric">23.00</td><td>reference/templates/servers/definitions/bigquery.py:36</td><td>main</td></tr>
+      <tr><td>D</td><td class="numeric">23.00</td><td>reference/templates/servers/definitions/ai_assist.py:414</td><td>main</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Lowest maintainability files</h2>
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>Maintainability index</th><th>File</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>C</td><td class="numeric">0.00</td><td>server_execution/code_execution.py</td></tr>
+      <tr><td>C</td><td class="numeric">0.00</td><td>tests/test_routes_comprehensive.py</td></tr>
+      <tr><td>C</td><td class="numeric">0.00</td><td>tests/test_server_execution.py</td></tr>
+      <tr><td>C</td><td class="numeric">3.55</td><td>tests/test_import_export.py</td></tr>
+      <tr><td>C</td><td class="numeric">3.60</td><td>step_impl/chaining_steps.py</td></tr>
+      <tr><td>C</td><td class="numeric">4.46</td><td>scripts/build-report-site.py</td></tr>
+      <tr><td>C</td><td class="numeric">7.75</td><td>alias_definition.py</td></tr>
+      <tr><td>C</td><td class="numeric">8.88</td><td>formdown_renderer.py</td></tr>
+      <tr><td>B</td><td class="numeric">10.14</td><td>tests/integration/test_content_negotiation_integration.py</td></tr>
+      <tr><td>B</td><td class="numeric">11.37</td><td>step_impl/content_verification_steps.py</td></tr>
+      <tr><td>B</td><td class="numeric">12.27</td><td>tests/integration/test_server_execution_auto_main.py</td></tr>
+      <tr><td>B</td><td class="numeric">15.91</td><td>routes/route_details.py</td></tr>
+      <tr><td>B</td><td class="numeric">16.03</td><td>tests/test_server_auto_main.py</td></tr>
+      <tr><td>B</td><td class="numeric">16.88</td><td>tests/test_generate_boot_image.py</td></tr>
+      <tr><td>B</td><td class="numeric">16.90</td><td>tests/integration/test_one_shot_equivalence.py</td></tr>
+      <tr><td>B</td><td class="numeric">17.98</td><td>routes/import_export/import_entities.py</td></tr>
+      <tr><td>B</td><td class="numeric">18.30</td><td>scripts/run_radon.py</td></tr>
+      <tr><td>B</td><td class="numeric">18.50</td><td>step_impl/import_export_steps.py</td></tr>
+      <tr><td>B</td><td class="numeric">18.80</td><td>response_formats.py</td></tr>
+      <tr><td>A</td><td class="numeric">19.57</td><td>step_impl/pipeline_debug_steps.py</td></tr>
+      <tr><td>A</td><td class="numeric">20.09</td><td>tests/test_markdown_rendering.py</td></tr>
+      <tr><td>A</td><td class="numeric">20.35</td><td>routes/servers.py</td></tr>
+      <tr><td>A</td><td class="numeric">20.62</td><td>tests/integration/test_server_pages.py</td></tr>
+      <tr><td>A</td><td class="numeric">20.95</td><td>tests/test_limit_validator.py</td></tr>
+      <tr><td>A</td><td class="numeric">21.40</td><td>step_impl/urleditor_steps.py</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+    <section><h2>Excluded paths</h2><ul>
+      <li>.git</li>
+      <li>.github</li>
+      <li>docs</li>
+      <li>env</li>
+      <li>gauge</li>
+      <li>gauge_stub</li>
+      <li>node_modules</li>
+      <li>static</li>
+      <li>step_impl</li>
+      <li>templates</li>
+      <li>test</li>
+      <li>test-gauge</li>
+      <li>test-unit</li>
+      <li>tests</li>
+    </ul></section>
+    <section><h2>Ignored file patterns</h2><ul>
+      <li>**/__init__.py</li>
+    </ul></section>
+</body>
+</html>

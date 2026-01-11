@@ -1,0 +1,68 @@
+{
+  "label": "POST /aliases/docs/edit",
+  "captured_at": "2026-01-11T18:34:32Z",
+  "preview": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/aliases/docs\">/aliases/docs</a>. If not, click the link.",
+  "request": {
+    "method": "POST",
+    "path": "/aliases/docs/edit?",
+    "url": "http://localhost/aliases/docs/edit",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/x-www-form-urlencoded"
+      },
+      {
+        "name": "Content-Length",
+        "value": "62"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfZnJlc2giOnRydWUsIl9wZXJtYW5lbnQiOnRydWV9.aWPtNw.OALtvtuxtOcbrwgHfPR3mhKp4qk"
+      }
+    ],
+    "query": {},
+    "body": null
+  },
+  "response": {
+    "status_code": 302,
+    "mimetype": "text/html",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/html; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "213"
+      },
+      {
+        "name": "Location",
+        "value": "/aliases/docs"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=.eJwtjEEKgCAUBa9ib-0J3HWOlBD9YWAmfl2EePeEWj1mGF7HfkTLgRhq6xB1Drg5R8yQWONpWWj427GGaNnbSl78wdFifBaYYeS8KcQBqpZGkzKVyyZK9TPjBUXKJHM.aWPtOA.maCzELp8kftoViqpChTHU_4_Ryk; Expires=Wed, 11 Feb 2026 18:34:32 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/aliases/docs\">/aliases/docs</a>. If not, click the link.\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false
+  }
+}
