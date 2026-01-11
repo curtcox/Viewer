@@ -656,6 +656,13 @@ jobs:
     # - test branch deploys to /test/ (https://curtcox.github.io/Viewer/test/)
     # Each deployment preserves content from other branches to create an overlay effect
     # rather than erasing previous deployments.
+    # 
+    # CRITICAL: Concurrency control ensures only one branch deploys at a time.
+    # Without this, simultaneous deployments would race and overwrite each other
+    # because actions/deploy-pages replaces the entire gh-pages branch atomically.
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
     needs:
       - ruff
       - pylint
