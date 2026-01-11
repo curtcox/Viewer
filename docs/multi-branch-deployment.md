@@ -41,23 +41,24 @@ else
 fi
 ```
 
-### Content Merging (Overlay Approach)
+### Artifact-Based Content Preservation
 
-**All branches now preserve content from other branches using an overlay approach:**
+The workflow uses branch-specific artifacts to ensure content from all branches is preserved:
 
-#### Main Branch Deployment
-1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
-2. **Preserves all subdirectories**: Copies all existing content including `dev/` and `test/` subdirectories
-3. **Updates root content**: Overwrites root-level files with new main branch reports
-4. **Deploys merged content**: Uploads the complete site with main reports at root and preserved subdirectories
+#### How It Works
+1. **Upload branch artifact**: Each branch uploads its reports as a named artifact (`github-pages-main`, `github-pages-dev`, or `github-pages-test`)
+2. **Download all artifacts**: Before deploying, the workflow downloads the latest artifacts from all branches using `dawidd6/action-download-artifact`
+3. **Combine artifacts**: All artifacts are combined into a single site structure:
+   - Main branch content at root
+   - Dev branch content in `/dev/`
+   - Test branch content in `/test/`
+4. **Deploy combined site**: The complete site is deployed to GitHub Pages
 
-#### Dev/Test Branch Deployment
-1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
-2. **Preserves other branch content**: Copies all content except the subdirectory being updated
-3. **Updates branch subdirectory**: Places new reports in the appropriate subdirectory (`dev/` or `test/`)
-4. **Deploys merged content**: Uploads the complete site with all branch reports preserved
-
-**Key Difference from Previous Behavior**: The main branch now explicitly preserves the `dev/` and `test/` subdirectories instead of erasing them. This ensures that builds from any branch overlay and coexist with builds from other branches.
+#### Key Features
+- **Artifact persistence**: Branch artifacts are retained for 90 days, ensuring content survives even if a branch hasn't been built recently
+- **Cross-run downloads**: Uses `dawidd6/action-download-artifact` to fetch artifacts from previous workflow runs on other branches
+- **Current branch priority**: The current branch's content always takes precedence over downloaded artifacts
+- **Graceful degradation**: Missing artifacts are ignored, allowing the first builds to succeed
 
 ### URL Structure
 
@@ -122,24 +123,24 @@ To test this setup:
 ### Reports Not Appearing in Subdirectory
 
 If dev/test reports don't appear in their subdirectories:
-1. Check the workflow logs for the "Organize site for branch deployment" step
-2. Verify the branch detection is working correctly
-3. Ensure the `gh-pages` branch exists and is accessible
+1. Check the workflow logs for the "Download dev/test branch artifact" steps
+2. Verify the branch has been built at least once to create its artifact
+3. Check that the artifact name matches (`github-pages-dev` or `github-pages-test`)
 
 ### Existing Content Being Overwritten
 
-**This issue has been fixed in the current implementation.** All branches now preserve content from other branches:
-- Main branch preserves `dev/` and `test/` subdirectories
-- Dev branch preserves root content and `test/` subdirectory
-- Test branch preserves root content and `dev/` subdirectory
+If content from other branches is being lost:
+1. Check the "Download main/dev/test branch artifact" steps in the workflow logs
+2. Verify artifacts exist in the Actions tab under the respective branch's workflow runs
+3. Ensure the concurrency control (`group: github-pages`) is preventing race conditions
+4. Check the "Verify combined site content" step to see what content was included
 
-If content is still being overwritten:
-1. Check the "Download existing GitHub Pages" step runs for **all branches** (not just subdirectories)
-2. Verify the rsync command uses the correct exclude logic:
-   - Main: No exclusions (preserves all subdirectories)
-   - Dev: Excludes only `dev/`
-   - Test: Excludes only `test/`
-3. Check that the merge logic in "Organize site for branch deployment" handles both main and branch deployments correctly
+### Artifacts Not Found
+
+If artifact downloads are failing:
+1. The branch may not have been built yet - push a change to trigger a build
+2. Artifacts expire after 90 days - rebuild the branch if artifacts have expired
+3. Check that the workflow name in `dawidd6/action-download-artifact` matches (`full-checks.yml`)
 
 ### Links Not Working
 
