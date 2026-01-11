@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   pages: write
   id-token: write
@@ -655,8 +656,13 @@ jobs:
     # - dev branch deploys to /dev/ (https://curtcox.github.io/Viewer/dev/)
     # - test branch deploys to /test/ (https://curtcox.github.io/Viewer/test/)
     #
-    # Uses peaceiris/actions-gh-pages with keep_files: true to preserve content from
-    # other branches. Each branch only updates its own directory without erasing others.
+    # Artifact-based approach:
+    # 1. Each branch uploads its reports as a branch-specific artifact (github-pages-main/dev/test)
+    # 2. Before deploying, download the latest artifacts from all branches
+    # 3. Combine all artifacts into a single site with the current branch's content taking priority
+    # 4. Deploy the combined site to GitHub Pages
+    #
+    # This ensures the deployed site always contains the latest reports from all branches.
     #
     # Concurrency control prevents race conditions when multiple branches deploy
     # simultaneously to the gh-pages branch.
@@ -832,17 +838,94 @@ jobs:
         run: ./scripts/ci/prepare_report_site.sh
         env:
           PUBLIC_BASE_URL: ${{ steps.deployment_path.outputs.public_base_url }}
-      - name: Verify site content
+      - name: Upload branch-specific artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages-${{ steps.deployment_path.outputs.branch_subdir || 'main' }}
+          path: site
+          retention-days: 90
+          overwrite: true
+      - name: Download main branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: main
+          name: github-pages-main
+          path: combined-site
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Download dev branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: dev
+          name: github-pages-dev
+          path: combined-site/dev
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Download test branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: test
+          name: github-pages-test
+          path: combined-site/test
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Place current branch content
         run: |
-          echo "Site structure for deployment:"
-          find site -type f -name "*.html" | head -20 || true
-          echo "Total files: $(find site -type f | wc -l)"
+          BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
+
+          # Ensure combined-site exists
+          mkdir -p combined-site
+
+          if [ -n "$BRANCH_SUBDIR" ]; then
+            # Dev or test branch: place content in subdirectory
+            echo "Placing $BRANCH_SUBDIR content in combined-site/$BRANCH_SUBDIR/"
+            rm -rf "combined-site/$BRANCH_SUBDIR"
+            mkdir -p "combined-site/$BRANCH_SUBDIR"
+            cp -r site/. "combined-site/$BRANCH_SUBDIR/"
+          else
+            # Main branch: place content at root (preserve dev/ and test/ subdirectories)
+            echo "Placing main content at root of combined-site/"
+            # Save existing subdirectories
+            if [ -d combined-site/dev ]; then
+              mv combined-site/dev /tmp/dev-backup
+            fi
+            if [ -d combined-site/test ]; then
+              mv combined-site/test /tmp/test-backup
+            fi
+            # Copy main content
+            cp -r site/. combined-site/
+            # Restore subdirectories
+            if [ -d /tmp/dev-backup ]; then
+              rm -rf combined-site/dev
+              mv /tmp/dev-backup combined-site/dev
+            fi
+            if [ -d /tmp/test-backup ]; then
+              rm -rf combined-site/test
+              mv /tmp/test-backup combined-site/test
+            fi
+          fi
+      - name: Verify combined site content
+        run: |
+          echo "Combined site structure:"
+          echo "Root files:"
+          ls -la combined-site/ | head -20 || true
+          echo ""
+          echo "Dev directory:"
+          ls -la combined-site/dev/ 2>/dev/null | head -10 || echo "  (not present)"
+          echo ""
+          echo "Test directory:"
+          ls -la combined-site/test/ 2>/dev/null | head -10 || echo "  (not present)"
+          echo ""
+          echo "Total HTML files: $(find combined-site -type f -name '*.html' | wc -l)"
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          # keep_files preserves content from other branches when deploying
-          keep_files: true
-          # destination_dir places branch content in subdirectory (empty for main = root)
-          destination_dir: ${{ steps.deployment_path.outputs.branch_subdir }}
+          publish_dir: ./combined-site
+          keep_files: false
