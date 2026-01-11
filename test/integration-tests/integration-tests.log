@@ -1,0 +1,287 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.2.0, pluggy-1.6.0
+testmon: selection automatically deactivated because -m was used, environment: default
+rootdir: /__w/Viewer/Viewer
+configfile: pytest.ini
+plugins: html-4.1.1, testmon-2.2.0, timeout-2.4.0, Flask-Dance-7.1.0, cov-7.0.0, logfire-4.17.0, hypothesis-6.150.0, deadfixtures-3.0.0, anyio-4.12.1, metadata-3.1.1, langsmith-0.6.2
+collected 751 items / 100 deselected / 651 selected
+
+tests/integration/test_ai_actions_menu.py .                              [  0%]
+tests/integration/test_alias_pages.py .......                            [  1%]
+tests/integration/test_bash_path_parameters.py ...............           [  3%]
+tests/integration/test_boot_cid_cli.py .....                             [  4%]
+tests/integration/test_boot_cid_override.py .......                      [  5%]
+tests/integration/test_boot_image_dynamic_content.py ................... [  8%]
+.......                                                                  [  9%]
+tests/integration/test_boot_image_reference_template_files.py .......... [ 10%]
+..                                                                       [ 11%]
+tests/integration/test_cid_reference_updates.py ...                      [ 11%]
+tests/integration/test_content_negotiation_integration.py .............. [ 13%]
+............                                                             [ 15%]
+tests/integration/test_diagnostics.py ..                                 [ 15%]
+tests/integration/test_gateway_hrx.py sssssss.ssss..s.....               [ 19%]
+tests/integration/test_gateway_server.py ........F..........             [ 21%]
+tests/integration/test_gateway_table_links.py .......................... [ 25%]
+........................................................................ [ 37%]
+........................................................................ [ 48%]
+........................................................................ [ 59%]
+.......................................................................F [ 70%]
+F                                                                        [ 70%]
+tests/integration/test_gateway_test_server.py .........                  [ 71%]
+tests/integration/test_history_page.py ..                                [ 72%]
+tests/integration/test_import_export_flow.py .                           [ 72%]
+tests/integration/test_index_page.py ..                                  [ 72%]
+tests/integration/test_interactions_api.py .                             [ 72%]
+tests/integration/test_json_api_gateway.py ss...                         [ 73%]
+tests/integration/test_main_exception_handling.py ....                   [ 74%]
+tests/integration/test_one_shot_equivalence.py ......................... [ 77%]
+                                                                         [ 77%]
+tests/integration/test_openapi_one_shot_formats.py ..................... [ 81%]
+...........................                                              [ 85%]
+tests/integration/test_profile_page.py .                                 [ 85%]
+tests/integration/test_route_details_page.py ........                    [ 86%]
+tests/integration/test_routes_overview_page.py .                         [ 86%]
+tests/integration/test_search_page.py .                                  [ 86%]
+tests/integration/test_secret_pages.py ............                      [ 88%]
+tests/integration/test_server_events_page.py ...                         [ 89%]
+tests/integration/test_server_execution_auto_main.py ................... [ 92%]
+.........                                                                [ 93%]
+tests/integration/test_server_pages.py ................                  [ 96%]
+tests/integration/test_settings_page.py .                                [ 96%]
+tests/integration/test_source_browser_page.py ...s..                     [ 97%]
+tests/integration/test_upload_pages.py .......                           [ 98%]
+tests/integration/test_variable_pages.py ............                    [100%]
+
+=================================== FAILURES ===================================
+_ test_gateway_configured_gateways_server_meta_test_links_respond_without_error _
+
+client = <FlaskClient <Flask 'app'>>, integration_app = <Flask 'app'>
+gateway_server = '# pylint: disable=undefined-variable,return-outside-function\n"""Gateway server for routing requests to internal serv...\n    return {\n        "output": f"<pre>{escape(text)}</pre>",\n        "content_type": "text/html",\n    }\n\'\'\'\n'
+
+    def test_gateway_configured_gateways_server_meta_test_links_respond_without_error(
+        client,
+        integration_app,
+        gateway_server,
+    ):
+        """All Server/Meta/Test link targets in the Configured Gateways table should work locally.
+    
+        This uses Flask's test client (one-shot) and does not involve a browser or
+        outbound HTTP requests.
+        """
+    
+        import json
+        from pathlib import Path
+    
+        from cid_core import generate_cid
+        from cid_storage import ensure_cid_exists
+        from reference.templates.servers import get_server_templates
+    
+        with open(
+            "reference/templates/gateways.source.json", "r", encoding="utf-8"
+        ) as f:
+            gateways_config = json.load(f)
+    
+        with integration_app.app_context():
+            existing = (
+                db.session.query(Variable)
+                .filter_by(name="gateways")
+                .one_or_none()
+            )
+            if existing is None:
+                db.session.add(
+                    Variable(
+                        name="gateways",
+                        definition=json.dumps(gateways_config),
+                        enabled=True,
+                    )
+                )
+    
+            templates = get_server_templates()
+            template_def_by_id = {t.get("id"): t.get("definition") for t in templates}
+    
+            for server_name in gateways_config.keys():
+                if db.session.query(Server).filter_by(name=server_name).first():
+                    continue
+    
+                definition = template_def_by_id.get(server_name)
+                if not definition:
+                    # Keep the test strict: if the link exists but server isn't available
+                    # from templates, this should surface as a failure when requesting /servers/<name>.
+                    continue
+    
+                db.session.add(
+                    Server(
+                        name=server_name,
+                        definition=definition,
+                        enabled=True,
+                    )
+                )
+    
+            db.session.commit()
+    
+        # Confirm the configured gateways table renders.
+        response = client.get("/gateway", follow_redirects=True)
+        assert response.status_code == 200
+        page = response.get_data(as_text=True)
+        assert "Configured Gateways" in page
+    
+        from tests.test_gateway_test_support import TEST_CIDS_ARCHIVE_CID
+    
+        def expected_mock_cid(server_name: str) -> str:
+            archive = Path("reference/files") / f"{server_name}.cids"
+            if archive.exists():
+                content_bytes = archive.read_bytes()
+                cid_value = generate_cid(content_bytes)
+                with integration_app.app_context():
+                    ensure_cid_exists(cid_value, content_bytes)
+                return cid_value
+    
+            cid_file = Path("cids") / TEST_CIDS_ARCHIVE_CID
+            if cid_file.exists():
+                with integration_app.app_context():
+                    ensure_cid_exists(TEST_CIDS_ARCHIVE_CID, cid_file.read_bytes())
+            return TEST_CIDS_ARCHIVE_CID
+    
+        # Verify each Server/Meta/Test target responds without error.
+        for server_name in gateways_config.keys():
+            mock_server_cid = expected_mock_cid(server_name)
+            server_url = f"/servers/{server_name}"
+            meta_url = f"/gateway/meta/{server_name}"
+            test_url = f"/gateway/test/cids/{mock_server_cid}/as/{server_name}"
+    
+            assert f'href="{server_url}"' in page
+            assert f'href="{meta_url}"' in page
+>           assert f'href="{test_url}"' in page
+E           assert 'href="/gateway/test/cids/AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw/as/jsonplaceholder"' in '<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <title>Gateway Server</title>\n    <style>\n        ...   </tr>\n                    \n                \n            </tbody>\n        </table>\n    </div>\n</body>\n</html>'
+
+tests/integration/test_gateway_server.py:383: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+------------------------------ Captured log setup ------------------------------
+WARNING  app:app.py:195 Logfire is not enabled, skipping logfire instrumentation
+INFO     root:app.py:369 Database tables created
+----------------------------- Captured stdout call -----------------------------
+[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <title>Gateway Server</title>\n    <style>\n        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }\n        h1 { co…
+_ TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_test_links_return_html_with_links _
+
+self = <tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f0ebe929dc0>
+client = <FlaskClient <Flask 'app'>>, integration_app = <Flask 'app'>
+gateway_server = '# pylint: disable=undefined-variable,return-outside-function\n"""Gateway server for routing requests to internal serv...\n    return {\n        "output": f"<pre>{escape(text)}</pre>",\n        "content_type": "text/html",\n    }\n\'\'\'\n'
+cids_server = '# pylint: disable=undefined-variable\n"""CIDS server for parsing and serving CID archive files.\n\nCIDS archive forma...          return cid_file.read_bytes(), mime_type\n    except Exception:\n        pass\n\n    return None, mime_type\n'
+gateways_variable = {'activecampaign': {}, 'ai_assist': {}, 'airtable': {}, 'amplitude': {}, ...}
+service_mock_cids = {'activecampaign': 'AAAAAAN0STXWyYECssLALn_G5ORbzrf4M8mG5A7YvxFfcXcUt3w4P3CerPwbOM3cLAEbEJLNolaP220mqBF7blahtshPqA', '...Q', 'amplitude': 'AAAAAAEoVDNPICO5vO-_f01nPL5mInp4wlCnML6EV9gHDa7H2knUw8iB9pAXydi8SrzVyCzPPl-8shYxoJU5dXDld_e6kw', ...}
+service_mock_cid_records = {'activecampaign': 'AAAAAAN0STXWyYECssLALn_G5ORbzrf4M8mG5A7YvxFfcXcUt3w4P3CerPwbOM3cLAEbEJLNolaP220mqBF7blahtshPqA', '...Q', 'amplitude': 'AAAAAAEoVDNPICO5vO-_f01nPL5mInp4wlCnML6EV9gHDa7H2knUw8iB9pAXydi8SrzVyCzPPl-8shYxoJU5dXDld_e6kw', ...}
+
+    def test_gateway_instruction_page_test_links_return_html_with_links(
+        self,
+        client,
+        integration_app,
+        gateway_server,
+        cids_server,
+        gateways_variable,
+        service_mock_cids,
+        service_mock_cid_records,
+    ):
+        response = client.get("/gateway", follow_redirects=True)
+        assert response.status_code == 200
+    
+        page = response.get_data(as_text=True)
+    
+        test_link_pattern = re.compile(
+            r'href=["\"](/gateway/test/cids/([^/"\"]+)/as/([^/"\"]+))["\"]'
+        )
+        test_links = test_link_pattern.findall(page)
+        assert test_links, "Expected at least one Test link on /gateway"
+    
+        for url, cid_value, server_name in test_links:
+            # Ensure links use the service-specific archive CID.
+            expected_cid = service_mock_cids.get(server_name)
+            if expected_cid:
+>               assert cid_value == expected_cid, (
+                    f"Test link for {server_name} should use its service-specific CID. "
+                    f"Expected {expected_cid}, got {cid_value}"
+                )
+E               AssertionError: Test link for jsonplaceholder should use its service-specific CID. Expected AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw, got AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w
+E               assert 'AAAAAAFCaOsI...2__XVKfaw4P9w' == 'AAAAAAE2kMAd...nGAUIpD-XPUjw'
+E                 
+E                 - AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw
+E                 + AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w
+
+tests/integration/test_gateway_table_links.py:288: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+------------------------------ Captured log setup ------------------------------
+WARNING  app:app.py:195 Logfire is not enabled, skipping logfire instrumentation
+INFO     root:app.py:369 Database tables created
+----------------------------- Captured stdout call -----------------------------
+[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <title>Gateway Server</title>\n    <style>\n        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }\n        h1 { co…
+_ TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_sample_links_use_service_specific_cids _
+
+self = <tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f0ebe92a090>
+client = <FlaskClient <Flask 'app'>>, integration_app = <Flask 'app'>
+gateway_server = '# pylint: disable=undefined-variable,return-outside-function\n"""Gateway server for routing requests to internal serv...\n    return {\n        "output": f"<pre>{escape(text)}</pre>",\n        "content_type": "text/html",\n    }\n\'\'\'\n'
+cids_server = '# pylint: disable=undefined-variable\n"""CIDS server for parsing and serving CID archive files.\n\nCIDS archive forma...          return cid_file.read_bytes(), mime_type\n    except Exception:\n        pass\n\n    return None, mime_type\n'
+gateways_variable = {'activecampaign': {}, 'ai_assist': {}, 'airtable': {}, 'amplitude': {}, ...}
+service_mock_cids = {'activecampaign': 'AAAAAAN0STXWyYECssLALn_G5ORbzrf4M8mG5A7YvxFfcXcUt3w4P3CerPwbOM3cLAEbEJLNolaP220mqBF7blahtshPqA', '...Q', 'amplitude': 'AAAAAAEoVDNPICO5vO-_f01nPL5mInp4wlCnML6EV9gHDa7H2knUw8iB9pAXydi8SrzVyCzPPl-8shYxoJU5dXDld_e6kw', ...}
+service_mock_cid_records = {'activecampaign': 'AAAAAAN0STXWyYECssLALn_G5ORbzrf4M8mG5A7YvxFfcXcUt3w4P3CerPwbOM3cLAEbEJLNolaP220mqBF7blahtshPqA', '...Q', 'amplitude': 'AAAAAAEoVDNPICO5vO-_f01nPL5mInp4wlCnML6EV9gHDa7H2knUw8iB9pAXydi8SrzVyCzPPl-8shYxoJU5dXDld_e6kw', ...}
+
+    def test_gateway_instruction_page_sample_links_use_service_specific_cids(
+        self,
+        client,
+        integration_app,
+        gateway_server,
+        cids_server,
+        gateways_variable,
+        service_mock_cids,
+        service_mock_cid_records,
+    ):
+        response = client.get("/gateway", follow_redirects=True)
+        assert response.status_code == 200
+    
+        page = response.get_data(as_text=True)
+    
+        sample_link_pattern = re.compile(r'href=["\"](/cids/([^/"\"]+))["\"]')
+        sample_links = sample_link_pattern.findall(page)
+        assert sample_links, "Expected at least one Sample link on /gateway"
+    
+        sample_cids_by_service: dict[str, str] = {}
+        for url, cid_value in sample_links:
+            if cid_value not in service_mock_cids.values():
+                continue
+            # Determine service name from CID mapping.
+            service = next((k for k, v in service_mock_cids.items() if v == cid_value), None)
+            if service:
+                sample_cids_by_service[service] = cid_value
+    
+>       assert sample_cids_by_service, "Expected Sample links to include service-specific mock CIDs"
+E       AssertionError: Expected Sample links to include service-specific mock CIDs
+E       assert {}
+
+tests/integration/test_gateway_table_links.py:332: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+------------------------------ Captured log setup ------------------------------
+WARNING  app:app.py:195 Logfire is not enabled, skipping logfire instrumentation
+INFO     root:app.py:369 Database tables created
+----------------------------- Captured stdout call -----------------------------
+[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <title>Gateway Server</title>\n    <style>\n        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }\n        h1 { co…
+=============================== warnings summary ===============================
+tests/integration/test_bash_path_parameters.py::test_awk_server_accepts_pattern_from_path
+  /__w/Viewer/Viewer/server_execution/server_lookup.py:134: LogfireNotConfiguredWarning: No logs or spans will be created until `logfire.configure()` has been called. Set the environment variable LOGFIRE_IGNORE_NO_CONFIG=1 or add ignore_no_config=true in pyproject.toml to suppress this warning.
+    return execute_server_code(server, server_name)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+----- generated xml file: /__w/Viewer/Viewer/integration-tests-report.xml ------
+=========================== short test summary info ============================
+FAILED tests/integration/test_gateway_server.py::test_gateway_configured_gateways_server_meta_test_links_respond_without_error - assert 'href="/gateway/test/cids/AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw/as/jsonplaceholder"' in '<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <title>Gateway Server</title>\n    <style>\n        ...   </tr>\n                    \n                \n            </tbody>\n        </table>\n    </div>\n</body>\n</html>'
+FAILED tests/integration/test_gateway_table_links.py::TestConfiguredGatewaysTableLinks::test_gateway_instruction_page_test_links_return_html_with_links - AssertionError: Test link for jsonplaceholder should use its service-specific CID. Expected AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw, got AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w
+assert 'AAAAAAFCaOsI...2__XVKfaw4P9w' == 'AAAAAAE2kMAd...nGAUIpD-XPUjw'
+  
+  - AAAAAAE2kMAdOZbqMgp7FwLrwGDfy3_siltCKCRV8BmunJLLS2v5IfrMqleILytCDY1vChAiRJOKOMPn6nGAUIpD-XPUjw
+  + AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w
+FAILED tests/integration/test_gateway_table_links.py::TestConfiguredGatewaysTableLinks::test_gateway_instruction_page_sample_links_use_service_specific_cids - AssertionError: Expected Sample links to include service-specific mock CIDs
+assert {}
+= 3 failed, 633 passed, 15 skipped, 100 deselected, 1 warning in 483.70s (0:08:03) =

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Hypothesis Test Results</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    .pylint-output { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .warning strong { color: #856404; }
+    .warning ul { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Hypothesis Test Results</h1>
+  <p>These are property-based tests using the <a href="https://hypothesis.readthedocs.io/">Hypothesis</a> testing framework.</p>
+  <p><a href="hypothesis-tests-report.xml">Download the JUnit XML report</a></p>
+  <h2>Summary</h2><ul>
+  <li>Total tests: 82</li>
+  <li>Passed: 82</li>
+  <li>Failures: 0</li>
+  <li>Errors: 0</li>
+  <li>Skipped: 0</li>
+</ul>
+    <h2>Hypothesis Test Source Code</h2>
+  <p>View the source code for the hypothesis tests in this project:</p>
+  <ul>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_alias_matching_properties.py">test_alias_matching_properties.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_cid_properties.py">test_cid_properties.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_db_equivalence_property.py">test_db_equivalence_property.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_encryption_properties.py">test_encryption_properties.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_response_format_properties.py">test_response_format_properties.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_serialization_properties.py">test_serialization_properties.py</a></li>
+    <li><a href="https://github.com/curtcox/Viewer/blob/main/tests/property/test_serve_cid_content_properties.py">test_serve_cid_content_properties.py</a></li>
+  </ul>
+  <h2>Latest log output</h2>
+  <pre>============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.2.0, pluggy-1.6.0
+testmon: selection automatically deactivated because -m was used, environment: default
+We&#x27;d like to hear from testmon users! Please go to https://testmon.org/survey to leave feedback.
+rootdir: /__w/Viewer/Viewer
+configfile: pytest.ini
+plugins: html-4.1.1, testmon-2.2.0, timeout-2.4.0, Flask-Dance-7.1.0, cov-7.0.0, logfire-4.17.0, hypothesis-6.150.0, deadfixtures-3.0.0, anyio-4.12.1, metadata-3.1.1, langsmith-0.6.2
+collected 82 items
+
+tests/property/test_alias_matching_properties.py .                       [  1%]
+tests/property/test_authorization_properties.py .........                [ 12%]
+tests/property/test_cid_core_properties.py .............                 [ 28%]
+tests/property/test_cid_properties.py ..                                 [ 30%]
+tests/property/test_cli_args_properties.py ..........                    [ 42%]
+tests/property/test_db_equivalence_property.py ..                        [ 45%]
+tests/property/test_encryption_properties.py ..                          [ 47%]
+tests/property/test_entity_references_properties.py ....                 [ 52%]
+tests/property/test_formdown_renderer_properties.py ....                 [ 57%]
+tests/property/test_history_filters_properties.py ............           [ 71%]
+tests/property/test_hrx_parser_properties.py ......                      [ 79%]
+tests/property/test_link_presenter_properties.py ...                     [ 82%]
+tests/property/test_mime_utils_properties.py .........                   [ 93%]
+tests/property/test_response_format_properties.py ..                     [ 96%]
+tests/property/test_serialization_properties.py .                        [ 97%]
+tests/property/test_serve_cid_content_properties.py ..                   [100%]
+
+------ generated xml file: /__w/Viewer/Viewer/hypothesis-tests-report.xml ------
+============================= 82 passed in 29.93s ==============================
+</pre>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "label": "GET /aliases.json",
+  "captured_at": "2026-01-11T18:38:38Z",
+  "preview": "[{\"id\": 6, \"name\": \"CSS\", \"definition\": \"css/custom.css -> /css/default\\ncss/default -> /css/lightmode\\ncss/lightmode -> /static/css/custom.css\\ncss/darkmode -> /static/css/custom.css\", \"created_at\": \"2026-01-11T18:38:10.018368\", \"updated_at\": \"2026-01-11T18:38:10.018371\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/css/custom.css\", \"target_path\": \"/css/default\", \"ignore_case\": false}, {\"id\": 1, \"name\": \"ai\", \"definition\": \"ai -> /ai_assist\\n\", \"created_at\": \"2026-01-11T18:38:09.353179\", \"updated_at\": \"2026-01-11T18:38:09.353182\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/ai\", \"target_path\": \"/ai_assist\", \"ignore_case\": false}, {\"id\": 2, \"name\": \"ai_about\", \"definition\": \"ai_about -> /echo\\n\", \"created_at\": \"2026-01-11T18:38:09.355355\", \"updated_at\": \"2026-01-11T18:38:09.355357\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/ai_about\", \"target_path\": \"/echo\", \"ignore_case\": false}, {\"id\": 3, \"name\": \"cookies\", \"definition\": \"cookies -> /AAAAAA702Jd2bw4GIauxtS0rxxOR7RILAHsdX0tF-dCoEJythraumzCMkzPv6BUqQUSXOp8RRQUETcC1NIb0QX_MXvhdWw.html\\n\", \"created_at\": \"2026-01-11T18:38:09.357830\", \"updated_at\": \"2026-01-11T18:38:09.357832\", \"enabl",
+  "request": {
+    "method": "GET",
+    "path": "/aliases.json?",
+    "url": "http://localhost/aliases.json",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiZGUyNzY0Nzg4OTU4NDQ4NDU2OWFhZDg5NDRkYjNkYTI1OGJiN2I0ZiJ9.aWPuLQ._jUpV1_9NJbWgsm6Di-r8zJP7dk"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "application/json",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      },
+      {
+        "name": "Content-Length",
+        "value": "1955"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiZGUyNzY0Nzg4OTU4NDQ4NDU2OWFhZDg5NDRkYjNkYTI1OGJiN2I0ZiJ9.aWPuLg.PRxBdCjRePpJpoG4d8x98bnQbe8; Expires=Wed, 11 Feb 2026 18:38:38 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "[{\"id\": 6, \"name\": \"CSS\", \"definition\": \"css/custom.css -> /css/default\\ncss/default -> /css/lightmode\\ncss/lightmode -> /static/css/custom.css\\ncss/darkmode -> /static/css/custom.css\", \"created_at\": \"2026-01-11T18:38:10.018368\", \"updated_at\": \"2026-01-11T18:38:10.018371\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/css/custom.css\", \"target_path\": \"/css/default\", \"ignore_case\": false}, {\"id\": 1, \"name\": \"ai\", \"definition\": \"ai -> /ai_assist\\n\", \"created_at\": \"2026-01-11T18:38:09.353179\", \"updated_at\": \"2026-01-11T18:38:09.353182\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/ai\", \"target_path\": \"/ai_assist\", \"ignore_case\": false}, {\"id\": 2, \"name\": \"ai_about\", \"definition\": \"ai_about -> /echo\\n\", \"created_at\": \"2026-01-11T18:38:09.355355\", \"updated_at\": \"2026-01-11T18:38:09.355357\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/ai_about\", \"target_path\": \"/echo\", \"ignore_case\": false}, {\"id\": 3, \"name\": \"cookies\", \"definition\": \"cookies -> /AAAAAA702Jd2bw4GIauxtS0rxxOR7RILAHsdX0tF-dCoEJythraumzCMkzPv6BUqQUSXOp8RRQUETcC1NIb0QX_MXvhdWw.html\\n\", \"created_at\": \"2026-01-11T18:38:09.357830\", \"updated_at\": \"2026-01-11T18:38:09.357832\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/cookies\", \"target_path\": \"/AAAAAA702Jd2bw4GIauxtS0rxxOR7RILAHsdX0tF-dCoEJythraumzCMkzPv6BUqQUSXOp8RRQUETcC1NIb0QX_MXvhdWw.html\", \"ignore_case\": false}, {\"id\": 4, \"name\": \"help\", \"definition\": \"help -> /help\\n\", \"created_at\": \"2026-01-11T18:38:09.359639\", \"updated_at\": \"2026-01-11T18:38:09.359642\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/help\", \"target_path\": \"/help\", \"ignore_case\": false}, {\"id\": 5, \"name\": \"teams\", \"definition\": \"teams -> /microsoft_teams\\n\", \"created_at\": \"2026-01-11T18:38:09.361180\", \"updated_at\": \"2026-01-11T18:38:09.361183\", \"enabled\": true, \"match_type\": \"literal\", \"match_pattern\": \"/teams\", \"target_path\": \"/microsoft_teams\", \"ignore_case\": false}]"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}
