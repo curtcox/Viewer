@@ -41,23 +41,19 @@ else
 fi
 ```
 
-### Content Merging (Overlay Approach)
+### Content Preservation with peaceiris/actions-gh-pages
 
-**All branches now preserve content from other branches using an overlay approach:**
+The workflow uses [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages) with the `keep_files: true` option to preserve content from other branches:
 
-#### Main Branch Deployment
-1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
-2. **Preserves all subdirectories**: Copies all existing content including `dev/` and `test/` subdirectories
-3. **Updates root content**: Overwrites root-level files with new main branch reports
-4. **Deploys merged content**: Uploads the complete site with main reports at root and preserved subdirectories
+#### How It Works
+1. **Main branch**: Deploys reports to the root of the `gh-pages` branch
+2. **Dev/Test branches**: Deploy reports to their respective subdirectories using `destination_dir`
+3. **Preservation**: The `keep_files: true` option ensures existing files are not deleted, only updated
 
-#### Dev/Test Branch Deployment
-1. **Downloads existing GitHub Pages content**: Retrieves the current `gh-pages` branch
-2. **Preserves other branch content**: Copies all content except the subdirectory being updated
-3. **Updates branch subdirectory**: Places new reports in the appropriate subdirectory (`dev/` or `test/`)
-4. **Deploys merged content**: Uploads the complete site with all branch reports preserved
-
-**Key Difference from Previous Behavior**: The main branch now explicitly preserves the `dev/` and `test/` subdirectories instead of erasing them. This ensures that builds from any branch overlay and coexist with builds from other branches.
+#### Key Features
+- **Automatic content preservation**: The action handles merging automatically by only updating files in the target directory
+- **No manual downloading**: Unlike previous approaches, no need to download and merge existing content
+- **Atomic updates**: Each branch only touches its own directory, preventing conflicts
 
 ### URL Structure
 
@@ -122,24 +118,16 @@ To test this setup:
 ### Reports Not Appearing in Subdirectory
 
 If dev/test reports don't appear in their subdirectories:
-1. Check the workflow logs for the "Organize site for branch deployment" step
-2. Verify the branch detection is working correctly
-3. Ensure the `gh-pages` branch exists and is accessible
+1. Check the workflow logs for the "Deploy to GitHub Pages" step
+2. Verify the branch detection is working correctly in the "Determine deployment path" step
+3. Ensure the `gh-pages` branch exists (the action will create it on first deployment)
 
 ### Existing Content Being Overwritten
 
-**This issue has been fixed in the current implementation.** All branches now preserve content from other branches:
-- Main branch preserves `dev/` and `test/` subdirectories
-- Dev branch preserves root content and `test/` subdirectory
-- Test branch preserves root content and `dev/` subdirectory
-
-If content is still being overwritten:
-1. Check the "Download existing GitHub Pages" step runs for **all branches** (not just subdirectories)
-2. Verify the rsync command uses the correct exclude logic:
-   - Main: No exclusions (preserves all subdirectories)
-   - Dev: Excludes only `dev/`
-   - Test: Excludes only `test/`
-3. Check that the merge logic in "Organize site for branch deployment" handles both main and branch deployments correctly
+The `peaceiris/actions-gh-pages` action with `keep_files: true` should preserve content from other branches. If content is still being overwritten:
+1. Verify `keep_files: true` is set in the deployment step
+2. Check that `destination_dir` is correctly set for dev/test branches
+3. Ensure the concurrency control (`group: github-pages`) is preventing race conditions
 
 ### Links Not Working
 
