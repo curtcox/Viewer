@@ -708,8 +708,8 @@ jobs:
             echo "branch_subdir=" >> "$GITHUB_OUTPUT"
             echo "public_base_url=https://curtcox.github.io/Viewer" >> "$GITHUB_OUTPUT"
           fi
-      - name: Download existing GitHub Pages (for merging)
-        # This step downloads the current GitHub Pages content and merges it with new reports.
+      - name: Checkout gh-pages branch for merging
+        # This step checks out the existing gh-pages branch to preserve content from other branches.
         # Key behavior:
         # - Main branch: Preserves dev/ and test/ subdirectories while updating root content
         # - Dev branch: Preserves root and test/ while updating dev/ subdirectory
@@ -719,63 +719,63 @@ jobs:
         run: |
           BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
           
-          # Always download existing pages to preserve content from all branches
-          echo "Downloading existing GitHub Pages content to merge with new reports..."
+          echo "Fetching gh-pages branch to preserve content from other branches..."
           
-          # Download the current GitHub Pages site
-          CURL_EXIT=0
-          curl -L -f -o pages.tar.gz \
-            "https://github.com/${{ github.repository }}/archive/gh-pages.tar.gz" \
-            || CURL_EXIT=$?
-          
-          if [ $CURL_EXIT -ne 0 ]; then
-            echo "Could not download existing pages (exit code: $CURL_EXIT)"
-            echo "This is normal for first deployment or if gh-pages branch doesn't exist yet"
-          elif [ -f pages.tar.gz ]; then
-            # Verify the tar.gz file is valid before extraction
-            if tar -tzf pages.tar.gz > /dev/null 2>&1; then
-              echo "Downloaded tar.gz is valid, extracting..."
-              mkdir -p existing-pages
+          # Try to fetch and checkout the gh-pages branch
+          if git fetch origin gh-pages:gh-pages 2>/dev/null; then
+            echo "Successfully fetched gh-pages branch"
+            
+            # Create a working directory for the existing content
+            mkdir -p existing-pages
+            
+            # Use git worktree to check out gh-pages without affecting current branch
+            git worktree add existing-pages gh-pages 2>/dev/null || {
+              echo "Failed to create worktree, trying alternative approach..."
+              # Alternative: use git show to extract files
+              git archive gh-pages | tar -x -C existing-pages/ 2>/dev/null || {
+                echo "Could not extract gh-pages content"
+                rmdir existing-pages 2>/dev/null || true
+              }
+            }
+            
+            # If we have existing content, use it as the base
+            if [ -d existing-pages ] && [ "$(ls -A existing-pages 2>/dev/null)" ]; then
+              echo "Found existing pages content with $(du -sh existing-pages 2>/dev/null | cut -f1 || echo "unknown") of data"
+              mkdir -p site-base
               
-              TAR_EXIT=0
-              tar -xzf pages.tar.gz -C existing-pages --strip-components=1 || TAR_EXIT=$?
-              
-              if [ $TAR_EXIT -ne 0 ]; then
-                echo "Warning: tar extraction failed with exit code: $TAR_EXIT"
-                echo "Continuing without merging existing content"
-              fi
-              
-              # If we have existing content, use it as the base
-              if [ -d existing-pages ] && [ "$(ls -A existing-pages 2>/dev/null)" ]; then
-                echo "Found existing pages content with $(du -sh existing-pages | cut -f1) of data"
-                mkdir -p site-base
-                
-                # For main branch (no subdirectory), preserve subdirectories (dev/, test/)
-                # For dev/test branches, preserve everything except the subdirectory we're updating
-                if [ -z "$BRANCH_SUBDIR" ]; then
-                  # Main branch: copy everything from existing pages
-                  echo "Main branch deployment: preserving all subdirectories (dev/, test/)"
-                  RSYNC_EXIT=0
-                  rsync -av existing-pages/ site-base/ || RSYNC_EXIT=$?
-                else
-                  # Branch deployment: copy everything except the subdirectory we're updating
-                  echo "Branch deployment: preserving all content except $BRANCH_SUBDIR/"
-                  RSYNC_EXIT=0
-                  rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ || RSYNC_EXIT=$?
-                fi
-                
-                if [ $RSYNC_EXIT -ne 0 ]; then
-                  echo "Warning: rsync failed with exit code: $RSYNC_EXIT"
-                  echo "Continuing with partial or no merge of existing content"
-                else
-                  echo "Successfully merged existing pages content"
-                fi
+              # For main branch (no subdirectory), preserve subdirectories (dev/, test/)
+              # For dev/test branches, preserve everything except the subdirectory we're updating
+              if [ -z "$BRANCH_SUBDIR" ]; then
+                # Main branch: copy everything from existing pages
+                echo "Main branch deployment: preserving all subdirectories (dev/, test/)"
+                rsync -av existing-pages/ site-base/ 2>/dev/null || {
+                  echo "Warning: rsync failed, using cp instead"
+                  cp -r existing-pages/* site-base/ 2>/dev/null || true
+                }
               else
-                echo "No existing pages content found or directory is empty"
+                # Branch deployment: copy everything except the subdirectory we're updating
+                echo "Branch deployment: preserving all content except $BRANCH_SUBDIR/"
+                rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ 2>/dev/null || {
+                  echo "Warning: rsync failed, using selective cp instead"
+                  for item in existing-pages/*; do
+                    basename_item=$(basename "$item")
+                    if [ "$basename_item" != "$BRANCH_SUBDIR" ]; then
+                      cp -r "$item" site-base/ 2>/dev/null || true
+                    fi
+                  done
+                }
               fi
+              
+              echo "Successfully prepared base content from existing pages"
+              
+              # Clean up worktree if it was created
+              git worktree remove existing-pages 2>/dev/null || true
             else
-              echo "Downloaded file is not a valid tar.gz archive, skipping extraction"
+              echo "No existing pages content found (this is normal for first deployment)"
             fi
+          else
+            echo "gh-pages branch does not exist yet (this is normal for first deployment)"
+            echo "Will create initial deployment without merging"
           fi
       - name: Capture job statuses
         env:
