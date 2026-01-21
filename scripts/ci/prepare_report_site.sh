@@ -23,3 +23,10 @@ python scripts/build-report-site.py \
   --job-statuses job-statuses.json \
   --public-base-url "$PUBLIC_BASE_URL" \
   --output site
+
+# Copy job-statuses.json to site directory for later extraction
+if [ -f job-statuses.json ]; then
+  cp job-statuses.json site/job-statuses.json
+  echo "Copied job-statuses.json to site directory"
+fi
+
