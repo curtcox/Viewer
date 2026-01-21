@@ -838,6 +838,7 @@ jobs:
         run: ./scripts/ci/prepare_report_site.sh
         env:
           PUBLIC_BASE_URL: ${{ steps.deployment_path.outputs.public_base_url }}
+          GIT_SHA: ${{ github.sha }}
       - name: Create build report archive
         run: |
           BRANCH_NAME="${{ steps.deployment_path.outputs.branch_subdir || 'main' }}"
@@ -974,3 +975,38 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./combined-site
           keep_files: false
+
+  validate-deployment:
+    name: Validate GitHub Pages Deployment
+    # This job validates the GitHub Pages deployment after the site is published:
+    # - Verifies that branch-specific URLs exist (dev, test, main)
+    # - Verifies that index pages exist for each branch
+    # - Extracts and verifies embedded git SHA matches deployment
+    # - Displays all successes and failures in the log
+    # - Fails the job if there are any failures
+    needs:
+      - deploy-reports
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Determine branch name
+        id: branch
+        run: |
+          # Extract branch name from ref
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "name=dev" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/test" ]; then
+            echo "name=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=main" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validate deployment
+        run: |
+          python3 scripts/validate_github_pages.py \
+            --base-url https://curtcox.github.io/Viewer \
+            --branch ${{ steps.branch.outputs.name }} \
+            --git-sha ${{ github.sha }} \
+            --validate-all-branches \
+            --wait 60

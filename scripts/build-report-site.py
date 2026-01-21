@@ -1279,6 +1279,7 @@ def _write_landing_page(
     *,
     screenshot_notice: str | None = None,
     job_statuses: dict[str, str] | None = None,
+    git_sha: str | None = None,
 ) -> None:
     index_path = site_dir / "index.html"
     notice_html = (screenshot_notice + "\n") if screenshot_notice else ""
@@ -1294,8 +1295,13 @@ def _write_landing_page(
         LANDING_CSS + f"\n    body {{ background-color: {background_color}; }}"
     )
 
+    # Add git SHA metadata if provided
+    sha_html = ""
+    if git_sha:
+        sha_html = f'  <div class="git-sha" data-git-sha="{escape(git_sha)}" style="display: none;">{escape(git_sha)}</div>\n'
+
     body = f"""  <h1>SecureApp Test Reports</h1>
-  <h2>CI Check Results</h2>
+{sha_html}  <h2>CI Check Results</h2>
 {job_list_html}
 {notice_html}"""
 
@@ -1325,6 +1331,7 @@ def build_site(
     job_statuses_path: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
+    git_sha: str | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1401,7 +1408,7 @@ def build_site(
     _build_cid_validation_index(cid_validation_dir)
     _build_ai_eval_index(ai_eval_dir)
     _write_landing_page(
-        output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses
+        output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses, git_sha=git_sha
     )
 
 
@@ -1514,6 +1521,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Directory where the site should be written.",
     )
+    parser.add_argument(
+        "--git-sha",
+        type=str,
+        default=None,
+        help="Git commit SHA to embed in the site for validation.",
+    )
     return parser.parse_args(argv)
 
 
@@ -1539,6 +1552,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         job_statuses_path=parsed.job_statuses,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
+        git_sha=parsed.git_sha,
     )
     return 0
 
