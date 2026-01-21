@@ -176,7 +176,10 @@ def load_job_statuses(path: Path | None) -> dict[str, str] | None:
         return None
     
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items()}
+        return None
     except (json.JSONDecodeError, OSError):
         return None
 
