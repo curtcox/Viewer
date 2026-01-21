@@ -775,9 +775,9 @@ scripts/build-report-site.py:636:0: R0914: Too many local variables (16/15) (too
 scripts/build-report-site.py:669:20: C0207: Use source_file.rsplit('/', maxsplit=1)[-1] instead (use-maxsplit-arg)
 scripts/build-report-site.py:752:0: R0914: Too many local variables (18/15) (too-many-locals)
 scripts/build-report-site.py:800:0: R0914: Too many local variables (21/15) (too-many-locals)
-scripts/build-report-site.py:1308:0: R0913: Too many arguments (18/8) (too-many-arguments)
-scripts/build-report-site.py:1308:0: R0914: Too many local variables (38/15) (too-many-locals)
-scripts/build-report-site.py:1308:0: R0915: Too many statements (52/50) (too-many-statements)
+scripts/build-report-site.py:1314:0: R0913: Too many arguments (19/8) (too-many-arguments)
+scripts/build-report-site.py:1314:0: R0914: Too many local variables (39/15) (too-many-locals)
+scripts/build-report-site.py:1314:0: R0915: Too many statements (52/50) (too-many-statements)
 ************* Module generate_ai_eval_reports
 scripts/generate_ai_eval_reports.py:74:0: R0914: Too many local variables (21/15) (too-many-locals)
 scripts/generate_ai_eval_reports.py:195:0: R0914: Too many local variables (29/15) (too-many-locals)
@@ -823,6 +823,9 @@ scripts/run_radon.py:470:0: R0914: Too many local variables (24/15) (too-many-lo
 scripts/run_vulture.py:509:0: R1260: '_parse_vulture_text_output' is too complex. The McCabe rating is 17 (too-complex)
 scripts/run_vulture.py:384:0: R0914: Too many local variables (16/15) (too-many-locals)
 scripts/run_vulture.py:509:0: R0912: Too many branches (14/12) (too-many-branches)
+************* Module validate_github_pages
+scripts/validate_github_pages.py:105:8: R1705: Unnecessary "else" after "return", remove the "else" and de-indent the code inside it (no-else-return)
+scripts/validate_github_pages.py:162:4: R1705: Unnecessary "else" after "return", remove the "else" and de-indent the code inside it (no-else-return)
 ************* Module server_execution.code_execution
 server_execution/code_execution.py:756:0: R1260: '_evaluate_nested_path_to_value_legacy' is too complex. The McCabe rating is 20 (too-complex)
 server_execution/code_execution.py:1577:0: R1260: '_execute_server_code_common' is too complex. The McCabe rating is 26 (too-complex)
@@ -1028,6 +1031,8 @@ tests/property/test_mime_utils_properties.py:208:0: C0303: Trailing whitespace (
 tests/property/test_mime_utils_properties.py:213:0: C0303: Trailing whitespace (trailing-whitespace)
 tests/property/test_mime_utils_properties.py:223:0: C0303: Trailing whitespace (trailing-whitespace)
 tests/property/test_mime_utils_properties.py:179:4: W0101: Unreachable code (unreachable)
+************* Module tests.test_build_report_site
+tests/test_build_report_site.py:514:0: C0305: Trailing newlines (trailing-newlines)
 ************* Module tests.test_gateway_cid_resolver
 tests/test_gateway_cid_resolver.py:12:0: C0303: Trailing whitespace (trailing-whitespace)
 tests/test_gateway_cid_resolver.py:16:0: C0303: Trailing whitespace (trailing-whitespace)

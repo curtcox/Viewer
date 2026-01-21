@@ -21657,6 +21657,16 @@
     {
       "closures": [],
       "col_offset": 0,
+      "complexity": 4,
+      "endline": 1310,
+      "lineno": 1277,
+      "name": "_write_landing_page",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
       "complexity": 3,
       "endline": 290,
       "lineno": 268,
@@ -21691,16 +21701,6 @@
       "endline": 1208,
       "lineno": 1206,
       "name": "_count_failing_jobs",
-      "rank": "A",
-      "type": "function"
-    },
-    {
-      "closures": [],
-      "col_offset": 0,
-      "complexity": 3,
-      "endline": 1304,
-      "lineno": 1277,
-      "name": "_write_landing_page",
       "rank": "A",
       "type": "function"
     },
@@ -21760,8 +21760,8 @@
       "closures": [],
       "col_offset": 0,
       "complexity": 1,
-      "endline": 1404,
-      "lineno": 1308,
+      "endline": 1411,
+      "lineno": 1314,
       "name": "build_site",
       "rank": "A",
       "type": "function"
@@ -21770,8 +21770,8 @@
       "closures": [],
       "col_offset": 0,
       "complexity": 1,
-      "endline": 1517,
-      "lineno": 1408,
+      "endline": 1530,
+      "lineno": 1415,
       "name": "parse_args",
       "rank": "A",
       "type": "function"
@@ -21780,8 +21780,8 @@
       "closures": [],
       "col_offset": 0,
       "complexity": 1,
-      "endline": 1543,
-      "lineno": 1520,
+      "endline": 1557,
+      "lineno": 1533,
       "name": "main",
       "rank": "A",
       "type": "function"
@@ -23005,6 +23005,88 @@
       "name": "main",
       "rank": "A",
       "type": "function"
+    }
+  ],
+  "scripts/validate_github_pages.py": [
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 9,
+      "endline": 65,
+      "lineno": 32,
+      "name": "fetch_url",
+      "rank": "B",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 6,
+      "endline": 211,
+      "lineno": 176,
+      "name": "validate_deployment",
+      "rank": "B",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 5,
+      "endline": 121,
+      "lineno": 85,
+      "name": "validate_branch_url",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 5,
+      "endline": 172,
+      "lineno": 125,
+      "name": "validate_git_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 4,
+      "endline": 233,
+      "lineno": 214,
+      "name": "print_results",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 4,
+      "endline": 291,
+      "lineno": 236,
+      "name": "main",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 2,
+      "endline": 82,
+      "lineno": 68,
+      "name": "extract_git_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 29,
+      "lineno": 24,
+      "methods": [],
+      "name": "ValidationResult",
+      "rank": "A",
+      "type": "class"
     }
   ],
   "scripts/verify-chromium.py": [
@@ -51815,6 +51897,26 @@
       "endline": 469,
       "lineno": 469,
       "name": "test_build_unit_tests_results_index_includes_mismatch_warning",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 490,
+      "lineno": 490,
+      "name": "test_write_landing_page_embeds_git_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 504,
+      "lineno": 504,
+      "name": "test_write_landing_page_without_git_sha",
       "rank": "A",
       "type": "function"
     }
@@ -119025,6 +119127,68 @@
       "name": "test_validate_cids_empty_directory",
       "rank": "A",
       "type": "method"
+    }
+  ],
+  "tests/test_validate_github_pages.py": [
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 3,
+      "endline": 19,
+      "lineno": 8,
+      "name": "_load_validate_module",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 25,
+      "lineno": 25,
+      "name": "test_extract_git_sha_finds_valid_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 40,
+      "lineno": 40,
+      "name": "test_extract_git_sha_returns_none_for_missing_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 54,
+      "lineno": 54,
+      "name": "test_extract_git_sha_returns_none_for_short_sha",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 67,
+      "lineno": 67,
+      "name": "test_extract_git_sha_returns_none_for_invalid_chars",
+      "rank": "A",
+      "type": "function"
+    },
+    {
+      "closures": [],
+      "col_offset": 0,
+      "complexity": 1,
+      "endline": 80,
+      "lineno": 80,
+      "name": "test_validation_result_creation",
+      "rank": "A",
+      "type": "function"
     }
   ],
   "tests/test_validate_import_export_integration.py": [

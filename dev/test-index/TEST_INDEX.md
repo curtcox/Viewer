@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 6413
-- Unit Tests: 5586
+**Total Tests:** 6420
+- Unit Tests: 5593
 - Integration Tests: 590
 - Property Tests: 84
 - Gauge Tests: 153
 
 ## Unit Tests
 
-Total: 5586 tests
+Total: 5593 tests
 
 - [Test that pending calls are cleared after being used.](tests/test_ai_eval_reports.py:87)
 - [Test that __call__ uses pending external calls from call_with_capture.](tests/test_ai_eval_reports.py:68)
@@ -3127,6 +3127,10 @@ Total: 5586 tests
 - [Test with None input.](tests/test_gateway_diagnostic.py:101)
 - [Test with None input.](tests/test_gateway_diagnostic.py:134)
 - [Test extracting from valid error HTML.](tests/test_gateway_diagnostic.py:79)
+- [Test that extract_git_sha finds a valid 40-character SHA.](tests/test_validate_github_pages.py:25)
+- [Test that extract_git_sha returns None for SHAs with non-hex characters.](tests/test_validate_github_pages.py:67)
+- [Test that extract_git_sha returns None when SHA is not present.](tests/test_validate_github_pages.py:40)
+- [Test that extract_git_sha returns None for SHAs shorter than 40 chars.](tests/test_validate_github_pages.py:54)
 - [Test extracting content from empty CID.](tests/test_cid_class.py:224)
 - [Test extracting content from hash-based CID returns None.](tests/test_cid_class.py:234)
 - [Test extracting content from literal CID.](tests/test_cid_class.py:229)
@@ -5554,6 +5558,7 @@ Total: 5586 tests
 - [Test validation of valid UIs JSON.](tests/test_ui_manager.py:158)
 - [test_validation_and_api_error_helpers_include_details](tests/test_external_api_error_response.py:54)
 - [Test that validation results include comprehensive details.](tests/test_validate_import_export_integration.py:390)
+- [Test that ValidationResult can be created with correct fields.](tests/test_validate_github_pages.py:80)
 - [Test value property returns normalized CID.](tests/test_cid_class.py:161)
 - [Variable values pointing at paths should resolve to page content.](tests/test_routes_comprehensive.py:2220)
 - [Variable edit form should surface missing route diagnostics.](tests/test_routes_comprehensive.py:2202)
@@ -5594,7 +5599,9 @@ Total: 5586 tests
 - [Test that function works with leading slash.](tests/test_cid_core.py:285)
 - [Test that function works with leading slash.](tests/test_cid_core.py:335)
 - [Test that the landing page includes the correct background color.](tests/test_build_report_site.py:447)
+- [Test that landing page includes embedded git SHA when provided.](tests/test_build_report_site.py:490)
 - [test_write_landing_page_includes_notice](tests/test_build_report_site.py:95)
+- [Test that landing page works without git SHA.](tests/test_build_report_site.py:504)
 - [XML extension returns contents resolution.](tests/test_pipeline_execution.py:577)
 - [Test behavior when max_allowed is 0.](tests/test_limit_validator.py:213)
 - [Test that zero offset is valid.](tests/test_limit_validator.py:143)

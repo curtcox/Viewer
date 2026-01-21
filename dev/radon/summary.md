@@ -1,6 +1,6 @@
 # Radon summary
 
-* Analysed 8051 code blocks across 736 files.
+* Analysed 8067 code blocks across 738 files.
 * Worst cyclomatic complexity rank: E (fails if worse than E).
 * Lowest maintainability index: 0.00 (C).
 
@@ -8,8 +8,8 @@
 
 | Rank | Blocks |
 | --- | ---: |
-| A | 7321 |
-| B | 462 |
+| A | 7335 |
+| B | 464 |
 | C | 202 |
 | D | 53 |
 | E | 13 |
@@ -19,7 +19,7 @@
 
 | Rank | Files |
 | --- | ---: |
-| A | 749 |
+| A | 751 |
 | B | 11 |
 | C | 8 |
 | D | 0 |
@@ -65,7 +65,7 @@
 | C | 0.00 | tests/test_server_execution.py |
 | C | 3.55 | tests/test_import_export.py |
 | C | 3.60 | step_impl/chaining_steps.py |
-| C | 4.46 | scripts/build-report-site.py |
+| C | 4.32 | scripts/build-report-site.py |
 | C | 7.75 | alias_definition.py |
 | C | 8.88 | formdown_renderer.py |
 | B | 10.14 | tests/integration/test_content_negotiation_integration.py |

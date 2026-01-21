@@ -1264,7 +1264,7 @@
     "rank": "A"
   },
   "scripts/build-report-site.py": {
-    "mi": 4.460455693166603,
+    "mi": 4.315654776128773,
     "rank": "C"
   },
   "scripts/checks/validate_cids.py": {
@@ -1309,6 +1309,10 @@
   },
   "scripts/test-browser-launch.py": {
     "mi": 72.59415197629336,
+    "rank": "A"
+  },
+  "scripts/validate_github_pages.py": {
+    "mi": 59.180843882345734,
     "rank": "A"
   },
   "scripts/verify-chromium.py": {
@@ -1984,7 +1988,7 @@
     "rank": "A"
   },
   "tests/test_build_report_site.py": {
-    "mi": 31.24780717679148,
+    "mi": 29.929814327970835,
     "rank": "A"
   },
   "tests/test_cid_class.py": {
@@ -3009,6 +3013,10 @@
   },
   "tests/test_validate_cids.py": {
     "mi": 65.40532943058348,
+    "rank": "A"
+  },
+  "tests/test_validate_github_pages.py": {
+    "mi": 55.105356923398354,
     "rank": "A"
   },
   "tests/test_validate_import_export_integration.py": {

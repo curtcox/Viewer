@@ -1,0 +1,63 @@
+{
+  "label": "GET /ai_editor/test-chain",
+  "captured_at": "2026-01-21T21:20:55Z",
+  "preview": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/AAAAAABZz2NyXTdxpk8YjBAXMHnywgLVlQ4Ln5q9BFs8TOd8aDfjgUifZzcO19JtnL4fk8e7ZPOMrRFs2wXMIcADs1vKVQ.txt\">/AAAAAABZz2NyXTdxpk8YjBAXMHnywgLVlQ4Ln5q9BFs8TOd8aDfjgUifZzcO19JtnL4fk8e7ZPOMrRFs2wXMIcADs1vKVQ.txt</a>. If not, click the link.",
+  "request": {
+    "method": "GET",
+    "path": "/ai_editor/test-chain?",
+    "url": "http://localhost/ai_editor/test-chain",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlfQ.aXFDNw.LGSN0pR8X_mDiTHiOIt2ZXhFCG4"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 302,
+    "mimetype": "text/html",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/html; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "385"
+      },
+      {
+        "name": "Location",
+        "value": "/AAAAAABZz2NyXTdxpk8YjBAXMHnywgLVlQ4Ln5q9BFs8TOd8aDfjgUifZzcO19JtnL4fk8e7ZPOMrRFs2wXMIcADs1vKVQ.txt"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlfQ.aXFDNw.LGSN0pR8X_mDiTHiOIt2ZXhFCG4; Expires=Sat, 21 Feb 2026 21:20:55 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/AAAAAABZz2NyXTdxpk8YjBAXMHnywgLVlQ4Ln5q9BFs8TOd8aDfjgUifZzcO19JtnL4fk8e7ZPOMrRFs2wXMIcADs1vKVQ.txt\">/AAAAAABZz2NyXTdxpk8YjBAXMHnywgLVlQ4Ln5q9BFs8TOd8aDfjgUifZzcO19JtnL4fk8e7ZPOMrRFs2wXMIcADs1vKVQ.txt</a>. If not, click the link.\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false
+  }
+}

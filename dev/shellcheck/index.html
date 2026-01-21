@@ -16,8 +16,18 @@
 </head>
 <body>
   <h1>ShellCheck Report</h1>
-  <h2>Summary</h2><ul><li>Files examined: 143</li><li>Exit code: 0</li><li>Status: ✓ All checks passed</li></ul>
+  <h2>Summary</h2><ul><li>Files examined: 143</li><li>Exit code: 1</li><li>Status: ✗ Issues found</li></ul>
   <h2>ShellCheck output</h2>
-  <pre>All checks passed - no issues found.</pre>
+  <pre>
+In scripts/ci/prepare_report_site.sh line 31:
+  $GIT_SHA_ARG \
+  ^----------^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+  &quot;$GIT_SHA_ARG&quot; \
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...
+</pre>
 </body>
 </html>

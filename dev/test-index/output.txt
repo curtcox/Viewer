@@ -1,5 +1,5 @@
 Scanning for unit tests...
-Found 5586 unit tests
+Found 5593 unit tests
 Scanning for integration tests...
 Found 590 integration tests
 Scanning for property tests...
@@ -7,19 +7,19 @@ Found 84 property tests
 Scanning for Gauge tests...
 Found 153 Gauge scenarios
 
-Total tests found: 6413
+Total tests found: 6420
 
 Test index written to TEST_INDEX.md
---- /tmp/tmp.JBAZBUuRgj	2026-01-21 20:19:50.450001675 +0000
-+++ TEST_INDEX.md	2026-01-21 20:19:50.426001761 +0000
+--- /tmp/tmp.TSNwn01ydY	2026-01-21 21:20:32.408779637 +0000
++++ TEST_INDEX.md	2026-01-21 21:20:32.386779623 +0000
 @@ -2,15 +2,15 @@
  
  This index lists all tests in the project, organized by type.
  
 -**Total Tests:** 6116
 -- Unit Tests: 5359
-+**Total Tests:** 6413
-+- Unit Tests: 5586
++**Total Tests:** 6420
++- Unit Tests: 5593
  - Integration Tests: 590
 -- Property Tests: 14
 +- Property Tests: 84
@@ -28,7 +28,7 @@ Test index written to TEST_INDEX.md
  ## Unit Tests
  
 -Total: 5359 tests
-+Total: 5586 tests
++Total: 5593 tests
  
  - [Test that pending calls are cleared after being used.](tests/test_ai_eval_reports.py:87)
  - [Test that __call__ uses pending external calls from call_with_capture.](tests/test_ai_eval_reports.py:68)
@@ -456,7 +456,7 @@ Test index written to TEST_INDEX.md
  - [Test limit info when exceeding maximum.](tests/test_limit_validator.py:181)
  - [Test that exception chains are properly displayed with separators.](tests/test_error_page_source_links.py:300)
  - [Test that exception chains are properly displayed in browser.](tests/test_error_pages_e2e.py:127)
-@@ -2985,6 +3122,11 @@
+@@ -2985,6 +3122,15 @@
  - [Test that CIDs in cid_values are NOT included in required references.](tests/test_boot_cid_importer.py:70)
  - [Test extracting CID references from payload with section references.](tests/test_boot_cid_importer.py:86)
  - [Test extracting empty content.](tests/test_cid_core.py:304)
@@ -465,10 +465,14 @@ Test index written to TEST_INDEX.md
 +- [Test with None input.](tests/test_gateway_diagnostic.py:101)
 +- [Test with None input.](tests/test_gateway_diagnostic.py:134)
 +- [Test extracting from valid error HTML.](tests/test_gateway_diagnostic.py:79)
++- [Test that extract_git_sha finds a valid 40-character SHA.](tests/test_validate_github_pages.py:25)
++- [Test that extract_git_sha returns None for SHAs with non-hex characters.](tests/test_validate_github_pages.py:67)
++- [Test that extract_git_sha returns None when SHA is not present.](tests/test_validate_github_pages.py:40)
++- [Test that extract_git_sha returns None for SHAs shorter than 40 chars.](tests/test_validate_github_pages.py:54)
  - [Test extracting content from empty CID.](tests/test_cid_class.py:224)
  - [Test extracting content from hash-based CID returns None.](tests/test_cid_class.py:234)
  - [Test extracting content from literal CID.](tests/test_cid_class.py:229)
-@@ -2992,6 +3134,8 @@
+@@ -2992,6 +3138,8 @@
  - [test_extract_references_from_target_detects_server_and_cid](tests/test_entity_references.py:82)
  - [test_extract_references_from_text](tests/test_entity_references.py:64)
  - [Test extracting small content.](tests/test_cid_core.py:311)
@@ -477,7 +481,7 @@ Test index written to TEST_INDEX.md
  - [Should extract content and Content-Encoding header from response.](tests/test_external_api_content_decoder.py:122)
  - [test_extracts_dict_with_output_and_content_type](tests/test_server_execution.py:64)
  - [test_extracts_first_mapping_line](tests/test_alias_definition.py:373)
-@@ -3005,12 +3149,12 @@
+@@ -3005,12 +3153,12 @@
  - [Test handling failed JSON response.](tests/test_response_handler.py:67)
  - [Convert failed result with error message.](tests/test_pipeline_debug.py:188)
  - [Test model_as_dict with objects that don't have name/definition](tests/test_model_as_dict.py:189)
@@ -496,7 +500,7 @@ Test index written to TEST_INDEX.md
  - [test_fetch_variable_content_follows_relative_redirect](tests/test_server_execution_variables.py:51)
  - [test_fetch_variable_content_returns_none_without_app_context](tests/test_server_execution_variables.py:111)
  - [test_fetch_variable_content_returns_route_body](tests/test_server_execution_variables.py:44)
-@@ -3026,6 +3170,7 @@
+@@ -3026,6 +3174,7 @@
  - [Test finding missing CIDs when all are present.](tests/test_boot_cid_importer.py:99)
  - [Test finding missing CIDs when some are missing.](tests/test_boot_cid_importer.py:110)
  - [test_finds_function_in_definition](tests/test_server_execution.py:164)
@@ -504,7 +508,7 @@ Test index written to TEST_INDEX.md
  - [Test that CSS url() references are fixed.](tests/test_hrx_response_transform.py:62)
  - [Test that external URLs in CSS are not modified.](tests/test_hrx_response_transform.py:73)
  - [Test that absolute paths in archive are fixed correctly.](tests/test_hrx_response_transform.py:15)
-@@ -3036,7 +3181,13 @@
+@@ -3036,7 +3185,13 @@
  - [Test helper methods with Flask route definitions.](tests/test_alias_model.py:175)
  - [Following the redirect should produce CID-backed HTML content.](tests/test_server_execution_redirect_result.py:49)
  - [test_form_sketch_preserves_literal_characters_in_code_block](tests/test_markdown_rendering.py:182)
@@ -518,7 +522,7 @@ Test index written to TEST_INDEX.md
  - [Test formatting of error status codes.](tests/test_ai_eval_reports.py:253)
  - [Test formatting of a basic external API call.](tests/test_ai_eval_reports.py:172)
  - [Test that redacted API keys appear correctly in HTML.](tests/test_ai_eval_reports.py:201)
-@@ -3045,6 +3196,8 @@
+@@ -3045,6 +3200,8 @@
  - [test_format_helpers_accept_cid_object](tests/test_cid_presenter_render.py:73)
  - [test_format_history_timestamp_round_trips](tests/test_history_filters.py:14)
  - [test_format_screenshot_notice_builds_section](tests/test_build_report_site.py:81)
@@ -527,7 +531,7 @@ Test index written to TEST_INDEX.md
  - [test_formats_error_message](tests/test_server_execution.py:754)
  - [test_formats_flask_match](tests/test_alias_definition.py:516)
  - [test_formats_glob_match](tests/test_alias_definition.py:508)
-@@ -3065,14 +3218,16 @@
+@@ -3065,14 +3222,16 @@
  - [Test generating CID from empty content.](tests/test_cid_class.py:89)
  - [Test generating CID from exactly 64 bytes (boundary case).](tests/test_cid_class.py:101)
  - [Test generating CID from large content.](tests/test_cid_class.py:116)
@@ -547,7 +551,7 @@ Test index written to TEST_INDEX.md
  - [Verify that the gateway server template is registered.](tests/test_gateway_server.py:49)
  - [Gateway should show instruction page with configured gateways.](tests/test_gateway_server.py:61)
  - [Gateway template should have proper id, name, and description.](tests/test_gateway_server.py:78)
-@@ -3114,6 +3269,7 @@
+@@ -3114,6 +3273,7 @@
  - [test_generate_form_defaults_endpoint_to_server_name](tests/test_external_api_forms.py:45)
  - [Test that generate_gateways_json creates gateways.json file.](tests/test_generate_boot_image.py:637)
  - [Test that generate_gateways_json replaces file paths with CIDs.](tests/test_generate_boot_image.py:656)
@@ -555,7 +559,7 @@ Test index written to TEST_INDEX.md
  - [Test label generation for specific entity type.](tests/test_template_status.py:96)
  - [Test label generation for type with single template.](tests/test_template_status.py:122)
  - [Test label generation for type with no templates.](tests/test_template_status.py:109)
-@@ -3416,6 +3572,10 @@
+@@ -3416,6 +3576,10 @@
  - [test_google_service_account_rejects_empty_subject](tests/test_external_api_google_microsoft_auth.py:94)
  - [test_google_service_account_subject_adds_sub_claim](tests/test_external_api_google_microsoft_auth.py:73)
  - [test_google_service_account_success](tests/test_external_api_google_microsoft_auth.py:41)
@@ -566,7 +570,7 @@ Test index written to TEST_INDEX.md
  - [Grep should match pattern from $1.](tests/test_bash_path_parameters.py:325)
  - [Bytearray content should be handled correctly.](tests/test_external_api_content_decoder.py:85)
  - [References should be detected even with multiple levels of aliasing.](tests/test_extract_context_references.py:79)
-@@ -3435,6 +3595,7 @@
+@@ -3435,6 +3599,7 @@
  - [test_handles_empty_variables](tests/test_alias_definition.py:488)
  - [Encoding values with leading/trailing whitespace should be normalized.](tests/test_external_api_content_decoder.py:72)
  - [test_handles_external_target_error](tests/test_alias_definition.py:608)
@@ -574,7 +578,7 @@ Test index written to TEST_INDEX.md
  - [Test validation with many small modules.](tests/test_validate_import_export_integration.py:424)
  - [Encoding names should be case-insensitive.](tests/test_external_api_content_decoder.py:111)
  - [test_handles_mock_object](tests/test_alias_definition.py:577)
-@@ -3582,8 +3743,8 @@
+@@ -3582,8 +3747,8 @@
  - [Verify that interaction history includes timestamp_url for URL generation.](tests/test_entity_interactions.py:85)
  - [Test that saved JSON includes external_calls field.](tests/test_ai_eval_reports.py:271)
  - [Test that interaction data is JSON serializable.](tests/test_ai_eval_reports.py:314)
@@ -585,7 +589,7 @@ Test index written to TEST_INDEX.md
  - [test_invalid_api_key_format_returns_error](tests/test_external_server_mailchimp.py:15)
  - [Test CID with JSON array instead of object.](tests/test_cli.py:192)
  - [Test CID with no content.](tests/test_cli.py:214)
-@@ -3967,6 +4128,9 @@
+@@ -3967,6 +4132,9 @@
  - [Test successfully loading and validating a boot CID.](tests/test_boot_cid_importer.py:178)
  - [Test loading a CID file containing JSON (typical export format).](tests/test_cid_directory_loader.py:249)
  - [Test loading CIDs from an empty directory succeeds.](tests/test_cid_directory_loader.py:44)
@@ -595,7 +599,7 @@ Test index written to TEST_INDEX.md
  - [Test loading multiple CID files from directory.](tests/test_cid_directory_loader.py:72)
  - [load() should raise a ValueError when the CID cannot be found.](tests/test_text_function_runner.py:264)
  - [load() should retrieve CID content and decode to text by default.](tests/test_text_function_runner.py:239)
-@@ -3981,6 +4145,7 @@
+@@ -3981,6 +4149,7 @@
  - [Main function should accept context.](tests/test_io_server_integration.py:91)
  - [Test that the server works when input_data is None.](tests/test_urleditor.py:63)
  - [Main function should accept path segments.](tests/test_io_server_integration.py:87)
@@ -603,7 +607,7 @@ Test index written to TEST_INDEX.md
  - [test_main_exists_and_returns_html](tests/test_ai_editor.py:43)
  - [Test that the main function exists.](tests/test_urleditor.py:38)
  - [Test that the server rejects being used in a chain.](tests/test_urleditor.py:53)
-@@ -3997,8 +4162,8 @@
+@@ -3997,8 +4166,8 @@
  - [Test making GET request to valid path.](tests/test_cli.py:342)
  - [Test making GET request with query parameters.](tests/test_cli.py:370)
  - [test_make_session_permanent_marks_session](tests/test_analytics.py:42)
@@ -614,7 +618,7 @@ Test index written to TEST_INDEX.md
  - [test_markdown_executes_via_server_execution](tests/test_markdown.py:99)
  - [test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:570)
  - [test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:574)
-@@ -4049,11 +4214,15 @@
+@@ -4049,11 +4218,15 @@
  - [Test that /meta returns server info when CID is a server definition.](tests/test_meta_route.py:490)
  - [Test that /meta returns enhanced server metadata for urleditor.](tests/test_meta_route.py:470)
  - [Test that /meta/{CID} works for CID literal requests.](tests/test_meta_route.py:512)
@@ -630,7 +634,7 @@ Test index written to TEST_INDEX.md
  - [Test reverse MIME type lookup.](tests/test_mime_utils.py:26)
  - [Test MIME types with parameters (e.g., charset).](tests/test_mime_utils.py:77)
  - [test_missing_access_token_returns_auth_error](tests/test_external_server_basecamp.py:39)
-@@ -4173,6 +4342,8 @@
+@@ -4173,6 +4346,8 @@
  - [test_missing_url_returns_auth_error](tests/test_external_server_activecampaign.py:19)
  - [Test mixing authorized and rejected requests.](tests/test_authorization_integration.py:140)
  - [Test that constructor normalizes operations.](tests/test_operation_validator.py:140)
@@ -639,7 +643,7 @@ Test index written to TEST_INDEX.md
  - [Test model_as_dict with mixed object types](tests/test_model_as_dict.py:164)
  - [test_model_as_dict_ignores_disabled_entries](tests/test_variables_secrets_issue.py:154)
  - [test_model_to_dict_includes_extra_fields](tests/test_serialization.py:31)
-@@ -4199,15 +4370,19 @@
+@@ -4199,15 +4374,19 @@
  - [/io/s1///s2 ignores all empty segments.](tests/test_io_execution.py:100)
  - [Test multiple entities with mixed enabled states.](tests/test_enabled_field_persistence.py:190)
  - [Test function with multiple lines of code.](tests/test_text_function_runner.py:22)
@@ -659,7 +663,7 @@ Test index written to TEST_INDEX.md
  - [test_mysql_url](tests/test_external_server_sqlalchemy_pool.py:98)
  - [test_named_clojure_server_executes_terminal_python_literal](tests/test_clojure_server_execution.py:243)
  - [test_named_clojure_server_receives_python_input](tests/test_clojure_server_execution.py:227)
-@@ -4260,13 +4435,19 @@
+@@ -4260,13 +4439,19 @@
  - [Test params with None values.](tests/test_preview_builder.py:309)
  - [Nonexistent server returns None.](tests/test_pipeline_execution.py:431)
  - [Test normalizing empty string.](tests/test_cid_core.py:56)
@@ -679,7 +683,7 @@ Test index written to TEST_INDEX.md
  - [Test normalizing string with internal slash returns empty.](tests/test_cid_core.py:69)
  - [Test normalizing string with leading slash.](tests/test_cid_core.py:61)
  - [Test normalizing string with whitespace.](tests/test_cid_core.py:65)
-@@ -4279,6 +4460,8 @@
+@@ -4279,6 +4464,8 @@
  - [Nullable fields behave equivalently.](tests/test_db_edge_cases_equivalence.py:91)
  - [Test OAuth token or API key pattern.](tests/test_credential_validator.py:139)
  - [Test checking OK response.](tests/test_response_handler.py:140)
@@ -688,7 +692,7 @@ Test index written to TEST_INDEX.md
  - [Test opening browser with exception.](tests/test_cli.py:408)
  - [Test opening browser successfully.](tests/test_cli.py:399)
  - [test_openapi_schema_describes_interactions_endpoint](tests/test_openapi.py:25)
-@@ -4322,21 +4505,28 @@
+@@ -4322,21 +4509,28 @@
  - [test_parse_import_payload_success](tests/test_import_export_helpers.py:14)
  - [Test parsing CID with invalid base64 raises error.](tests/test_cid_core.py:203)
  - [Test parsing too short CID raises error.](tests/test_cid_core.py:198)
@@ -724,7 +728,7 @@ Test index written to TEST_INDEX.md
  - [test_parses_context_strings_as_json](tests/test_ai_editor.py:111)
  - [test_parses_keyword_only_params](tests/test_server_execution.py:122)
  - [test_parses_simple_function](tests/test_server_execution.py:109)
-@@ -4374,7 +4564,7 @@
+@@ -4374,7 +4568,7 @@
  - [Test that regex pattern is preserved during import.](tests/test_alias_import_definition_preservation.py:47)
  - [Test that root pattern / is preserved during import.](tests/test_alias_import_definition_preservation.py:81)
  - [test_prepare_alias_import_uses_definition_cid](tests/test_import_export.py:1388)
@@ -733,7 +737,7 @@ Test index written to TEST_INDEX.md
  - [test_prepare_history_event_reports_invalid_timestamp](tests/test_import_export_helpers.py:123)
  - [test_prepare_history_event_truncates_long_messages](tests/test_import_export_helpers.py:105)
  - [test_prepare_server_import_falls_back_to_cid](tests/test_import_export_helpers.py:51)
-@@ -4384,6 +4574,7 @@
+@@ -4384,6 +4578,7 @@
  - [test_preserves_inline_comment](tests/test_alias_definition.py:390)
  - [test_preserves_line_without_comment](tests/test_alias_definition.py:357)
  - [Test that non-sensitive headers are preserved.](tests/test_preview_builder.py:185)
@@ -741,7 +745,7 @@ Test index written to TEST_INDEX.md
  - [test_preserves_pattern_text](tests/test_alias_definition.py:684)
  - [test_preserves_unknown_variables](tests/test_alias_definition.py:472)
  - [Test that sensitive headers are redacted.](tests/test_preview_builder.py:66)
-@@ -4520,6 +4711,8 @@
+@@ -4520,6 +4715,8 @@
  - [test_relative_link_with_custom_label_uses_pipe_syntax](tests/test_markdown_rendering.py:279)
  - [test_relative_link_with_explicit_trailing_slash_is_preserved](tests/test_markdown_rendering.py:319)
  - [test_relative_link_with_lowercase_name_preserves_label](tests/test_markdown_rendering.py:314)
@@ -750,7 +754,7 @@ Test index written to TEST_INDEX.md
  - [Even when relative resolution fails, redundant project roots should be stripped.](tests/test_error_page_path_formatting.py:112)
  - [test_render_alias_link_full_url](tests/test_link_presenter.py:46)
  - [test_render_alias_link_relative_path](tests/test_link_presenter.py:40)
-@@ -4625,10 +4818,10 @@
+@@ -4625,10 +4822,10 @@
  - [test_request_exceptions_include_status](tests/test_external_server_google_sheets.py:163)
  - [test_request_logs_and_raises_request_exception](tests/test_external_api_http_client.py:69)
  - [Test that auth parameter is correctly passed to session.request().](tests/test_external_api_http_client.py:82)
@@ -765,7 +769,7 @@ Test index written to TEST_INDEX.md
  - [test_request_uses_defaults_and_logs](tests/test_external_api_http_client.py:34)
  - [test_request_uses_provided_timeout](tests/test_external_api_http_client.py:58)
  - [test_require_invitation_removed](tests/test_routes_comprehensive.py:1141)
-@@ -4698,24 +4891,42 @@
+@@ -4698,24 +4895,42 @@
  - [test_requires_user_or_device_id](tests/test_external_server_amplitude.py:12)
  - [test_requires_warehouse](tests/test_external_server_snowflake.py:24)
  - [test_requires_write_key](tests/test_external_server_segment.py:6)
@@ -808,7 +812,7 @@ Test index written to TEST_INDEX.md
  - [test_resolve_variable_values_keeps_original_when_fetch_fails](tests/test_server_execution_variables.py:79)
  - [test_resolve_variable_values_prefetches_when_possible](tests/test_server_execution_variables.py:58)
  - [test_resolve_variable_values_returns_copy_when_prefetch_skipped](tests/test_server_execution_variables.py:96)
-@@ -4724,8 +4935,9 @@
+@@ -4724,8 +4939,9 @@
  - [test_resolves_from_context_variables](tests/test_server_execution.py:359)
  - [test_resolves_from_query_string](tests/test_server_execution.py:331)
  - [test_resolves_variables_from_alias_attributes](tests/test_alias_definition.py:623)
@@ -820,7 +824,7 @@ Test index written to TEST_INDEX.md
  - [Test response with null values.](tests/test_response_handler.py:274)
  - [Test response without ok attribute.](tests/test_response_handler.py:154)
  - [Convert result with segments.](tests/test_pipeline_debug.py:162)
-@@ -4762,6 +4974,9 @@
+@@ -4762,6 +4978,9 @@
  - [Root path is not a pipeline.](tests/test_pipeline_recognition.py:238)
  - [Root path only returns error.](tests/test_pipeline_execution.py:492)
  - [Test that generated CID can be checked back.](tests/test_cid_editor_helper.py:123)
@@ -830,7 +834,7 @@ Test index written to TEST_INDEX.md
  - [The API should respond with JSON describing available routes.](tests/test_routes_overview_api.py:6)
  - [test_run_actor_validation](tests/test_external_server_apify.py:23)
  - [test_run_bash_script_times_out](tests/test_server_execution.py:760)
-@@ -4794,6 +5009,7 @@
+@@ -4794,6 +5013,7 @@
  - [Secrets index returns HTTP 200 when accessed by a logged-in user.](tests/test_routes_comprehensive.py:2249)
  - [Sed should process expression from $1.](tests/test_bash_path_parameters.py:303)
  - [segment_analysis module should exist.](tests/test_io_server_integration.py:108)
@@ -838,7 +842,7 @@ Test index written to TEST_INDEX.md
  - [Handle segment ending with dot.](tests/test_pipeline_recognition.py:194)
  - [Convert segment with alias chain.](tests/test_pipeline_debug.py:116)
  - [Convert segment with errors.](tests/test_pipeline_debug.py:102)
-@@ -4899,6 +5115,9 @@
+@@ -4899,6 +5119,9 @@
  - [Test signing with a session token.](tests/test_aws_signature.py:90)
  - [Parse simple path into segments.](tests/test_pipeline_recognition.py:18)
  - [Single alias resolution tracked.](tests/test_pipeline_execution.py:263)
@@ -848,7 +852,7 @@ Test index written to TEST_INDEX.md
  - [Test model_as_dict with single objects](tests/test_model_as_dict.py:88)
  - [Test validator with single operation.](tests/test_operation_validator.py:64)
  - [Test that /server/param passes param to server. In /echo/hello: - 'echo' is the server - 'hello' is a parameter that should be passed to echo](tests/test_pipeline_parameter_binding.py:100)
-@@ -4909,6 +5128,7 @@
+@@ -4909,6 +5132,7 @@
  - [Single path segment is not a pipeline.](tests/test_pipeline_recognition.py:205)
  - [Single server returns one group with no params.](tests/test_io_execution.py:147)
  - [Single server is marked as tail.](tests/test_io_execution.py:253)
@@ -856,7 +860,7 @@ Test index written to TEST_INDEX.md
  - [test_site_url_parameter_overrides_secret](tests/test_external_server_wordpress.py:185)
  - [Test that hidden files (starting with .) are skipped.](tests/test_cid_directory_loader.py:99)
  - [test_skips_blank_lines](tests/test_alias_definition.py:377)
-@@ -5077,10 +5297,11 @@
+@@ -5077,10 +5301,11 @@
  - [test_template_does_not_depend_on_server_name](tests/test_pygments_server_template.py:69)
  - [Test that template objects have None as ID since they're not in DB.](tests/test_db_access_templates.py:144)
  - [Test that all template objects are marked with template=True.](tests/test_db_access_templates.py:156)
@@ -871,7 +875,7 @@ Test index written to TEST_INDEX.md
  - [Plain text response has correct content type.](tests/test_pipeline_debug.py:376)
  - [Test plain text error response for 401.](tests/test_authorization_handler.py:49)
  - [Test plain text error response for 403.](tests/test_authorization_handler.py:64)
-@@ -5127,6 +5348,8 @@
+@@ -5127,6 +5352,8 @@
  - [Test that error pages use external templates.](tests/test_hrx_response_transform.py:109)
  - [Test that markdown files use external templates.](tests/test_hrx_response_transform.py:202)
  - [Test that text files use external templates.](tests/test_hrx_response_transform.py:224)
@@ -880,7 +884,7 @@ Test index written to TEST_INDEX.md
  - [test_truthiness_for_response_status](tests/test_conditional_execution.py:58)
  - [test_truthiness_for_strings](tests/test_conditional_execution.py:54)
  - [test_try_alias_redirect_checks_subsequent_declarations](tests/test_alias_routing.py:249)
-@@ -5293,14 +5516,17 @@
+@@ -5293,14 +5520,17 @@
  - [Unsupported auto main signatures should include helpful reasons.](tests/test_server_definition_validation_route.py:78)
  - [Syntax errors should be surfaced to the caller.](tests/test_server_definition_validation_route.py:63)
  - [Valid auto main definitions should report parameter metadata.](tests/test_server_definition_validation_route.py:32)
@@ -903,7 +907,14 @@ Test index written to TEST_INDEX.md
  - [Test validation when all required parameters are present.](tests/test_parameter_validator.py:11)
  - [Test that empty string is treated as missing.](tests/test_parameter_validator.py:36)
  - [Test operation with no required parameters.](tests/test_parameter_validator.py:60)
-@@ -5334,6 +5560,7 @@
+@@ -5328,12 +5558,14 @@
+ - [Test validation of valid UIs JSON.](tests/test_ui_manager.py:158)
+ - [test_validation_and_api_error_helpers_include_details](tests/test_external_api_error_response.py:54)
+ - [Test that validation results include comprehensive details.](tests/test_validate_import_export_integration.py:390)
++- [Test that ValidationResult can be created with correct fields.](tests/test_validate_github_pages.py:80)
+ - [Test value property returns normalized CID.](tests/test_cid_class.py:161)
+ - [Variable values pointing at paths should resolve to page content.](tests/test_routes_comprehensive.py:2220)
+ - [Variable edit form should surface missing route diagnostics.](tests/test_routes_comprehensive.py:2202)
  - [Test that Variable defaults to enabled=True when not specified.](tests/test_enabled_field_persistence.py:142)
  - [Test that Variable with enabled=False is stored and retrieved correctly.](tests/test_enabled_field_persistence.py:114)
  - [Test that Variable with enabled=True is stored and retrieved correctly.](tests/test_enabled_field_persistence.py:128)
@@ -911,7 +922,17 @@ Test index written to TEST_INDEX.md
  - [Unique constraint behavior is equivalent in both databases.](tests/test_db_equivalence.py:178)
  - [Variable detail view should render CID link when definition is a CID.](tests/test_routes_comprehensive.py:2157)
  - [Variable detail view should render matching route information.](tests/test_routes_comprehensive.py:2137)
-@@ -5683,8 +5910,8 @@
+@@ -5367,7 +5599,9 @@
+ - [Test that function works with leading slash.](tests/test_cid_core.py:285)
+ - [Test that function works with leading slash.](tests/test_cid_core.py:335)
+ - [Test that the landing page includes the correct background color.](tests/test_build_report_site.py:447)
++- [Test that landing page includes embedded git SHA when provided.](tests/test_build_report_site.py:490)
+ - [test_write_landing_page_includes_notice](tests/test_build_report_site.py:95)
++- [Test that landing page works without git SHA.](tests/test_build_report_site.py:504)
+ - [XML extension returns contents resolution.](tests/test_pipeline_execution.py:577)
+ - [Test behavior when max_allowed is 0.](tests/test_limit_validator.py:213)
+ - [Test that zero offset is valid.](tests/test_limit_validator.py:143)
+@@ -5683,8 +5917,8 @@
  - [Test that gateway correctly parses CID and path.](tests/integration/test_gateway_cids.py:77)
  - [Test that gateway with invalid CID shows error.](tests/integration/test_gateway_cids.py:71)
  - [Test that gateway without archive CID shows error.](tests/integration/test_gateway_cids.py:65)
@@ -922,7 +943,7 @@ Test index written to TEST_INDEX.md
  - [test_gateway_hrx_error_page_shows_archive_and_path](tests/integration/test_gateway_hrx.py:730)
  - [Test that /gateway/hrx returns error for non-existent file.](tests/integration/test_gateway_hrx.py:197)
  - [Test that /gateway/hrx returns HTML files with proper content type.](tests/integration/test_gateway_hrx.py:284)
-@@ -5699,26 +5926,26 @@
+@@ -5699,26 +5933,26 @@
  - [Test that /gateway/hrx/{cid}/{path} returns file content from HRX archive.](tests/integration/test_gateway_hrx.py:105)
  - [Test that /gateway/hrx returns JSON file content correctly.](tests/integration/test_gateway_hrx.py:139)
  - [Gateway instruction page should include the link table headers.](tests/integration/test_gateway_server.py:128)
@@ -962,7 +983,7 @@ Test index written to TEST_INDEX.md
  - [Test that gateway test meta page shows test information.](tests/integration/test_gateway_test_server.py:120)
  - [Regression: HRX test server should not execute the archive CID as python.](tests/integration/test_gateway_test_server.py:257)
  - [Test that test pattern uses the transforms from the named gateway.](tests/integration/test_gateway_test_server.py:237)
-@@ -5729,7 +5956,7 @@
+@@ -5729,7 +5963,7 @@
  - [Test that /gateway/tldr/grep includes the stdin pipeline example and linkifies commands.](tests/integration/test_gateway_hrx.py:622)
  - [Test that /gateway/tldr/ls returns an HTML page without HTTP proxying.](tests/integration/test_gateway_hrx.py:607)
  - [Test that unknown gateway names return Gateway Not Found error.](tests/integration/test_gateway_hrx.py:703)
@@ -971,7 +992,7 @@ Test index written to TEST_INDEX.md
  - [Grep server should accept pattern from path segment.](tests/integration/test_bash_path_parameters.py:233)
  - [Grep server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:284)
  - [Grep server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:261)
-@@ -5969,21 +6196,91 @@
+@@ -5969,21 +6203,91 @@
  
  ## Property Tests
  
