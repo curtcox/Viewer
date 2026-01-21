@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.2.0, pluggy-1.6.0
+testmon: selection automatically deactivated because -m was used, environment: default
+We'd like to hear from testmon users! Please go to https://testmon.org/survey to leave feedback.
+rootdir: /__w/Viewer/Viewer
+configfile: pytest.ini
+plugins: deadfixtures-3.1.0, html-4.1.1, testmon-2.2.0, timeout-2.4.0, Flask-Dance-7.1.0, cov-7.0.0, langsmith-0.6.4, hypothesis-6.150.2, logfire-4.19.0, anyio-4.12.1, metadata-3.1.1
+collected 82 items
+
+tests/property/test_alias_matching_properties.py .                       [  1%]
+tests/property/test_authorization_properties.py .........                [ 12%]
+tests/property/test_cid_core_properties.py .............                 [ 28%]
+tests/property/test_cid_properties.py ..                                 [ 30%]
+tests/property/test_cli_args_properties.py ..........                    [ 42%]
+tests/property/test_db_equivalence_property.py ..                        [ 45%]
+tests/property/test_encryption_properties.py ..                          [ 47%]
+tests/property/test_entity_references_properties.py ....                 [ 52%]
+tests/property/test_formdown_renderer_properties.py ....                 [ 57%]
+tests/property/test_history_filters_properties.py ............           [ 71%]
+tests/property/test_hrx_parser_properties.py ......                      [ 79%]
+tests/property/test_link_presenter_properties.py ...                     [ 82%]
+tests/property/test_mime_utils_properties.py .........                   [ 93%]
+tests/property/test_response_format_properties.py ..                     [ 96%]
+tests/property/test_serialization_properties.py .                        [ 97%]
+tests/property/test_serve_cid_content_properties.py ..                   [100%]
+
+------ generated xml file: /__w/Viewer/Viewer/hypothesis-tests-report.xml ------
+============================= 82 passed in 28.94s ==============================

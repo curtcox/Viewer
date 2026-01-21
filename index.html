@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SecureApp CI Reports - All Branches</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      margin: 2rem; 
+      line-height: 1.6;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 { 
+      font-size: 2.5rem; 
+      margin-bottom: 0.5rem;
+      color: #24292e;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: #586069;
+      margin-bottom: 2rem;
+    }
+    .branch-list {
+      list-style: none;
+      padding: 0;
+      margin: 2rem 0;
+    }
+    .branch-item {
+      display: flex;
+      align-items: center;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      border: 2px solid #e1e4e8;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .branch-item:hover {
+      border-color: #0366d6;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .branch-item.success {
+      background: #d4edda;
+      border-color: #28a745;
+    }
+    .branch-item.failure {
+      background: #f8d7da;
+      border-color: #d73a49;
+    }
+    .branch-status-icon {
+      flex-shrink: 0;
+      font-size: 2rem;
+      margin-right: 1.5rem;
+      font-weight: bold;
+    }
+    .branch-item.success .branch-status-icon {
+      color: #28a745;
+    }
+    .branch-item.failure .branch-status-icon {
+      color: #d73a49;
+    }
+    .branch-info {
+      flex-grow: 1;
+    }
+    .branch-info h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+    }
+    .branch-info h3 a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    .branch-info h3 a:hover {
+      text-decoration: underline;
+    }
+    .branch-status {
+      margin: 0;
+      font-size: 1rem;
+      color: #586069;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e1e4e8;
+      color: #586069;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>SecureApp CI Reports</h1>
+  <p class="subtitle">Comprehensive test and quality reports across all active branches</p>
+  
+  <ul class="branch-list">
+  <li class="branch-item">
+    <div class="branch-info">
+      <h3><a href="./">Main Branch</a></h3>
+      <p class="branch-status">No status information available</p>
+    </div>
+  </li>
+  <li class="branch-item failure">
+    <div class="branch-status-icon">✖</div>
+    <div class="branch-info">
+      <h3><a href="dev/">Dev Branch</a></h3>
+      <p class="branch-status">18 out of 21 jobs successful</p>
+    </div>
+  </li>
+  <li class="branch-item">
+    <div class="branch-info">
+      <h3><a href="test/">Test Branch</a></h3>
+      <p class="branch-status">No status information available</p>
+    </div>
+  </li>
+  </ul>
+  
+  <footer>
+    <p>Reports are automatically generated on every push to main, dev, and test branches.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,1027 @@
+Gauge Specification Execution Log
+Started: 2026-01-21T20:19:55.183663Z
+Command: /usr/local/bin/gauge run specs
+================================================================================
+
+Compatible version of plugin python not found. Installing plugin python...
+.
+Successfully installed plugin 'python' version 0.5.0
+Compatible version of plugin html-report not found. Installing plugin html-report...
+.......................
+Successfully installed plugin 'html-report' version 4.4.0
+Installing required plugins.
+.....................
+Successfully installed plugin 'screenshot' version 0.3.2
+WARNING: The scripts debugpy and debugpy-adapter are installed in '/github/home/.local/bin' which is not on PATH.
+Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Python: 3.12.12
+[ValidationError] /__w/Viewer/Viewer/specs/ai_editor.spec:19 Step implementation not found => 'When I submit a form post to /ai_editor with payload '\{"request_text": "Hello", "context_data": \{"foo": "bar"\}\}''
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:11 Step implementation not found => 'And a CID containing "raw-data"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:26 Step implementation not found => 'And a CID containing "initial"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:33 Step implementation not found => 'And a CID containing "# Gauge Markdown"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:34 Step implementation not found => 'When I request the resource /markdown/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:42 Step implementation not found => 'And a CID containing "# Wrapped Markdown"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:43 Step implementation not found => 'When I request the resource /md-wrapper/markdown/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:50 Step implementation not found => 'And a CID containing "echo gauge shell"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:51 Step implementation not found => 'When I request the resource /shell/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:59 Step implementation not found => 'And a CID containing "echo wrapped shell"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:60 Step implementation not found => 'When I request the resource /shell-wrapper/shell/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:67 Step implementation not found => 'And a CID containing "Gauge adjustment"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:68 Step implementation not found => 'When I request the resource /ai_stub/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:76 Step implementation not found => 'And a CID containing "Gauge wrapper"'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:77 Step implementation not found => 'When I request the resource /ai-wrapper/ai_stub/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:84 Step implementation not found => 'When I request the resource /\{stored CID\}.py/next'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:90 Step implementation not found => 'When I request the resource /\{stored CID\}.sh/more'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:96 Step implementation not found => 'When I request the resource /\{bash server CID\}.sh/\{python server CID\}.py/final'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:102 Step implementation not found => 'When I request the resource /\{python server CID\}.py/\{bash server CID\}.sh/finish'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:109 Step implementation not found => 'When I request the resource /\{python server CID\}.py/\{clojure server CID\}.clj/final'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:116 Step implementation not found => 'When I request the resource /\{bash server CID\}.sh/\{clojure server CID\}.clj/result'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:139 Step implementation not found => 'When I request the resource /\{clojure CID\}/tail'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:145 Step implementation not found => 'When I request the resource /\{python server CID\}.py/\{clojurescript server CID\}.cljs/final'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:152 Step implementation not found => 'When I request the resource /\{bash server CID\}.sh/\{clojurescript server CID\}.cljs/result'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:176 Step implementation not found => 'When I request the resource /cljs-chain/\{python server CID\}.py/output'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:181 Step implementation not found => 'When I request the resource /\{clojurescript CID\}/tail'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:187 Step implementation not found => 'When I request the resource /\{python server CID\}.py/\{typescript server CID\}.ts/final'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:194 Step implementation not found => 'When I request the resource /\{bash server CID\}.sh/\{typescript server CID\}.ts/result'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:218 Step implementation not found => 'When I request the resource /ts-chain/\{python server CID\}.py/output'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:223 Step implementation not found => 'When I request the resource /\{typescript CID\}/tail'
+[ValidationError] /__w/Viewer/Viewer/specs/server_command_chaining.spec:228 Step implementation not found => 'When I request the resource /\{typescript CID\}.ts/tail'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:8 Step implementation not found => 'Given there is a variable named city with value San Francisco'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:9 Step implementation not found => 'And there is a secret named api_key with value test-key-123'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:10 Step implementation not found => 'And there is a server named weather_service with main parameters city and api_key'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:19 Step implementation not found => 'Given there is a variable named city with value San Francisco'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:20 Step implementation not found => 'And there is a variable named country with value USA'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:21 Step implementation not found => 'And there is a secret named api_key with value test-key-123'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:22 Step implementation not found => 'And there is a server named weather_service with main parameters city and api_key'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:27 Step implementation not found => 'The page should not contain /variables/country'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:32 Step implementation not found => 'Given there is a variable named city with value San Francisco'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:33 Step implementation not found => 'And there is a server named echo_service with main parameter message'
+[ValidationError] /__w/Viewer/Viewer/specs/servers_list_dependencies.spec:37 Step implementation not found => 'The page should not contain /variables/city'
+[ValidationError] /__w/Viewer/Viewer/specs/cookie_editor.spec:5 Step implementation not found => 'When I request the page /cookies'
+[ValidationError] /__w/Viewer/Viewer/specs/cookie_editor.spec:6 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/cookie_editor.spec:13 Step implementation not found => 'When I request the page /cookies'
+[ValidationError] /__w/Viewer/Viewer/specs/cookie_editor.spec:14 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/server_view.spec:15 Step implementation not found => 'The page should contain Config'
+[ValidationError] /__w/Viewer/Viewer/specs/server_view.spec:16 Step implementation not found => 'The page should contain Named value configuration'
+[ValidationError] /__w/Viewer/Viewer/specs/server_view.spec:17 Step implementation not found => 'The page should contain No named values were detected for this server.'
+[ValidationError] /__w/Viewer/Viewer/specs/ai_actions_menu.spec:5 Step implementation not found => 'Navigate to "/upload"'
+[ValidationError] /__w/Viewer/Viewer/specs/ai_actions_menu.spec:6 Step implementation not found => 'Page contains "AI request editor"'
+[ValidationError] /__w/Viewer/Viewer/specs/ai_actions_menu.spec:7 Step implementation not found => 'Page contains "AI action editor"'
+[ValidationError] /__w/Viewer/Viewer/specs/ai_actions_menu.spec:8 Step implementation not found => 'Page contains "Sample AI server"'
+[ValidationError] /__w/Viewer/Viewer/specs/ai_actions_menu.spec:9 Step implementation not found => 'Page contains "About AI"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:9 Step implementation not found => 'And a CID containing "word1 word2 word3"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:10 Step implementation not found => 'When I request the awk server with pattern "\{print $1\}" and the stored CID'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:17 Step implementation not found => 'And a CID containing "\{print $2\}" as pattern_cid'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:18 Step implementation not found => 'And a CID containing "a1 b1 c1"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:27 Step implementation not found => 'And a CID containing "hello world"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:28 Step implementation not found => 'When I request the resource /awk-wrapper/awk/%7Bprint%20$1%7D/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:35 Step implementation not found => 'And a CID containing "hello world"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:36 Step implementation not found => 'When I request the sed server with expression "s/world/universe/" and the stored CID'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:44 Step implementation not found => 'And a CID containing "foo bar"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:45 Step implementation not found => 'When I request the resource /sed-wrapper/sed/s%2Fbar%2Fbaz%2F/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:53 Step implementation not found => 'When I request the grep server with pattern "apple" and the stored CID'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:56 Step implementation not found => 'And the CID content should not contain "banana"'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:63 Step implementation not found => 'When I request the resource /grep-wrapper/grep/apple/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:71 Step implementation not found => 'And a CID containing JSON data '\{"name": "test", "value": 42\}''
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:72 Step implementation not found => 'When I request the jq server with filter ".name" and the stored CID'
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:80 Step implementation not found => 'And a CID containing JSON data '\{"key": "secret"\}''
+[ValidationError] /__w/Viewer/Viewer/specs/bash_path_parameters.spec:81 Step implementation not found => 'When I request the resource /jq-wrapper/jq/.key/\{stored CID\}'
+[ValidationError] /__w/Viewer/Viewer/specs/github_pr_integration.spec:5 Step implementation not found => 'When I export the server to a GitHub PR with mock repository "owner/repo"'
+[ValidationError] /__w/Viewer/Viewer/specs/github_pr_integration.spec:10 Step implementation not found => 'Given a GitHub PR with mock URL containing a server named "imported-server"'
+[ValidationError] /__w/Viewer/Viewer/specs/github_pr_integration.spec:18 Step implementation not found => 'Then I should see an error message "GitHub token is required"'
+[ValidationError] /__w/Viewer/Viewer/specs/github_pr_integration.spec:23 Step implementation not found => 'Then I should see an error message "does not modify the boot image file"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:10 Step implementation not found => 'And a CID containing "test-input"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:13 Step implementation not found => 'And the response should contain 2 segment entries'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:14 Step implementation not found => 'And segment 0 should have type "server"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:15 Step implementation not found => 'And segment 0 should have server_name "echo"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:16 Step implementation not found => 'And segment 1 should have type "cid"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:17 Step implementation not found => 'And segment 1 should have is_valid_cid true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:23 Step implementation not found => 'When I request /second/first?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:25 Step implementation not found => 'And the response should contain 2 segment entries'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:26 Step implementation not found => 'And segment 0 should have server_name "second"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:27 Step implementation not found => 'And segment 1 should have server_name "first"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:34 Step implementation not found => 'When I request /s3/s2/s1?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:36 Step implementation not found => 'And the response should contain 3 segment entries'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:37 Step implementation not found => 'And segment 0 should have server_name "s3"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:38 Step implementation not found => 'And segment 1 should have server_name "s2"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:39 Step implementation not found => 'And segment 2 should have server_name "s1"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:44 Step implementation not found => 'When I request /simple/input?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:51 Step implementation not found => 'When I request /echo/input?debug=1'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:58 Step implementation not found => 'When I request /echo/input?debug=yes'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:65 Step implementation not found => 'When I request /echo/input?debug=on'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:72 Step implementation not found => 'When I request /echo/input?debug=TRUE'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:79 Step implementation not found => 'When I request /echo/input?debug=random'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:87 Step implementation not found => 'When I request /s2/s1?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:89 Step implementation not found => 'And segment 1 should have intermediate_output "first"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:90 Step implementation not found => 'And the response final_output should contain "second:"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:94 Step implementation not found => 'Given a CID containing "some content"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:95 Step implementation not found => 'When I request /nonexistent-server/\{stored CID\}?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:97 Step implementation not found => 'And segment 0 should have type "server"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:98 Step implementation not found => 'And segment 0 should have errors containing "server not found"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:103 Step implementation not found => 'When I request /solo?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:106 Step implementation not found => 'And segment 0 should have type "server"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:111 Step implementation not found => 'When I request /py-server/input?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:113 Step implementation not found => 'And segment 0 should have implementation_language "python"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:118 Step implementation not found => 'When I request /chain-test/input?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:120 Step implementation not found => 'And segment 0 should have supports_chaining true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:125 Step implementation not found => 'When I request /valid/input?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:131 Step implementation not found => 'When I request /nonexistent-server/input?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:140 Step implementation not found => 'And segment 0 should have resolution_type "execution"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:145 Step implementation not found => 'When I request /param-test/my-parameter?debug=true'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:147 Step implementation not found => 'And segment 1 should have type "parameter"'
+[ValidationError] /__w/Viewer/Viewer/specs/pipeline_debug.spec:148 Step implementation not found => 'And segment 1 should have resolution_type "literal"'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:8 Step implementation not found => 'When I request the resource /gateway'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:9 Step implementation not found => 'Then the response content type should be "text/html"'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:17 Step implementation not found => 'When I request the resource /gateway'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:28 Step implementation not found => 'When I request the resource /gateway'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:34 Step implementation not found => 'When I request the resource /gateway'
+[ValidationError] /__w/Viewer/Viewer/specs/gateway.spec:42 Step implementation not found => 'When I request the resource /gateway'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:9 Step implementation not found => 'Navigate to "/aliases/ai"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:10 Step implementation not found => 'Page contains "No additional UIs"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:11 Step implementation not found => 'Page contains "Configure custom UIs"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:12 Step implementation not found => 'Page contains "/variables/uis"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:18 Step implementation not found => 'Navigate to "/servers/ai_stub"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:19 Step implementation not found => 'Click on "Details" tab'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:20 Step implementation not found => 'Page contains "No additional UIs"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:21 Step implementation not found => 'Page contains "/variables/uis"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:27 Step implementation not found => 'Navigate to "/variables/templates"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:28 Step implementation not found => 'Page contains "No additional UIs"'
+[ValidationError] /__w/Viewer/Viewer/specs/ui_suggestions.spec:29 Step implementation not found => 'Page contains "/variables/uis"'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:64 Step implementation not found => 'When I navigate to /urleditor in a browser'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:79 Step implementation not found => 'When I navigate to /urleditor in a browser'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:91 Step implementation not found => 'When I navigate to /urleditor#/echo/markdown/shell'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:100 Step implementation not found => 'When I navigate to /urleditor in a browser'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:101 Step implementation not found => 'And I enter a URL chain with 5 path elements'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:102 Step implementation not found => 'Then all 5 preview rows should be displayed'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:106 Step implementation not found => 'And the URL fragment should contain all 5 path elements'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:110 Step implementation not found => 'When I navigate to /urleditor#/echo/test'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:116 Step implementation not found => 'When I navigate to /urleditor#/echo/test'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:122 Step implementation not found => 'When I navigate to /urleditor in a browser'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:123 Step implementation not found => 'And I enter "echo" on line 1'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:124 Step implementation not found => 'And I enter "markdown" on line 2'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:125 Step implementation not found => 'And I enter "shell" on line 3'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:127 Step implementation not found => 'And there should be 3 preview rows displayed'
+[ValidationError] /__w/Viewer/Viewer/specs/urleditor.spec:131 Step implementation not found => 'When I navigate to /urleditor in a browser'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:4 Step implementation not found => 'Given there is an alias named "test-alias" pointing to /test-target'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:6 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:14 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:19 Step implementation not found => 'Given there is an enabled alias named "active-alias" pointing to /active'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:21 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:25 Step implementation not found => 'Given there is an alias named "def-test" pointing to /definition-target'
+[ValidationError] /__w/Viewer/Viewer/specs/alias_view.spec:27 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:13 Step implementation not found => 'When I POST to /aliases/new with form data name "test-alias" and target "/test"'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:27 Step implementation not found => 'Given authorization is configured to reject requests with 401'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:28 Step implementation not found => 'When I request the page /api/test with Accept header "application/json"'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:36 Step implementation not found => 'Given authorization is configured to reject requests with 403'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:37 Step implementation not found => 'When I request the page / with Accept header "text/html"'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:44 Step implementation not found => 'Given authorization is configured to reject requests with 401'
+[ValidationError] /__w/Viewer/Viewer/specs/authorization.spec:45 Step implementation not found => 'When I request the page /test with Accept header "text/plain"'
+[ValidationError] /__w/Viewer/Viewer/specs/cid_editor.spec:11 Step implementation not found => 'When I request the page /variables/test-cid-var/edit'
+[ValidationError] /__w/Viewer/Viewer/specs/default_boot_servers.spec:8 Duplicate step implementation => 'Then the response status should be 200'
+[ValidationError] /__w/Viewer/Viewer/specs/default_boot_servers.spec:16 Duplicate step implementation => 'Then the response status should be 200'
+Suggestions for fixing `Duplicate step implementation` errors.
+
+Multiple implementations found for `Then the response status should be 200`
+/__w/Viewer/Viewer/step_impl/alias_steps.py:644
+
+   ...
+
+/__w/Viewer/Viewer/step_impl/content_verification_steps.py:12
+
+   ...
+
+Add the following missing implementations to fix `Step implementation not found` errors.
+
+@step("When I request the page /cookies")
+def onrxci():
+    assert False, "Add implementation code"
+
+@step("Navigate to </upload>")
+def navigate_to(arg1):
+    assert False, "Add implementation code"
+
+@step("Page contains <AI request editor>")
+def page_contains(arg1):
+    assert False, "Add implementation code"
+
+@step("And a CID containing <word1 word2 word3>")
+def and_a_cid_containing(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request the awk server with pattern <{print $1}> and the stored CID")
+def when_i_request_the_awk_server_with_pattern_and_the_stored_cid(arg1):
+    assert False, "Add implementation code"
+
+@step("And a CID containing <{print $2}> as pattern_cid")
+def and_a_cid_containing_as_pattern_cid(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request the resource /awk-wrapper/awk/%!B(MISSING)print%!$(MISSING)1%!D(MISSING)/{stored CID}")
+def qmitjc():
+    assert False, "Add implementation code"
+
+@step("When I request the sed server with expression <s/world/universe/> and the stored CID")
+def when_i_request_the_sed_server_with_expression_and_the_stored_cid(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request the resource /sed-wrapper/sed/s%!F(MISSING)bar%!F(MISSING)baz%!F(MISSING)/{stored CID}")
+def qwysle():
+    assert False, "Add implementation code"
+
+@step("When I request the grep server with pattern <apple> and the stored CID")
+def when_i_request_the_grep_server_with_pattern_and_the_stored_cid(apple):
+    assert False, "Add implementation code"
+
+@step("And the CID content should not contain <banana>")
+def and_the_cid_content_should_not_contain(banana):
+    assert False, "Add implementation code"
+
+@step("When I request the resource /grep-wrapper/grep/apple/{stored CID}")
+def zeqymu():
+    assert False, "Add implementation code"
+
+@step("And a CID containing JSON data '{<name>: <test>, <value>: 42}'")
+def befiyr(name, test, value):
+    assert False, "Add implementation code"
+
+@step("When I request the jq server with filter <.name> and the stored CID")
+def when_i_request_the_jq_server_with_filter_and_the_stored_cid(arg1):
+    assert False, "Add implementation code"
+
+@step("And a CID containing JSON data '{<key>: <secret>}'")
+def quoliv(key, secret):
+    assert False, "Add implementation code"
+
+@step("When I request the resource /jq-wrapper/jq/.key/{stored CID}")
+def wvcrlh():
+    assert False, "Add implementation code"
+
+@step("When I export the server to a GitHub PR with mock repository <owner/repo>")
+def when_i_export_the_server_to_a_github_pr_with_mock_repository(arg1):
+    assert False, "Add implementation code"
+
+@step("Given a GitHub PR with mock URL containing a server named <imported-server>")
+def given_a_github_pr_with_mock_url_containing_a_server_named(arg1):
+    assert False, "Add implementation code"
+
+@step("Then I should see an error message <GitHub token is required>")
+def then_i_should_see_an_error_message(arg1):
+    assert False, "Add implementation code"
+
+@step("And the response should contain 2 segment entries")
+def and_the_response_should_contain_2_segment_entries():
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have type <server>")
+def and_segment_0_should_have_type(server):
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have server_name <echo>")
+def and_segment_0_should_have_server_name(echo):
+    assert False, "Add implementation code"
+
+@step("And segment 1 should have type <cid>")
+def and_segment_1_should_have_type(cid):
+    assert False, "Add implementation code"
+
+@step("And segment 1 should have is_valid_cid true")
+def and_segment_1_should_have_is_valid_cid_true():
+    assert False, "Add implementation code"
+
+@step("When I request /second/first?debug=true")
+def ngpqmi():
+    assert False, "Add implementation code"
+
+@step("And segment 1 should have server_name <first>")
+def and_segment_1_should_have_server_name(first):
+    assert False, "Add implementation code"
+
+@step("When I request /s3/s2/s1?debug=true")
+def ktfzui():
+    assert False, "Add implementation code"
+
+@step("And the response should contain 3 segment entries")
+def and_the_response_should_contain_3_segment_entries():
+    assert False, "Add implementation code"
+
+@step("And segment 2 should have server_name <s1>")
+def and_segment_2_should_have_server_name(s1):
+    assert False, "Add implementation code"
+
+@step("When I request /simple/input?debug=true")
+def njyoic():
+    assert False, "Add implementation code"
+
+@step("When I request /echo/input?debug=1")
+def faikxg():
+    assert False, "Add implementation code"
+
+@step("When I request /echo/input?debug=yes")
+def aagkbu():
+    assert False, "Add implementation code"
+
+@step("When I request /echo/input?debug=on")
+def apgyyj():
+    assert False, "Add implementation code"
+
+@step("When I request /echo/input?debug=TRUE")
+def upyzyl():
+    assert False, "Add implementation code"
+
+@step("When I request /echo/input?debug=random")
+def tpaane():
+    assert False, "Add implementation code"
+
+@step("When I request /s2/s1?debug=true")
+def dnhqlh():
+    assert False, "Add implementation code"
+
+@step("And segment 1 should have intermediate_output <first>")
+def and_segment_1_should_have_intermediate_output(first):
+    assert False, "Add implementation code"
+
+@step("And the response final_output should contain <second:>")
+def and_the_response_final_output_should_contain(arg1):
+    assert False, "Add implementation code"
+
+@step("Given a CID containing <some content>")
+def given_a_cid_containing(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request /nonexistent-server/{stored CID}?debug=true")
+def ffzhfk():
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have errors containing <server not found>")
+def and_segment_0_should_have_errors_containing(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request /solo?debug=true")
+def cngfhs():
+    assert False, "Add implementation code"
+
+@step("When I request /py-server/input?debug=true")
+def qdfqza():
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have implementation_language <python>")
+def and_segment_0_should_have_implementation_language(python):
+    assert False, "Add implementation code"
+
+@step("When I request /chain-test/input?debug=true")
+def nfsrdj():
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have supports_chaining true")
+def and_segment_0_should_have_supports_chaining_true():
+    assert False, "Add implementation code"
+
+@step("When I request /valid/input?debug=true")
+def kqcuxd():
+    assert False, "Add implementation code"
+
+@step("When I request /nonexistent-server/input?debug=true")
+def gomfyg():
+    assert False, "Add implementation code"
+
+@step("And segment 0 should have resolution_type <execution>")
+def and_segment_0_should_have_resolution_type(execution):
+    assert False, "Add implementation code"
+
+@step("When I request /param-test/my-parameter?debug=true")
+def zzkmil():
+    assert False, "Add implementation code"
+
+@step("And segment 1 should have resolution_type <literal>")
+def and_segment_1_should_have_resolution_type(literal):
+    assert False, "Add implementation code"
+
+@step("The page should contain Config")
+def the_page_should_contain_config():
+    assert False, "Add implementation code"
+
+@step("The page should contain Named value configuration")
+def the_page_should_contain_named_value_configuration():
+    assert False, "Add implementation code"
+
+@step("The page should contain No named values were detected for this server.")
+def lokbok():
+    assert False, "Add implementation code"
+
+@step("Click on <Details> tab")
+def click_on_tab(Details):
+    assert False, "Add implementation code"
+
+@step("When I navigate to /urleditor in a browser")
+def fsxgtj():
+    assert False, "Add implementation code"
+
+@step("When I navigate to /urleditor#/echo/markdown/shell")
+def goeqmp():
+    assert False, "Add implementation code"
+
+@step("And I enter a URL chain with 5 path elements")
+def and_i_enter_a_url_chain_with_5_path_elements():
+    assert False, "Add implementation code"
+
+@step("Then all 5 preview rows should be displayed")
+def then_all_5_preview_rows_should_be_displayed():
+    assert False, "Add implementation code"
+
+@step("And the URL fragment should contain all 5 path elements")
+def and_the_url_fragment_should_contain_all_5_path_elements():
+    assert False, "Add implementation code"
+
+@step("When I navigate to /urleditor#/echo/test")
+def kijwcs():
+    assert False, "Add implementation code"
+
+@step("And I enter <echo> on line 1")
+def and_i_enter_on_line_1(echo):
+    assert False, "Add implementation code"
+
+@step("And I enter <markdown> on line 2")
+def and_i_enter_on_line_2(markdown):
+    assert False, "Add implementation code"
+
+@step("And I enter <shell> on line 3")
+def and_i_enter_on_line_3(shell):
+    assert False, "Add implementation code"
+
+@step("And there should be 3 preview rows displayed")
+def and_there_should_be_3_preview_rows_displayed():
+    assert False, "Add implementation code"
+
+@step("Given there is an alias named <test-alias> pointing to /test-target")
+def xbmjce(arg1):
+    assert False, "Add implementation code"
+
+@step("Given there is an enabled alias named <active-alias> pointing to /active")
+def djdeiz(arg1):
+    assert False, "Add implementation code"
+
+@step("Given there is an alias named <def-test> pointing to /definition-target")
+def sxxfak(arg1):
+    assert False, "Add implementation code"
+
+@step("When I POST to /aliases/new with form data name <test-alias> and target </test>")
+def frqgqf(arg1, arg2):
+    assert False, "Add implementation code"
+
+@step("Given authorization is configured to reject requests with 401")
+def given_authorization_is_configured_to_reject_requests_with_401():
+    assert False, "Add implementation code"
+
+@step("When I request the page /api/test with Accept header <application/json>")
+def dsdram(arg1):
+    assert False, "Add implementation code"
+
+@step("Given authorization is configured to reject requests with 403")
+def given_authorization_is_configured_to_reject_requests_with_403():
+    assert False, "Add implementation code"
+
+@step("When I request the page / with Accept header <text/html>")
+def dntoov(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request the page /test with Accept header <text/plain>")
+def qbkiil(arg1):
+    assert False, "Add implementation code"
+
+@step("When I request the page /variables/test-cid-var/edit")
+def fnhtdn():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /gateway")
+def byyrkr():
+    assert False, "Add implementation code"
+
+@step("Then the response content type should be <text/html>")
+def then_the_response_content_type_should_be(arg1):
+    assert False, "Add implementation code"
+
+@step("When I submit a form post to /ai_editor with payload '{<request_text>: <Hello>, <context_data>: {<foo>: <bar>}}'")
+def vtwqms(request_text, Hello, context_data, foo, bar):
+    assert False, "Add implementation code"
+
+@step("When I request the resource /markdown/{stored CID}")
+def humvqh():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /md-wrapper/markdown/{stored CID}")
+def lpnpjh():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /shell/{stored CID}")
+def agunlz():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /shell-wrapper/shell/{stored CID}")
+def jkyftf():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /ai_stub/{stored CID}")
+def iudydp():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /ai-wrapper/ai_stub/{stored CID}")
+def otmgty():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{stored CID}.py/next")
+def jfzfzr():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{stored CID}.sh/more")
+def digvou():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{bash server CID}.sh/{python server CID}.py/final")
+def edukbu():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{python server CID}.py/{bash server CID}.sh/finish")
+def bbjfhs():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{python server CID}.py/{clojure server CID}.clj/final")
+def gkthqr():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/result")
+def hhadnh():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{clojure CID}/tail")
+def qobmyd():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/final")
+def dmywtj():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/result")
+def nuzrcp():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /cljs-chain/{python server CID}.py/output")
+def rnvbzo():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{clojurescript CID}/tail")
+def dlmugx():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{python server CID}.py/{typescript server CID}.ts/final")
+def ceevhk():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/result")
+def nlsbdi():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /ts-chain/{python server CID}.py/output")
+def kmrddc():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{typescript CID}/tail")
+def grmrvs():
+    assert False, "Add implementation code"
+
+@step("When I request the resource /{typescript CID}.ts/tail")
+def upavjt():
+    assert False, "Add implementation code"
+
+@step("Given there is a variable named city with value San Francisco")
+def given_there_is_a_variable_named_city_with_value_san_francisco():
+    assert False, "Add implementation code"
+
+@step("And there is a secret named api_key with value test-key-123")
+def umrpti():
+    assert False, "Add implementation code"
+
+@step("And there is a server named weather_service with main parameters city and api_key")
+def and_there_is_a_server_named_weather_service_with_main_parameters_city_and_api_key():
+    assert False, "Add implementation code"
+
+@step("And there is a variable named country with value USA")
+def and_there_is_a_variable_named_country_with_value_usa():
+    assert False, "Add implementation code"
+
+@step("The page should not contain /variables/country")
+def ljebve():
+    assert False, "Add implementation code"
+
+@step("And there is a server named echo_service with main parameter message")
+def and_there_is_a_server_named_echo_service_with_main_parameter_message():
+    assert False, "Add implementation code"
+
+@step("The page should not contain /variables/city")
+def bevlkb():
+    assert False, "Add implementation code"
+
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+/__w/Viewer/Viewer/step_impl/bash_path_params_steps.py:20: SyntaxWarning: invalid escape sequence '\{'
+"""Convert spec-escaped braces (\{, \}) back into literal braces."""
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:boot_cid_importer:Boot CID AAAAAJGu7xoF-rc09qrmS8lEgXkIcAiFz3g22lF-S9GSgw9LUUjbagmpLhhW_Nh86g74hW_6xBAN00_CqSOsIaqVHTqkvw does not reference any other CIDs
+INFO:boot_cid_importer:Boot CID import successful: Imported 5 aliases, 229 servers, 4 variables
+Snapshot export generated:
+CID: AAAADqmJ4liBkIgLkxQVrhb-afk6RCl0JiAfBkZUU_aYVkNgNzGV5h5L1U9o0PppXSVPqqqbzAd3ndmLf8tGhVz1OfowFg
+[0;36m# AI Request Editor Server
+[0m[0;33m  ## Server is available in default boot image	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Accessing ai_editor shows the editor page	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m/__w/Viewer/Viewer/server_execution/server_lookup.py:131: LogfireNotConfiguredWarning: No logs or spans will be created until `logfire.configure()` has been called. Set the environment variable LOGFIRE_IGNORE_NO_CONFIG=1 or add ignore_no_config=true in pyproject.toml to suppress this warning.
+return execute_server_code(server, server_name)
+[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>AI Request Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <l…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:58747/devtools/browser/9ac2e1fe-c257-4ffb-86e3-591ea2a46a31
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Navigation and information menu are present	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>AI Request Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <l…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:35503/devtools/browser/68901f79-2a7f-4196-8340-625049166549
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Server rejects being used in a chain	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/plain, sample='The AI request editor cannot be used in a server chain. Access it directly at /ai_editor.'
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:54233/devtools/browser/a60bec6a-3fd6-4b39-8b54-941f02128e8d
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Alias management
+[0m[0;33m  ## Users can create aliases through the form	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:45525/devtools/browser/05fdd621-486a-4a9a-8b83-77ed6ddb56fb
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:44363/devtools/browser/822b89ee-8b43-43a9-bb2c-199fd42acbf5
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m
+[0m[0;33m  ## Users can edit existing aliases	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:58155/devtools/browser/e379aa7e-3806-43de-a34b-179cc5266013
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:39227/devtools/browser/5a7985c5-3132-4cf0-a89a-469c5060bcdb
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m
+[0m[0;33m  ## Users can view alias details	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:39715/devtools/browser/48061e37-2584-4403-a488-8701caeba5b8
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Aliases list shows available shortcuts	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:44893/devtools/browser/33cc5c35-319f-45cb-aa78-c16daa8c6127
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Alias form responds the same for all users	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:49989/devtools/browser/fb1919cd-9bad-46de-a3a4-0d4195f3bffb
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:46667/devtools/browser/03344fb0-81a2-48c0-bb78-344186f60d70
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Alias view
+[0m[0;36m# Authorization
+[0m[0;33m  ## All requests pass through authorization check	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:37927/devtools/browser/a6f7d1f9-5a9e-48a8-880f-2e639b8558d5
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:48323/devtools/browser/05800cb4-0325-4e93-9702-4caab80dab40
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:33447/devtools/browser/4eeae115-0545-4198-a211-9087cb990305
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Authorization allows API requests	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Source link in footer points to authorization module	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:39037/devtools/browser/0638657c-c1d6-418e-88a7-dd5b65ec1682
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Bash path parameters
+[0m[0;33m  ## Standard bash server without $1 still works	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_server_code: output_type=bytes, content_type=text/plain, sample=b'Simple bash output\ninput data'
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# CID Editor Controls
+[0m[0;33m  ## Editor shows convert to CID button for regular content	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:35373/devtools/browser/d735bf10-2dbb-4dec-b86d-3ce480fa954d
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## CID check API returns not_a_cid for regular text	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## CID check API returns content_embedded for small CID	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## CID generate API creates CID for content	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Content negotiation
+[0m[0;33m  ## Extension overrides provide alternate representations	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Detail endpoints expose structured JSON and XML	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Accept headers request alternate representations	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Cookie editor
+[0m[0;36m# Default boot servers
+[0m[0;36m# Gateway Server
+[0m[0;36m# Import and export
+[0m[0;33m  ## Users can transport functionality between sites	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+WARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:38825/devtools/browser/335c9194-ab87-4bcf-bb93-8f23278f3403
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:52135/devtools/browser/008aa359-78b9-41a8-8df1-bb08250edd17
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/plain, sample='Hello from origin'
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:37473/devtools/browser/8d61f9bf-e19f-478f-8c30-e2b53d5b880d
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m
+[0m
+[0m[0;36m# Meta navigation
+[0m[0;33m  ## Info icon opens navigation shortcuts	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:37815/devtools/browser/176d1b96-48ed-4953-98fb-da291e4ce1dc
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Pipeline Debug Mode
+[0m[0;36m# Profile page
+[0m[0;33m  ## Default workspace profile is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:50113/devtools/browser/f1993f3f-4063-4c1c-8481-6ba2c953d7c2
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Routes overview page
+[0m[0;33m  ## Routes overview highlights available route types	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:54887/devtools/browser/3e69b2d2-df86-4a37-9c89-e80110f8f460
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Search page
+[0m[0;33m  ## Search page is accessible with filters	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:56805/devtools/browser/72a53d74-d477-44dc-b8a5-867f9c0058e1
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Secret form page
+[0m[0;33m  ## Secret form is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:51673/devtools/browser/f9c8efdf-1234-47df-b636-3ebc1197853f
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Secrets page
+[0m[0;33m  ## Secrets list is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:43453/devtools/browser/961ac93f-3173-432d-a863-e695d044e7ce
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Server command chaining
+[0m[0;33m  ## Two servers chain together	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/plain, sample='from-first:hello'
+[server_execution] execute_server_code: output_type=str, content_type=text/plain, sample='from-first:hello'
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Bash CID literal output chains into clojure CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_bash_code: output_type=bytes, content_type=text/plain, sample=b'bash->clj\n'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'clj:bash->clj\n'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Python CID literal output chains into clojure CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'clj:py->clj'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Clojure CID literal output chains into clojure CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_clojure_code: output_type=bytes, content_type=text/plain, sample=b'clj-right'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'clj:clj-right'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## ClojureScript CID literal output chains into clojurescript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_clojurescript_code: output_type=bytes, content_type=text/plain, sample=b'cljs-right'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'cljs:cljs-right'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Python CID literal output chains into clojurescript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'cljs:py->cljs'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Bash CID literal output chains into clojurescript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_bash_code: output_type=bytes, content_type=text/plain, sample=b'bash->cljs\n'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'cljs:bash->cljs\n'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## TypeScript CID literal output chains into TypeScript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_typescript_code: output_type=bytes, content_type=text/plain, sample=b'ts-right'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:ts-right'
+[server_execution] execute_typescript_code: output_type=bytes, content_type=text/plain, sample=b'ts-right'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:ts-right'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Python CID literal output chains into TypeScript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:py->ts'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:py->ts'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Bash CID literal output chains into TypeScript CID literal	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_bash_code: output_type=bytes, content_type=text/plain, sample=b'bash->ts\n'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:bash->ts\n'
+[server_execution] execute_bash_code: output_type=bytes, content_type=text/plain, sample=b'bash->ts\n'
+[server_execution] execute_literal_server: output_type=bytes, content_type=text/plain, sample=b'ts:bash->ts\n'
+[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Server events page
+[0m[0;33m  ## Server events dashboard is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:58547/devtools/browser/55916d3c-9b47-4e4f-8099-6ec9e0ab7204
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Server form page
+[0m[0;33m  ## New server form is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:59095/devtools/browser/20690708-e133-44fa-a686-ae88ad014008
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Server form stays available without a user session	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:47417/devtools/browser/8db05fd8-4182-4d29-b560-4b053355892f
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:60001/devtools/browser/7385288a-cc24-47c6-84e7-ab9b0ebe9a00
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Server detail page
+[0m[0;33m  ## Server detail page is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:49365/devtools/browser/0184e264-9a61-48d6-bb9e-2af7966fe4e1
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Servers list page dependencies
+[0m[0;36m# Settings page
+[0m[0;33m  ## Settings dashboard lists resource management links	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:59787/devtools/browser/a8620050-eb65-4794-88e8-4dcdb27f57a5
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Source browser
+[0m[0;33m  ## Source listing renders	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:43813/devtools/browser/d7f27c78-403c-44b4-9f3f-9de10113d987
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# Template Creation and Usage
+[0m[0;33m  ## Template creation specs point to integration tests	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:36179/devtools/browser/d899e87a-49e4-4588-bb08-26a83bc029da
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## New alias form is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:41581/devtools/browser/dd0f4f6e-d48f-431e-a645-c25acee6cf77
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## New variable form is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:53333/devtools/browser/980ccee7-9e02-4378-a6da-d9be3ce954f7
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## New server form is accessible	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:49339/devtools/browser/cfc246e4-e877-48cf-99ac-2436c03c16d0
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# UI Suggestions
+[0m[0;36m# Upload Templates
+[0m[0;33m  ## Upload page displays template options when configured	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:47719/devtools/browser/7d60f0c7-ed04-4ff5-8432-e43995d21f33
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Upload page shows template status link	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:54513/devtools/browser/23745b3a-4d95-44b7-a0f2-933925bec26a
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Upload page hides templates when none configured	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:58471/devtools/browser/a6fc6e6f-c93e-4caa-8889-4a21c77aedf5
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Template content populates text field when selected	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:60503/devtools/browser/61883460-5695-4c97-8e2c-8c11df91d34b
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Embedded CID execution guide is listed	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:50215/devtools/browser/b3a4cdee-6a21-43b8-89b4-4d5a6e0713d3
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Upload templates support CID references	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:59671/devtools/browser/1cb8b4cd-8533-492c-a5a7-5b11280dd0cb
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0m[0;36m# URL Editor Server
+[0m[0;33m  ## Server is available in default boot image	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Accessing urleditor without parameters shows editor page	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:60083/devtools/browser/6d9ada48-3d7b-4d21-afb8-89396c3707b3
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Accessing urleditor with subpath redirects to fragment	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0mINFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:35315/devtools/browser/5598bdaa-51a7-44d6-857a-5fe0a903d91b
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## Server rejects being used in a chain	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/plain, sample='The urleditor server does not support URL chaining. Access it directly at /urleditor or /urleditor#<url-to-edit>'
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:49025/devtools/browser/56638307-09de-4098-be50-e716f94e7e43
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor page has required elements	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:40611/devtools/browser/0df49e25-1b20-48f6-8f2f-1b2480a28dad
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor page includes Ace editor	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:35525/devtools/browser/82ccd924-031b-4c2f-93d9-db0ade3b106e
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor JavaScript handles URL normalization	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:48801/devtools/browser/e58fdff7-5c98-466d-9215-1980161d2c3b
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor has three-column layout	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:45751/devtools/browser/8a705997-e1fc-4420-a8bd-c3fe01148ee2
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor uses /meta endpoint for segment information	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:32905/devtools/browser/3a4ae668-5286-40db-b464-bce0eeab9533
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m[0;33m  ## URL Editor has verbose hover text for indicators	[0mWARNING:app:Logfire is not enabled, skipping logfire instrumentation
+INFO:root:Database tables created
+[0;32m ✔[0m[server_execution] execute_server_code: output_type=str, content_type=text/html, sample='<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>URL Editor</title>\n    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n    <link hre…
+INFO:pyppeteer.launcher:Browser listening on: ws://127.0.0.1:41829/devtools/browser/70430b8b-864f-48ab-bf2e-6f2f165a33a2
+INFO:pyppeteer.launcher:terminate chrome process...
+[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m[0;32m ✔[0m
+[0m
+[0mSuccessfully generated html-report to => /__w/Viewer/Viewer/reports/html-report/index.html
+
+Specifications:	22 executed	22 passed	0 failed	9 skipped
+Scenarios:	63 executed	63 passed	0 failed	90 skipped
+
+Total time taken: 1m21.639s
+Updates are available. Run `gauge update -c` for more info.
+
+================================================================================
+Completed: 2026-01-21T20:21:31.412179Z
+Exit code: 0

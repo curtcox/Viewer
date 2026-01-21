@@ -1,0 +1,3 @@
+Files examined: 768
+Exit code: 28
+Status: ✗ Issues found

@@ -1,0 +1,68 @@
+{
+  "label": "POST /aliases/new",
+  "captured_at": "2026-01-21T20:20:18Z",
+  "preview": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/aliases\">/aliases</a>. If not, click the link.",
+  "request": {
+    "method": "POST",
+    "path": "/aliases/new?",
+    "url": "http://localhost/aliases/new",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/x-www-form-urlencoded"
+      },
+      {
+        "name": "Content-Length",
+        "value": "70"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfZnJlc2giOnRydWUsIl9wZXJtYW5lbnQiOnRydWV9.aXE1AQ.vPHSyCkrOeJatMCU1EQ31ATZDC8"
+      }
+    ],
+    "query": {},
+    "body": null
+  },
+  "response": {
+    "status_code": 302,
+    "mimetype": "text/html",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/html; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "203"
+      },
+      {
+        "name": "Location",
+        "value": "/aliases"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=.eJwtjMsJgDAUBFuJe44NeLMODfKI6weiSF5yELF3I3oaZlj2wjAF0YWKprtgUgE0e09VWLRhFTU9Zskza3mth_GRkjiafzflEM4K7na2vEXqgibFzGIH4yY79_SV-wFNySb7.aXE1Ag.XiPNia-vKJ2HQg5udBovgwDF0W0; Expires=Sat, 21 Feb 2026 20:20:18 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/aliases\">/aliases</a>. If not, click the link.\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false
+  }
+}
