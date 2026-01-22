@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Vulture dead code report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #d0d7de; padding: 0.5rem; text-align: left; }
+    th { background: #f6f8fa; }
+    td.numeric { text-align: right; }
+    section { margin-top: 2rem; }
+    ul { list-style: disc; padding-left: 1.5rem; }
+    .summary { background: #f1f8ff; border-left: 4px solid #0969da; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Vulture dead code report</h1>
+  <div class="summary">
+    <p>Found 68 potential dead code issue(s) across 31 file(s). Vulture analyzes Python code to find unused
+    functions, classes, variables, attributes, properties, imports, and more.
+    Results with confidence levels below 80% are filtered out.</p>
+  </div>
+  <section>
+    <h2>Summary by type</h2>
+    <table>
+      <thead>
+        <tr><th>Type</th><th>Count</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>import</td><td class="numeric">18</td></tr>
+      <tr><td>unknown</td><td class="numeric">2</td></tr>
+      <tr><td>variable</td><td class="numeric">48</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Dead code findings</h2>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Line</th><th>Confidence</th><th>Type</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>cid_utils.py</td><td class="numeric">21</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_base64url_decode&#x27; (90% confidence, 27 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">21</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_normalize_component&#x27; (90% confidence, 27 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_convert_github_relative_links&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_count_bullet_lines&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_decode_text_safely&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_extract_markdown_title&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_GITHUB_RELATIVE_LINK_PATH_SANITIZER&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_GITHUB_RELATIVE_LINK_PATTERN&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_INLINE_BOLD_PATTERN&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_INLINE_CODE_PATTERN&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_INLINE_ITALIC_PATTERN&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_MARKDOWN_EXTENSIONS&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_MARKDOWN_INDICATOR_PATTERNS&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_normalize_github_relative_link_target_v2&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_replace_formdown_fences&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">59</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_replace_mermaid_fences&#x27; (90% confidence, 22 lines)</td></tr>
+      <tr><td>cid_utils.py</td><td class="numeric">110</td><td class="numeric">80%</td><td>import</td><td>unused import &#x27;_generate_qr_data_url&#x27; (90% confidence, 4 lines)</td></tr>
+      <tr><td>reference/templates/servers/definitions/amplitude.py</td><td class="numeric">47</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;AMPLITUDE_SECRET_KEY&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>reference/templates/servers/definitions/coda.py</td><td class="numeric">53</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;column_id&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>reference/templates/servers/definitions/gateway.py</td><td class="numeric">187</td><td class="numeric">80%</td><td>unknown</td><td>unreachable code after &#x27;return&#x27; (100% confidence, 30 lines)</td></tr>
+      <tr><td>reference/templates/servers/definitions/paypal.py</td><td class="numeric">98</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;payment_id&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>reference/templates/servers/definitions/segment.py</td><td class="numeric">51</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;request_context&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>reference/templates/servers/definitions/whatsapp.py</td><td class="numeric">80</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;media_url&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>server_execution/variable_resolution.py</td><td class="numeric">121</td><td class="numeric">80%</td><td>unknown</td><td>unreachable code after &#x27;try&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>step_impl/page_request_steps.py</td><td class="numeric">94</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;arg1&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>step_impl/page_request_steps.py</td><td class="numeric">124</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;arg1&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_00_diagnostics.py</td><td class="numeric">15</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_00_diagnostics.py</td><td class="numeric">206</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_alias_editor.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_cid_editor.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_import_form.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_secret_form.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_server_definition_editor.py</td><td class="numeric">16</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_server_definition_editor.py</td><td class="numeric">73</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_server_test_card.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_upload_form.py</td><td class="numeric">13</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/ai_use_cases/test_variable_form.py</td><td class="numeric">14</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;requires_openrouter_api_key&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_server.py</td><td class="numeric">413</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_transforms&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_table_links.py</td><td class="numeric">221</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;mock_cid_record&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_table_links.py</td><td class="numeric">271</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;service_mock_cid_records&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_table_links.py</td><td class="numeric">312</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;service_mock_cid_records&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">101</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">124</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">145</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">173</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;local_jsonplaceholder_alias&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">187</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">188</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;local_jsonplaceholder_alias&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">208</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">225</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">242</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_gateway_test_server.py</td><td class="numeric">262</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;gateways_variable_with_jsonplaceholder&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_json_api_gateway.py</td><td class="numeric">183</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;json_api_gateway_config&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_json_api_gateway.py</td><td class="numeric">183</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;json_api_gateway_server&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_json_api_gateway.py</td><td class="numeric">184</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;mock_jsonplaceholder_server&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_json_api_gateway.py</td><td class="numeric">200</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;json_api_gateway_config&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/integration/test_json_api_gateway.py</td><td class="numeric">200</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;json_api_gateway_server&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_ai_editor.py</td><td class="numeric">33</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;silent&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_crud_factory.py</td><td class="numeric">256</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;mock_wants&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_crud_factory.py</td><td class="numeric">296</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;mock_extract&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_gateway_server.py</td><td class="numeric">152</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;cache&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_gateway_server.py</td><td class="numeric">183</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;cache&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_markdown.py</td><td class="numeric">99</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;patched_server_execution&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_meta_route.py</td><td class="numeric">437</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;return_rule&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_server_execution.py</td><td class="numeric">763</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;capture_output&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_server_execution_output_encoding.py</td><td class="numeric">36</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;kw&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_shell.py</td><td class="numeric">60</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;patched_server_execution&#x27; (100% confidence, 1 line)</td></tr>
+      <tr><td>tests/test_urleditor.py</td><td class="numeric">182</td><td class="numeric">80%</td><td>variable</td><td>unused variable &#x27;tz&#x27; (100% confidence, 1 line)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+
+</body>
+</html>

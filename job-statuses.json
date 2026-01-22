@@ -1,0 +1,23 @@
+{
+  "ruff": "success",
+  "pylint": "failure",
+  "mypy": "success",
+  "pydoclint": "success",
+  "radon": "success",
+  "vulture": "success",
+  "python-smells": "success",
+  "shellcheck": "failure",
+  "hadolint": "success",
+  "eslint": "success",
+  "stylelint": "success",
+  "uncss": "success",
+  "test-index": "failure",
+  "cid-validation": "success",
+  "dead-fixtures": "success",
+  "unit-tests-results": "success",
+  "unit-tests-coverage": "success",
+  "hypothesis-tests": "success",
+  "integration-tests": "failure",
+  "gauge-specs": "success",
+  "ai-eval": "success"
+}

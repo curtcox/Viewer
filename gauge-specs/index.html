@@ -1,0 +1,518 @@
+
+	
+	
+  <!doctype html>
+  <html><head>
+    <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE" />
+    <meta charset="utf-8" />
+    <title>Gauge Test Results</title>
+    <link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="css/open-sans.css">
+    <link rel="stylesheet" type="text/css" href="css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+  
+<!-- secureapp-gauge-gallery-style:start -->
+<style>
+.gauge-screenshot-gallery { margin-top: 2rem; }
+.gauge-screenshot-gallery h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+.gauge-screenshot-gallery .gallery-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.gauge-screenshot-gallery figure { margin: 0; }
+.gauge-screenshot-gallery img { width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 31, 36, 0.12); }
+.gauge-screenshot-gallery figcaption { margin-top: 0.5rem; font-size: 0.95rem; }
+.gauge-screenshot-gallery a { color: #0366d6; text-decoration: none; }
+.gauge-screenshot-gallery a:hover { text-decoration: underline; }
+</style>
+<!-- secureapp-gauge-gallery-style:end -->
+</head>
+  <body>
+  <header class="top">
+    <div class="header">
+      <div class="container">
+        <div class="logo">
+          <a href="."><img src="images/gaugeLogo.png" alt="Report logo"></a>
+        </div>
+        <h2 class="project">Project: Viewer</h2>
+      </div>
+    </div>
+  </header>
+  <main class="main-container">
+  <div class="container">
+
+	
+  <div class="report-overview">
+   
+  <div class="report_chart">
+    <div class="chart">
+      <svg id="pie-chart" data-results="0,22,9" data-total="31">
+        <path class="status failed" />
+        <path class="shadow failed" data-status="failed"><title>Failed: 0/31</title></path>
+        <path class="status passed" />
+        <path class="shadow passed" data-status="passed"><title>Passed: 22/31</title></path>
+        <path class="status skipped" />
+        <path class="shadow skipped" data-status="skipped"><title>Skipped: 9/31</title></path>
+      </svg>
+    </div>
+  </div>
+
+   
+  <div class="report_test-results">
+    <div class="report_test-result specs">
+        <div class="total-specs" title="Filter all specs"><span class="txt">Total specs</span><span class="value">31</span></div>
+        <div class="fail spec-filter" data-status="failed" title="Filter failed specs"><span class="value">0</span></div>
+        <div class="pass spec-filter" data-status="passed" title="Filter passed specs"><span class="value">22</span></div>
+        <div class="skip spec-filter" data-status="skipped" title="Filter skipped specs"><span class="value">9</span></div>
+    </div>
+    <div class="report_test-result scenarios">
+        <div class="total-scenarios"><span class="txt">Total scenario</span><span class="value">153</span></div>
+        <div class="fail scenario-stats" data-status="failed"><span class="value">0</span></div>
+        <div class="pass scenario-stats" data-status="passed"><span class="value">63</span></div>
+        <div class="skip scenario-stats" data-status="skipped"><span class="value">90</span></div>
+    </div>
+  </div>
+
+    <div class="report_details">
+      
+  <ul>
+    <li>
+      <label>Environment </label>
+      <span>default</span>
+    </li>
+    
+    <li>
+      <label>Success Rate </label>
+      <span>70%</span>
+    </li>
+    <li>
+      <label>Total Time </label>
+      <span>00:01:15</span>
+    </li>
+    <li>
+      <label>Generated On </label>
+      <span>Jan 22, 2026 at 1:22pm</span>
+    </li>
+  </ul>
+
+      
+  
+
+      
+  
+  
+
+
+    </div>
+  </div>
+
+	
+  <div class="specifications">
+  
+  
+    <aside class="sidebar">
+      <h3 class="title">Specifications</h3>
+      <div class="searchbar">
+        <input id="searchSpecifications" placeholder="Type specification or tag name" type="text" />
+        <i class="fa fa-search"></i>
+      </div>
+      <div class="specs-sorting">
+        <div class="sort sort-specs-name" data-sort-by="specs-name"><span class="sort-icons"><i class="fa fa-caret-up"></i><i class="fa fa-caret-down"></i></span><span>Name</span></div>
+        <div class="sort sort-execution-time" data-sort-by="execution-time"><span class="sort-icons"><i class="fa fa-caret-up"></i><i class="fa fa-caret-down"></i></span><span>Execution time</span></div>
+      </div>
+      <div id="listOfSpecifications">
+        <ul id="scenarios" class="spec-list">
+        
+          <a href="specs/cookie_editor.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Cookie editor</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/gateway.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Gateway Server</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/pipeline_debug.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Pipeline Debug Mode</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/github_pr_integration.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">GitHub PR Import and Export</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/alias_view.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Alias view</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/ui_suggestions.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">UI Suggestions</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/default_boot_servers.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Default boot servers</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/ai_actions_menu.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">AI action menu</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/servers_list_dependencies.html">
+            
+              <li class="skipped spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Servers list page dependencies</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/upload_templates.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Upload Templates</span>
+              <span id="time" class="time">00:00:03</span>
+            </li>
+          </a>
+          
+          <a href="specs/import_export.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Import and export</span>
+              <span id="time" class="time">00:00:01</span>
+            </li>
+          </a>
+          
+          <a href="specs/server_form.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Server form page</span>
+              <span id="time" class="time">00:00:01</span>
+            </li>
+          </a>
+          
+          <a href="specs/urleditor.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">URL Editor Server</span>
+              <span id="time" class="time">00:00:04</span>
+            </li>
+          </a>
+          
+          <a href="specs/template_creation.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Template Creation and Usage</span>
+              <span id="time" class="time">00:00:07</span>
+            </li>
+          </a>
+          
+          <a href="specs/bash_path_parameters.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Bash path parameters</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/settings.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Settings page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/server_events.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Server events page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/meta_navigation.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Meta navigation</span>
+              <span id="time" class="time">00:00:05</span>
+            </li>
+          </a>
+          
+          <a href="specs/server_command_chaining.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Server command chaining</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/cid_editor.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">CID Editor Controls</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/secret_form.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Secret form page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/profile.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Profile page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/content_negotiation.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Content negotiation</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/routes_overview.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Routes overview page</span>
+              <span id="time" class="time">00:00:02</span>
+            </li>
+          </a>
+          
+          <a href="specs/search.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Search page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/source_browser.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Source browser</span>
+              <span id="time" class="time">00:00:01</span>
+            </li>
+          </a>
+          
+          <a href="specs/secrets.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Secrets page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+          <a href="specs/ai_editor.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">AI Request Editor Server</span>
+              <span id="time" class="time">00:00:01</span>
+            </li>
+          </a>
+          
+          <a href="specs/alias_management.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Alias management</span>
+              <span id="time" class="time">00:00:04</span>
+            </li>
+          </a>
+          
+          <a href="specs/authorization.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Authorization</span>
+              <span id="time" class="time">00:00:18</span>
+            </li>
+          </a>
+          
+          <a href="specs/server_view.html">
+            
+              <li class="passed spec-name">
+            
+              <span id="scenarioName" class="scenarioname">Server detail page</span>
+              <span id="time" class="time">00:00:00</span>
+            </li>
+          </a>
+          
+        </ul>
+      </div>
+    </aside>
+  
+
+	
+    <div class="congratulations details">
+      <p>Congratulations! You've gone all <span class="green">green</span> and saved the environment!</p>
+    </div>
+	
+ 	</div>
+ 	</div>
+	</main>
+	
+  <footer class="footer">
+    <div class="container">
+      <p>Generated by Gauge HTML Report</p>
+    </div>
+  </footer>
+
+	
+    <script type="text/javascript">
+      var loadingImage = "images/loading.gif";
+      var closeButton = "images/close.gif";
+    </script>
+    <script src="js/lightbox.js"></script>
+    <script src="js/jquery-3.1.0.min.js" type="text/javascript"></script>
+    <script src="js/auto-complete.min.js" type="text/javascript"></script>
+    <script src="js/clipboard.min.js" type="text/javascript"></script>
+    <script src="js/search_index.js" type="text/javascript"></script>
+    <script src="js/main.js" type="text/javascript"></script>
+    
+<!-- secureapp-gauge-gallery:start -->
+<section class="gauge-screenshot-gallery">
+  <h2>Captured page screenshots</h2>
+  <p style="margin-top: 0.5rem;"><a href="https://curtcox.github.io/Viewer/gauge-specs/gauge-execution.log" target="_blank" rel="noopener">View detailed execution log</a></p>
+  <div class="gallery-grid">
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132244-81615ec6.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132244-81615ec6.png" alt="GET /" loading="lazy" /></a><figcaption>GET / (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132244-81615ec6.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132257-588d150e.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132257-588d150e.png" alt="GET /" loading="lazy" /></a><figcaption>GET / (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132257-588d150e.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132307-d520d046.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132307-d520d046.png" alt="GET /" loading="lazy" /></a><figcaption>GET / (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132307-d520d046.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132327-5d242a08.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132327-5d242a08.png" alt="GET /" loading="lazy" /></a><figcaption>GET / (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-20260122132327-5d242a08.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAJdHM6cHktPnRz.txt-20260122132315-4141997a.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAJdHM6cHktPnRz.txt-20260122132315-4141997a.png" alt="GET /AAAAAAAJdHM6cHktPnRz.txt" loading="lazy" /></a><figcaption>GET /AAAAAAAJdHM6cHktPnRz.txt (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAJdHM6cHktPnRz.txt-20260122132315-4141997a.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAALdHM6dHMtcmlnaHQ.txt-20260122132314-9e5551b7.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAALdHM6dHMtcmlnaHQ.txt-20260122132314-9e5551b7.png" alt="GET /AAAAAAALdHM6dHMtcmlnaHQ.txt" loading="lazy" /></a><figcaption>GET /AAAAAAALdHM6dHMtcmlnaHQ.txt (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAALdHM6dHMtcmlnaHQ.txt-20260122132314-9e5551b7.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAMdHM6YmFzaC0-dHMK.txt-20260122132315-2074a3fb.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAMdHM6YmFzaC0-dHMK.txt-20260122132315-2074a3fb.png" alt="GET /AAAAAAAMdHM6YmFzaC0-dHMK.txt" loading="lazy" /></a><figcaption>GET /AAAAAAAMdHM6YmFzaC0-dHMK.txt (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAMdHM6YmFzaC0-dHMK.txt-20260122132315-2074a3fb.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAQZnJvbS1maXJzdDpoZWxsbw.txt-20260122132313-70d261d4.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAQZnJvbS1maXJzdDpoZWxsbw.txt-20260122132313-70d261d4.png" alt="GET /AAAAAAAQZnJvbS1maXJzdDpoZWxsbw.txt" loading="lazy" /></a><figcaption>GET /AAAAAAAQZnJvbS1maXJzdDpoZWxsbw.txt (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAAQZnJvbS1maXJzdDpoZWxsbw.txt-20260122132313-70d261d4.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt-20260122132301-dc5b5e42.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt-20260122132301-dc5b5e42.png" alt="GET /AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt" loading="lazy" /></a><figcaption>GET /AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt-20260122132301-dc5b5e42.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAAAdIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqIgo.sh-20260122132313-d2929915.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAAAdIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqIgo.sh-20260122132313-d2929915.png" alt="GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAAAdIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqIgo.sh" loading="lazy" /></a><figcaption>GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAAAdIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqIgo.sh (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAAAdIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqIgo.sh-20260122132313-d2929915.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj-20260122132314-29c6f49e.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj-20260122132314-29c6f49e.png" alt="GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj" loading="lazy" /></a><figcaption>GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABM7ZW33Xfm7Dk2ObvD6B33J3sT02vn8oWJei2mCjmNsKVzuUkpi56ifsoT0JVoo8pmuNfc8atH01lJutwuqfutWQ.clj-20260122132314-29c6f49e.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABXsyZcqCYRIewuzY0AzArnRf2CDn83os4-0VO1fyKrlWLW-G7LL1o7Zx6Vykabml0MbEgKC77iUTlrpnfV41sMEw.py-20260122132313-1708e6e4.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABXsyZcqCYRIewuzY0AzArnRf2CDn83os4-0VO1fyKrlWLW-G7LL1o7Zx6Vykabml0MbEgKC77iUTlrpnfV41sMEw.py-20260122132313-1708e6e4.png" alt="GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABXsyZcqCYRIewuzY0AzArnRf2CDn83os4-0VO1fyKrlWLW-G7LL1o7Zx6Vykabml0MbEgKC77iUTlrpnfV41sMEw.py" loading="lazy" /></a><figcaption>GET /AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj/AAAAAABXsyZcqCYRIewuzY0AzArnRf2CDn83os4-0VO1fyKrlWLW-G7LL1o7Zx6Vykabml0MbEgKC77iUTlrpnfV41sMEw.py (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB1jD8DRhU6cqPORVAxkuDCpKEROgpsG73jLH22V__PymTs2U9F-vwr74T9Wmf4Cu5svyoyhW6ZFByPtYdSSn2cOw.clj-AAAAAABXsyZcqCYRIewuzY0AzArnRf2CDn83os4-0VO1fyKrlWLW-G7LL1o7Zx6Vykabml0MbEgKC77iUTlrpnfV41sMEw.py-20260122132313-1708e6e4.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAAAeIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqcyIK.sh-20260122132314-6b4f2d78.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAAAeIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqcyIK.sh-20260122132314-6b4f2d78.png" alt="GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAAAeIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqcyIK.sh" loading="lazy" /></a><figcaption>GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAAAeIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqcyIK.sh (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAAAeIyEvYmluL2Jhc2gKZWNobyAiYmFzaC0-Y2xqcyIK.sh-20260122132314-6b4f2d78.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABOIsb5kHLe5DCfGw4aIeDBCupEQtFABJwi8OOSPbj4eCc6_s3v9g4MnGnLKlvGmM6fa5hTmhP5QRLpfawMpV6fHg.cljs-20260122132314-e06a8c1d.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABOIsb5kHLe5DCfGw4aIeDBCupEQtFABJwi8OOSPbj4eCc6_s3v9g4MnGnLKlvGmM6fa5hTmhP5QRLpfawMpV6fHg.cljs-20260122132314-e06a8c1d.png" alt="GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAABOIsb5kHLe5DCfGw4aIeDBCupEQtFABJwi8OOSPbj4eCc6_s3v9g4MnGnLKlvGmM6fa5hTmhP5QRLpfawMpV6fHg.cljs" loading="lazy" /></a><figcaption>GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAABOIsb5kHLe5DCfGw4aIeDBCupEQtFABJwi8OOSPbj4eCc6_s3v9g4MnGnLKlvGmM6fa5hTmhP5QRLpfawMpV6fHg.cljs (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABOIsb5kHLe5DCfGw4aIeDBCupEQtFABJwi8OOSPbj4eCc6_s3v9g4MnGnLKlvGmM6fa5hTmhP5QRLpfawMpV6fHg.cljs-20260122132314-e06a8c1d.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABYmJzZRo5I_us_KBbMY07g8tMUfJM-dSecm-wzJEpDCfH-Fds1K1C51movs9Ms1aUV4aY4QPhL8bGpVKtfJib6lg.py-20260122132314-51ef7bfe.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABYmJzZRo5I_us_KBbMY07g8tMUfJM-dSecm-wzJEpDCfH-Fds1K1C51movs9Ms1aUV4aY4QPhL8bGpVKtfJib6lg.py-20260122132314-51ef7bfe.png" alt="GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAABYmJzZRo5I_us_KBbMY07g8tMUfJM-dSecm-wzJEpDCfH-Fds1K1C51movs9Ms1aUV4aY4QPhL8bGpVKtfJib6lg.py" loading="lazy" /></a><figcaption>GET /AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs/AAAAAABYmJzZRo5I_us_KBbMY07g8tMUfJM-dSecm-wzJEpDCfH-Fds1K1C51movs9Ms1aUV4aY4QPhL8bGpVKtfJib6lg.py (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAAB3JM-MTJWHZq5CYC3nTX-19tNTksi6a1SpIwMdgeBLB8TXoWDp5P0CncPuuXhJ5ELFNZW9GU_8VdzUOpReEE4uRw.cljs-AAAAAABYmJzZRo5I_us_KBbMY07g8tMUfJM-dSecm-wzJEpDCfH-Fds1K1C51movs9Ms1aUV4aY4QPhL8bGpVKtfJib6lg.py-20260122132314-51ef7bfe.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132232-04d4c163.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132232-04d4c163.png" alt="GET /AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html" loading="lazy" /></a><figcaption>GET /AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132232-04d4c163.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132233-9aea7fb6.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132233-9aea7fb6.png" alt="GET /AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html" loading="lazy" /></a><figcaption>GET /AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAEg-iOzpuv13euvKjMWUy2kY5BfULrthOHYIAtsPVCEBPPoFiT3Vlj7_Avx_C5_HXIJYrQxEibc4c2AayaxI3XEMnA.html-20260122132233-9aea7fb6.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132335-4d561bed.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132335-4d561bed.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132335-4d561bed.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132337-71a79456.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132337-71a79456.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132337-71a79456.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e079b444.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e079b444.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e079b444.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e0dbcc32.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e0dbcc32.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132338-e0dbcc32.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132339-285fd2b5.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132339-285fd2b5.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132339-285fd2b5.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132340-8c5f6368.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132340-8c5f6368.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132340-8c5f6368.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132341-c316de38.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132341-c316de38.png" alt="GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html" loading="lazy" /></a><figcaption>GET /AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-AAAAAI9NXlP31_n1b3Da4ZHDCSuAECTL1XSiFdM39GLTMbMRLoH8Sd3AAmSfTyrorMURpfpo2pCS_8z8DQ8gX-mdMlWRLw.html-20260122132341-c316de38.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-ai_editor-test-chain-20260122132233-e54dba98.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-ai_editor-test-chain-20260122132233-e54dba98.png" alt="GET /ai_editor/test-chain" loading="lazy" /></a><figcaption>GET /ai_editor/test-chain (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-ai_editor-test-chain-20260122132233-e54dba98.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132237-f058b10a.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132237-f058b10a.png" alt="GET /aliases" loading="lazy" /></a><figcaption>GET /aliases (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132237-f058b10a.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132245-08cfe3b5.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132245-08cfe3b5.png" alt="GET /aliases" loading="lazy" /></a><figcaption>GET /aliases (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132245-08cfe3b5.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132259-a3891f74.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132259-a3891f74.png" alt="GET /aliases" loading="lazy" /></a><figcaption>GET /aliases (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-20260122132259-a3891f74.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-ai-20260122132236-fa72ecdc.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-ai-20260122132236-fa72ecdc.png" alt="GET /aliases/ai" loading="lazy" /></a><figcaption>GET /aliases/ai (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-ai-20260122132236-fa72ecdc.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-docs-edit-20260122132235-2b7f166a.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-docs-edit-20260122132235-2b7f166a.png" alt="GET /aliases/docs/edit" loading="lazy" /></a><figcaption>GET /aliases/docs/edit (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-docs-edit-20260122132235-2b7f166a.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132234-bdfc93df.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132234-bdfc93df.png" alt="GET /aliases/new" loading="lazy" /></a><figcaption>GET /aliases/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132234-bdfc93df.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-056d3098.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-056d3098.png" alt="GET /aliases/new" loading="lazy" /></a><figcaption>GET /aliases/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-056d3098.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-10c570f7.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-10c570f7.png" alt="GET /aliases/new" loading="lazy" /></a><figcaption>GET /aliases/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132238-10c570f7.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132328-af22ee97.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132328-af22ee97.png" alt="GET /aliases/new" loading="lazy" /></a><figcaption>GET /aliases/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases-new-20260122132328-af22ee97.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.csv-20260122132258-f1b4a3ba.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.csv-20260122132258-f1b4a3ba.png" alt="GET /aliases.csv" loading="lazy" /></a><figcaption>GET /aliases.csv (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.csv-20260122132258-f1b4a3ba.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.json-20260122132258-8aa1c178.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.json-20260122132258-8aa1c178.png" alt="GET /aliases.json" loading="lazy" /></a><figcaption>GET /aliases.json (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.json-20260122132258-8aa1c178.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.xml-20260122132259-2264ad46.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.xml-20260122132259-2264ad46.png" alt="GET /aliases.xml" loading="lazy" /></a><figcaption>GET /aliases.xml (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-aliases.xml-20260122132259-2264ad46.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-api-routes-20260122132251-f8154d4d.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-api-routes-20260122132251-f8154d4d.png" alt="GET /api/routes" loading="lazy" /></a><figcaption>GET /api/routes (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-api-routes-20260122132251-f8154d4d.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-profile-20260122132308-4672842b.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-profile-20260122132308-4672842b.png" alt="GET /profile" loading="lazy" /></a><figcaption>GET /profile (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-profile-20260122132308-4672842b.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-routes-20260122132311-a6d3efd0.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-routes-20260122132311-a6d3efd0.png" alt="GET /routes" loading="lazy" /></a><figcaption>GET /routes (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-routes-20260122132311-a6d3efd0.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-search-20260122132311-a179ee35.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-search-20260122132311-a179ee35.png" alt="GET /search" loading="lazy" /></a><figcaption>GET /search (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-search-20260122132311-a179ee35.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-20260122132313-79dc8c7a.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-20260122132313-79dc8c7a.png" alt="GET /secrets" loading="lazy" /></a><figcaption>GET /secrets (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-20260122132313-79dc8c7a.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-new-20260122132312-76a82f31.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-new-20260122132312-76a82f31.png" alt="GET /secrets/new" loading="lazy" /></a><figcaption>GET /secrets/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-secrets-new-20260122132312-76a82f31.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-server_events-20260122132316-f39a9aac.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-server_events-20260122132316-f39a9aac.png" alt="GET /server_events" loading="lazy" /></a><figcaption>GET /server_events (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-server_events-20260122132316-f39a9aac.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-20260122132250-abdd5623.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-20260122132250-abdd5623.png" alt="GET /servers" loading="lazy" /></a><figcaption>GET /servers (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-20260122132250-abdd5623.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.csv-20260122132259-966f3f47.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.csv-20260122132259-966f3f47.png" alt="GET /servers/ai_stub.csv" loading="lazy" /></a><figcaption>GET /servers/ai_stub.csv (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.csv-20260122132259-966f3f47.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.json-20260122132259-fac540ab.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.json-20260122132259-fac540ab.png" alt="GET /servers/ai_stub.json" loading="lazy" /></a><figcaption>GET /servers/ai_stub.json (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.json-20260122132259-fac540ab.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.xml-20260122132259-b7ae4cfc.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.xml-20260122132259-b7ae4cfc.png" alt="GET /servers/ai_stub.xml" loading="lazy" /></a><figcaption>GET /servers/ai_stub.xml (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-ai_stub.xml-20260122132259-b7ae4cfc.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132316-bc63d2ad.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132316-bc63d2ad.png" alt="GET /servers/new" loading="lazy" /></a><figcaption>GET /servers/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132316-bc63d2ad.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132317-f5a60e2e.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132317-f5a60e2e.png" alt="GET /servers/new" loading="lazy" /></a><figcaption>GET /servers/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132317-f5a60e2e.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132318-b960f837.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132318-b960f837.png" alt="GET /servers/new" loading="lazy" /></a><figcaption>GET /servers/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132318-b960f837.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132329-fa8dde7d.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132329-fa8dde7d.png" alt="GET /servers/new" loading="lazy" /></a><figcaption>GET /servers/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-new-20260122132329-fa8dde7d.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-weather-20260122132319-2491b8af.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-weather-20260122132319-2491b8af.png" alt="GET /servers/weather" loading="lazy" /></a><figcaption>GET /servers/weather (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-servers-weather-20260122132319-2491b8af.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-settings-20260122132320-1403da35.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-settings-20260122132320-1403da35.png" alt="GET /settings" loading="lazy" /></a><figcaption>GET /settings (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-settings-20260122132320-1403da35.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-shared-tool-20260122132301-084f2c1b.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-shared-tool-20260122132301-084f2c1b.png" alt="GET /shared-tool" loading="lazy" /></a><figcaption>GET /shared-tool (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-shared-tool-20260122132301-084f2c1b.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-source-20260122132321-0380efd6.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-source-20260122132321-0380efd6.png" alt="GET /source" loading="lazy" /></a><figcaption>GET /source (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-source-20260122132321-0380efd6.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-862f1939.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-862f1939.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-862f1939.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-ff9913ff.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-ff9913ff.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132331-ff9913ff.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132332-518ffe26.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132332-518ffe26.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132332-518ffe26.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-455baed5.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-455baed5.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-455baed5.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-70ea054d.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-70ea054d.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132333-70ea054d.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132334-0cfd113e.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132334-0cfd113e.png" alt="GET /upload" loading="lazy" /></a><figcaption>GET /upload (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-upload-20260122132334-0cfd113e.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-echo-test-20260122132336-a35afcf9.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-echo-test-20260122132336-a35afcf9.png" alt="GET /urleditor/echo/test" loading="lazy" /></a><figcaption>GET /urleditor/echo/test (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-echo-test-20260122132336-a35afcf9.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-test-chain-20260122132336-ae7deee8.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-test-chain-20260122132336-ae7deee8.png" alt="GET /urleditor/test-chain" loading="lazy" /></a><figcaption>GET /urleditor/test-chain (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-urleditor-test-chain-20260122132336-ae7deee8.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132258-25cf21c6.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132258-25cf21c6.png" alt="GET /variables/new" loading="lazy" /></a><figcaption>GET /variables/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132258-25cf21c6.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132329-0cbf98ec.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132329-0cbf98ec.png" alt="GET /variables/new" loading="lazy" /></a><figcaption>GET /variables/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/GET-variables-new-20260122132329-0cbf98ec.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-docs-edit-20260122132235-8ff1f79e.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-docs-edit-20260122132235-8ff1f79e.png" alt="POST /aliases/docs/edit" loading="lazy" /></a><figcaption>POST /aliases/docs/edit (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-docs-edit-20260122132235-8ff1f79e.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-new-20260122132234-bd0d6ba6.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-new-20260122132234-bd0d6ba6.png" alt="POST /aliases/new" loading="lazy" /></a><figcaption>POST /aliases/new (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-aliases-new-20260122132234-bd0d6ba6.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-38d11812.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-38d11812.png" alt="POST /api/cid/check" loading="lazy" /></a><figcaption>POST /api/cid/check (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-38d11812.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-69c5f5de.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-69c5f5de.png" alt="POST /api/cid/check" loading="lazy" /></a><figcaption>POST /api/cid/check (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-check-20260122132258-69c5f5de.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-generate-20260122132258-c7f1c9fe.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-generate-20260122132258-c7f1c9fe.png" alt="POST /api/cid/generate" loading="lazy" /></a><figcaption>POST /api/cid/generate (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-api-cid-generate-20260122132258-c7f1c9fe.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-export-20260122132300-27abd131.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-export-20260122132300-27abd131.png" alt="POST /export" loading="lazy" /></a><figcaption>POST /export (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-export-20260122132300-27abd131.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+            <figure class="gauge-screenshot"><a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-import-20260122132300-606b92df.png" target="_blank" rel="noopener"><img src="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-import-20260122132300-606b92df.png" alt="POST /import" loading="lazy" /></a><figcaption>POST /import (<a href="https://curtcox.github.io/Viewer/gauge-specs/secureapp-artifacts/POST-import-20260122132300-606b92df.json" target="_blank" rel="noopener">info</a>)</figcaption></figure>
+  </div>
+</section>
+<!-- secureapp-gauge-gallery:end -->
+</body>
+  </html>
+

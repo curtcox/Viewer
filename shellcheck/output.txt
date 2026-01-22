@@ -1,0 +1,10 @@
+
+In scripts/ci/prepare_report_site.sh line 31:
+  $GIT_SHA_ARG \
+  ^----------^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean: 
+  "$GIT_SHA_ARG" \
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...

@@ -1,3 +1,0 @@
-File examined: docker/ci/Dockerfile
-Exit code: 0
-Status: ✓ All checks passed

@@ -1,0 +1,63 @@
+{
+  "label": "GET /servers/ai_stub.xml",
+  "captured_at": "2026-01-22T13:22:59Z",
+  "preview": "<response><id>1</id><name>ai_stub</name><definition>&quot;&quot;&quot;AI stub server template that mimics the legacy in-browser behaviour.&quot;&quot;&quot;\n\nimport json\nfrom typing import Any, Dict, Optional\n\n\ndef _summarise_context(context: Any) -&gt; Optional[str]:\n    &quot;&quot;&quot;Return a short summary of context keys when possible.&quot;&quot;&quot;\n\n    if not isinstance(context, dict):\n        return None\n\n    keys = [str(key) for key in context.keys()]\n    if not keys:\n        return None\n\n    return &quot;Context keys: &quot; + &quot;, &quot;.join(keys)\n\n\ndef _summarise_form(form_summary: Any) -&gt; Optional[str]:\n    &quot;&quot;&quot;Return a summary of captured form field names.&quot;&quot;&quot;\n\n    if not isinstance(form_summary, dict):\n        return None\n\n    keys = [str(key) for key in form_summary.keys()]\n    if not keys:\n        return None\n\n    return &quot;Form fields captured: &quot; + &quot;, &quot;.join(keys)\n\n\ndef _build_stub_response(payload: Dict[str, Any]) -&gt; Dict[str, Any]:\n    &quot;&quot;&quot;Generate the same output produced by the previous JavaScript stub.&quot;&quot;&quot;\n\n    request_text = payload.get(&quot;request_text&quot;) or &quo",
+  "request": {
+    "method": "GET",
+    "path": "/servers/ai_stub.xml?",
+    "url": "http://localhost/servers/ai_stub.xml",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiNzlkMTE0YTUyYzMyMjU2YWMyZjY1MzkwZTZlZWUxZWZiNTA0OTVkZiJ9.aXIksw.qQTEMnvCoO27kViBEr7n1Y0Wlk0"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "application/xml",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/xml; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "3175"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiNzlkMTE0YTUyYzMyMjU2YWMyZjY1MzkwZTZlZWUxZWZiNTA0OTVkZiJ9.aXIksw.qQTEMnvCoO27kViBEr7n1Y0Wlk0; Expires=Sun, 22 Feb 2026 13:22:59 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<response><id>1</id><name>ai_stub</name><definition>&quot;&quot;&quot;AI stub server template that mimics the legacy in-browser behaviour.&quot;&quot;&quot;\n\nimport json\nfrom typing import Any, Dict, Optional\n\n\ndef _summarise_context(context: Any) -&gt; Optional[str]:\n    &quot;&quot;&quot;Return a short summary of context keys when possible.&quot;&quot;&quot;\n\n    if not isinstance(context, dict):\n        return None\n\n    keys = [str(key) for key in context.keys()]\n    if not keys:\n        return None\n\n    return &quot;Context keys: &quot; + &quot;, &quot;.join(keys)\n\n\ndef _summarise_form(form_summary: Any) -&gt; Optional[str]:\n    &quot;&quot;&quot;Return a summary of captured form field names.&quot;&quot;&quot;\n\n    if not isinstance(form_summary, dict):\n        return None\n\n    keys = [str(key) for key in form_summary.keys()]\n    if not keys:\n        return None\n\n    return &quot;Form fields captured: &quot; + &quot;, &quot;.join(keys)\n\n\ndef _build_stub_response(payload: Dict[str, Any]) -&gt; Dict[str, Any]:\n    &quot;&quot;&quot;Generate the same output produced by the previous JavaScript stub.&quot;&quot;&quot;\n\n    request_text = payload.get(&quot;request_text&quot;) or &quot;&quot;\n    original_text = payload.get(&quot;original_text&quot;) or &quot;&quot;\n    target_label = payload.get(&quot;target_label&quot;) or &quot;the text&quot;\n    context_data = payload.get(&quot;context_data&quot;)\n    form_summary = payload.get(&quot;form_summary&quot;)\n\n    separator = &quot;&quot;\n    if original_text and request_text and not original_text.endswith(&quot;\\n&quot;):\n        separator = &quot;\\n&quot;\n\n    updated_text = original_text + separator + request_text\n    message = f&quot;OK I changed {target_label} by {request_text}&quot;\n\n    context_summary = _summarise_context(context_data)\n    form_summary_text = _summarise_form(form_summary)\n    if form_summary_text:\n        context_summary = (\n            f&quot;{context_summary}\\n{form_summary_text}&quot;\n            if context_summary\n            else form_summary_text\n        )\n\n    return {\n        &quot;updated_text&quot;: updated_text,\n        &quot;message&quot;: message,\n        &quot;context_summary&quot;: context_summary or &quot;&quot;,\n    }\n\n\ndef main(\n    request_text=None,\n    original_text=None,\n    target_label=None,\n    context_data=None,\n    form_summary=None,\n):\n    &quot;&quot;&quot;Entry point executed by the Viewer runtime.&quot;&quot;&quot;\n\n    payload = {\n        &quot;request_text&quot;: request_text,\n        &quot;original_text&quot;: original_text,\n        &quot;target_label&quot;: target_label,\n        &quot;context_data&quot;: context_data,\n        &quot;form_summary&quot;: form_summary,\n    }\n    result = _build_stub_response(payload)\n\n    return {\n        &quot;output&quot;: json.dumps(result),\n        &quot;content_type&quot;: &quot;application/json&quot;,\n    }\n</definition><definition_cid>AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg</definition_cid><created_at>2026-01-22T13:22:30.691721</created_at><updated_at>2026-01-22T13:22:31.345200</updated_at><enabled>True</enabled></response>"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

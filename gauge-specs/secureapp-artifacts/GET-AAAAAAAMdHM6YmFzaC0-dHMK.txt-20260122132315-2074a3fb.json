@@ -1,0 +1,79 @@
+{
+  "label": "GET /AAAAAAAMdHM6YmFzaC0-dHMK.txt",
+  "captured_at": "2026-01-22T13:23:15Z",
+  "preview": "ts:bash->ts",
+  "request": {
+    "method": "GET",
+    "path": "/AAAAAAAMdHM6YmFzaC0-dHMK.txt?",
+    "url": "http://localhost/AAAAAAAMdHM6YmFzaC0-dHMK.txt",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiNzlkMTE0YTUyYzMyMjU2YWMyZjY1MzkwZTZlZWUxZWZiNTA0OTVkZiJ9.aXIkww.NKPeX9_eofRGLvIAWIrwlW1cePo"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/plain",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "12"
+      },
+      {
+        "name": "ETag",
+        "value": "\"AAAAAAAMdHM6YmFzaC0-dHMK\""
+      },
+      {
+        "name": "Last-Modified",
+        "value": "Thu, 01 Jan 1970 00:00:00 GMT"
+      },
+      {
+        "name": "Cache-Control",
+        "value": "public, max-age=31536000, immutable"
+      },
+      {
+        "name": "Expires",
+        "value": "Thu, 31 Dec 2037 23:55:55 GMT"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiNzlkMTE0YTUyYzMyMjU2YWMyZjY1MzkwZTZlZWUxZWZiNTA0OTVkZiJ9.aXIkww.NKPeX9_eofRGLvIAWIrwlW1cePo; Expires=Sun, 22 Feb 2026 13:23:15 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "ts:bash->ts\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}
