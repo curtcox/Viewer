@@ -838,6 +838,20 @@ jobs:
         run: ./scripts/ci/prepare_report_site.sh
         env:
           PUBLIC_BASE_URL: ${{ steps.deployment_path.outputs.public_base_url }}
+          GIT_SHA: ${{ github.sha }}
+      - name: Create build report archive
+        run: |
+          BRANCH_NAME="${{ steps.deployment_path.outputs.branch_subdir || 'main' }}"
+          cd site
+          zip -r "../${BRANCH_NAME}_build_report.zip" .
+          cd ..
+          echo "Created ${BRANCH_NAME}_build_report.zip"
+      - name: Upload build report archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.deployment_path.outputs.branch_subdir || 'main' }}_build_report
+          path: ${{ steps.deployment_path.outputs.branch_subdir || 'main' }}_build_report.zip
+          retention-days: 90
       - name: Upload branch-specific artifact
         uses: actions/upload-artifact@v4
         with:
@@ -910,6 +924,38 @@ jobs:
               mv /tmp/test-backup combined-site/test
             fi
           fi
+      - name: Download job statuses from all branches
+        continue-on-error: true
+        run: |
+          # Try to extract job-statuses.json from each branch artifact
+          mkdir -p branch-statuses
+          
+          # Extract from main
+          if [ -f combined-site/job-statuses.json ]; then
+            cp combined-site/job-statuses.json branch-statuses/main-job-statuses.json
+          fi
+          
+          # Extract from dev
+          if [ -f combined-site/dev/job-statuses.json ]; then
+            cp combined-site/dev/job-statuses.json branch-statuses/dev-job-statuses.json
+          fi
+          
+          # Extract from test
+          if [ -f combined-site/test/job-statuses.json ]; then
+            cp combined-site/test/job-statuses.json branch-statuses/test-job-statuses.json
+          fi
+          
+          echo "Branch statuses collected:"
+          ls -la branch-statuses/ || echo "No statuses found"
+      - name: Generate top-level index
+        run: |
+          python scripts/generate_branch_index.py \
+            --output combined-site/index.html \
+            --main-statuses branch-statuses/main-job-statuses.json \
+            --dev-statuses branch-statuses/dev-job-statuses.json \
+            --test-statuses branch-statuses/test-job-statuses.json
+          
+          echo "Top-level index generated at combined-site/index.html"
       - name: Verify combined site content
         run: |
           echo "Combined site structure:"
@@ -929,3 +975,38 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./combined-site
           keep_files: false
+
+  validate-deployment:
+    name: Validate GitHub Pages Deployment
+    # This job validates the GitHub Pages deployment after the site is published:
+    # - Verifies that branch-specific URLs exist (dev, test, main)
+    # - Verifies that index pages exist for each branch
+    # - Extracts and verifies embedded git SHA matches deployment
+    # - Displays all successes and failures in the log
+    # - Fails the job if there are any failures
+    needs:
+      - deploy-reports
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Determine branch name
+        id: branch
+        run: |
+          # Extract branch name from ref
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "name=dev" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/test" ]; then
+            echo "name=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=main" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validate deployment
+        run: |
+          python3 scripts/validate_github_pages.py \
+            --base-url https://curtcox.github.io/Viewer \
+            --branch ${{ steps.branch.outputs.name }} \
+            --git-sha ${{ github.sha }} \
+            --validate-all-branches \
+            --wait 120

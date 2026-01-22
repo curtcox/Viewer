@@ -485,3 +485,30 @@ def test_build_unit_tests_results_index_includes_mismatch_warning(tmp_path) -> N
     assert "unit-tests-results" in content
     assert "0 failures" in content
     assert "0 errors" in content
+
+
+def test_write_landing_page_embeds_git_sha(tmp_path) -> None:
+    """Test that landing page includes embedded git SHA when provided."""
+    test_sha = "1234567890abcdef1234567890abcdef12345678"
+    build_report._write_landing_page(tmp_path, git_sha=test_sha)
+
+    index_path = tmp_path / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should have the git-sha div with data attribute
+    assert f'<div class="git-sha" data-git-sha="{test_sha}"' in content
+    assert 'style="display: none;"' in content
+    assert test_sha in content
+
+
+def test_write_landing_page_without_git_sha(tmp_path) -> None:
+    """Test that landing page works without git SHA."""
+    build_report._write_landing_page(tmp_path, git_sha=None)
+
+    index_path = tmp_path / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should not have git-sha div
+    assert 'class="git-sha"' not in content
+    assert 'data-git-sha' not in content
+
