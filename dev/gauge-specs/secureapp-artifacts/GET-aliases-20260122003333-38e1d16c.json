@@ -1,0 +1,67 @@
+{
+  "label": "GET /aliases",
+  "captured_at": "2026-01-22T00:33:33Z",
+  "preview": "CSS\nai\nai_about\ncookies\nhelp\nteams",
+  "request": {
+    "method": "GET",
+    "path": "/aliases?",
+    "url": "http://localhost/aliases",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Accept",
+        "value": "text/plain"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiOGE2NGFkNTAyZTBmZDU4MDEyNTY2OTcwOTQzMDUzNTcwOWZjODBkMyJ9.aXFwXQ.l_WE6h1cu-tVOF5WdIPCRfyCrKk"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/plain",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "34"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiOGE2NGFkNTAyZTBmZDU4MDEyNTY2OTcwOTQzMDUzNTcwOWZjODBkMyJ9.aXFwXQ.l_WE6h1cu-tVOF5WdIPCRfyCrKk; Expires=Sun, 22 Feb 2026 00:33:33 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "CSS\nai\nai_about\ncookies\nhelp\nteams"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

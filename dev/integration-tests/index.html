@@ -185,7 +185,7 @@ INFO     root:app.py:369 Database tables created
 [server_execution] execute_server_code: output_type=str, content_type=text/html, sample=&#x27;&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n    &lt;meta charset=&quot;utf-8&quot;&gt;\n    &lt;title&gt;Gateway Server&lt;/title&gt;\n    &lt;style&gt;\n        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }\n        h1 { co…
 _ TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_test_links_return_html_with_links _
 
-self = &lt;tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f38f4118350&gt;
+self = &lt;tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f64093deb70&gt;
 client = &lt;FlaskClient &lt;Flask &#x27;app&#x27;&gt;&gt;, integration_app = &lt;Flask &#x27;app&#x27;&gt;
 gateway_server = &#x27;# pylint: disable=undefined-variable,return-outside-function\n&quot;&quot;&quot;Gateway server for routing requests to internal serv...\n    return {\n        &quot;output&quot;: f&quot;&lt;pre&gt;{escape(text)}&lt;/pre&gt;&quot;,\n        &quot;content_type&quot;: &quot;text/html&quot;,\n    }\n\&#x27;\&#x27;\&#x27;\n&#x27;
 cids_server = &#x27;# pylint: disable=undefined-variable\n&quot;&quot;&quot;CIDS server for parsing and serving CID archive files.\n\nCIDS archive forma...          return cid_file.read_bytes(), mime_type\n    except Exception:\n        pass\n\n    return None, mime_type\n&#x27;
@@ -239,7 +239,7 @@ INFO     root:app.py:369 Database tables created
 [server_execution] execute_server_code: output_type=str, content_type=text/html, sample=&#x27;&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n    &lt;meta charset=&quot;utf-8&quot;&gt;\n    &lt;title&gt;Gateway Server&lt;/title&gt;\n    &lt;style&gt;\n        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }\n        h1 { co…
 _ TestConfiguredGatewaysTableLinks.test_gateway_instruction_page_sample_links_use_service_specific_cids _
 
-self = &lt;tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f38f4118620&gt;
+self = &lt;tests.integration.test_gateway_table_links.TestConfiguredGatewaysTableLinks object at 0x7f64093dee40&gt;
 client = &lt;FlaskClient &lt;Flask &#x27;app&#x27;&gt;&gt;, integration_app = &lt;Flask &#x27;app&#x27;&gt;
 gateway_server = &#x27;# pylint: disable=undefined-variable,return-outside-function\n&quot;&quot;&quot;Gateway server for routing requests to internal serv...\n    return {\n        &quot;output&quot;: f&quot;&lt;pre&gt;{escape(text)}&lt;/pre&gt;&quot;,\n        &quot;content_type&quot;: &quot;text/html&quot;,\n    }\n\&#x27;\&#x27;\&#x27;\n&#x27;
 cids_server = &#x27;# pylint: disable=undefined-variable\n&quot;&quot;&quot;CIDS server for parsing and serving CID archive files.\n\nCIDS archive forma...          return cid_file.read_bytes(), mime_type\n    except Exception:\n        pass\n\n    return None, mime_type\n&#x27;
@@ -304,7 +304,7 @@ assert &#x27;AAAAAAFCaOsI...2__XVKfaw4P9w&#x27; == &#x27;AAAAAAE2kMAd...nGAUIpD-
   + AAAAAAFCaOsI7LrqJuImmWLnEexNFvITSoZvrrd612bOwJLEZXcdQY0Baid8jJIbfQ4iq79SkO8RcWr4U2__XVKfaw4P9w
 FAILED tests/integration/test_gateway_table_links.py::TestConfiguredGatewaysTableLinks::test_gateway_instruction_page_sample_links_use_service_specific_cids - AssertionError: Expected Sample links to include service-specific mock CIDs
 assert {}
-= 3 failed, 633 passed, 15 skipped, 100 deselected, 1 warning in 480.72s (0:08:00) =
+= 3 failed, 633 passed, 15 skipped, 100 deselected, 1 warning in 473.45s (0:07:53) =
 </pre>
 </body>
 </html>

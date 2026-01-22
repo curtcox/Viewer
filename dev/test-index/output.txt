@@ -10,8 +10,8 @@ Found 153 Gauge scenarios
 Total tests found: 6420
 
 Test index written to TEST_INDEX.md
---- /tmp/tmp.TSNwn01ydY	2026-01-21 21:20:32.408779637 +0000
-+++ TEST_INDEX.md	2026-01-21 21:20:32.386779623 +0000
+--- /tmp/tmp.5j9Fh7ws5G	2026-01-22 00:32:40.308965185 +0000
++++ TEST_INDEX.md	2026-01-22 00:32:40.287965368 +0000
 @@ -2,15 +2,15 @@
  
  This index lists all tests in the project, organized by type.
