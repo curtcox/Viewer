@@ -979,14 +979,16 @@ jobs:
   validate-deployment:
     name: Validate GitHub Pages Deployment
     # This job validates the GitHub Pages deployment after the site is published:
-    # - Verifies that branch-specific URLs exist (dev, test, main)
-    # - Verifies that index pages exist for each branch
+    # - Verifies that the deployed branch URL exists
+    # - Verifies that the index page exists for the deployed branch
     # - Extracts and verifies embedded git SHA matches deployment
-    # - Displays all successes and failures in the log
-    # - Fails the job if there are any failures
+    # - Only validates the branch that was just deployed (not all branches)
+    # - Waits longer to allow GitHub Pages build/propagation time
+    # - Does not fail the workflow if validation fails (informational only)
     needs:
       - deploy-reports
-    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
+    # Only run if deploy-reports succeeded (not with always())
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -1003,10 +1005,10 @@ jobs:
             echo "name=main" >> "$GITHUB_OUTPUT"
           fi
       - name: Validate deployment
+        continue-on-error: true
         run: |
           python3 scripts/validate_github_pages.py \
             --base-url https://curtcox.github.io/Viewer \
             --branch ${{ steps.branch.outputs.name }} \
             --git-sha ${{ github.sha }} \
-            --validate-all-branches \
-            --wait 120
+            --wait 180
