@@ -4,12 +4,36 @@ from __future__ import annotations
 
 import importlib.metadata
 import os
+import sys
+from pathlib import Path
 
 import pytest
 
 from app import create_app
 from database import db
 from db_config import DatabaseConfig, DatabaseMode
+
+
+# Gateway tests import from gateway_lib which is located in:
+# reference/templates/servers/definitions/gateway_lib/
+# We need to support two import styles:
+# 1. "from gateway_lib import..." (used by gateway.py)
+# 2. "from definitions.gateway_lib import..." (used by tests to avoid conflicts)
+#
+# Add servers directory for definitions.gateway_lib imports
+gateway_lib_parent = Path(__file__).parent.parent / "reference" / "templates" / "servers"
+if str(gateway_lib_parent) not in sys.path:
+    sys.path.insert(1, str(gateway_lib_parent))
+
+# Also add definitions directory for gateway_lib imports at the END of sys.path
+# so that installed packages (like PyGithub) take precedence over local files (like github.py)
+definitions_dir = gateway_lib_parent / "definitions"
+if str(definitions_dir) not in sys.path:
+    sys.path.append(str(definitions_dir))
+elif sys.path[0] == str(definitions_dir) or sys.path[1] == str(definitions_dir):
+    # If definitions_dir was added at the beginning, move it to the end
+    sys.path.remove(str(definitions_dir))
+    sys.path.append(str(definitions_dir))
 
 
 def pytest_configure(config):

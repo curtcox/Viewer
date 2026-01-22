@@ -1,16 +1,33 @@
 """Unit tests for GitHub PR integration."""
 
+import sys
 import tempfile
 import json
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+# Work around naming conflict with local github.py file
+# The local reference/templates/servers/definitions/github.py shadows PyGithub's github package
+# when definitions directory is in sys.path. We need to explicitly import from site-packages.
+_github_module_conflict = False
+if 'github' in sys.modules:
+    # Check if the wrong github module was imported
+    github_mod = sys.modules['github']
+    if hasattr(github_mod, '__file__') and github_mod.__file__ and 'definitions/github.py' in github_mod.__file__:
+        # Remove the local github.py module to allow PyGithub import
+        del sys.modules['github']
+        _github_module_conflict = True
+
 try:
     from github import GithubException
-except ModuleNotFoundError as exc:
+except (ModuleNotFoundError, ImportError) as exc:
+    if _github_module_conflict:
+        raise unittest.SkipTest("Cannot import PyGithub due to naming conflict with local github.py") from exc
     raise unittest.SkipTest("PyGithub dependency is not installed") from exc
 
+# ruff: noqa: E402
+# Imports below must come after the github module conflict resolution above
 from routes.import_export.github_pr import (
     GitHubPRError,
     create_export_pr,

@@ -10,7 +10,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
   pages: write
   id-token: write
 
@@ -650,6 +651,24 @@ jobs:
 
   deploy-reports:
     name: Publish Test Reports
+    # This job deploys test reports to GitHub Pages with branch-specific directories:
+    # - main branch deploys to the root (https://curtcox.github.io/Viewer/)
+    # - dev branch deploys to /dev/ (https://curtcox.github.io/Viewer/dev/)
+    # - test branch deploys to /test/ (https://curtcox.github.io/Viewer/test/)
+    #
+    # Artifact-based approach:
+    # 1. Each branch uploads its reports as a branch-specific artifact (github-pages-main/dev/test)
+    # 2. Before deploying, download the latest artifacts from all branches
+    # 3. Combine all artifacts into a single site with the current branch's content taking priority
+    # 4. Deploy the combined site to GitHub Pages
+    #
+    # This ensures the deployed site always contains the latest reports from all branches.
+    #
+    # Concurrency control prevents race conditions when multiple branches deploy
+    # simultaneously to the gh-pages branch.
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
     needs:
       - ruff
       - pylint
@@ -677,7 +696,7 @@ jobs:
       image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment_path.outputs.public_base_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -694,61 +713,6 @@ jobs:
           else
             echo "branch_subdir=" >> "$GITHUB_OUTPUT"
             echo "public_base_url=https://curtcox.github.io/Viewer" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Download existing GitHub Pages (for merging)
-        continue-on-error: true
-        run: |
-          BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
-          
-          # Only download existing pages if we're deploying to a subdirectory
-          if [ -n "$BRANCH_SUBDIR" ]; then
-            echo "Downloading existing GitHub Pages content to merge with new reports..."
-            
-            # Download the current GitHub Pages site
-            CURL_EXIT=0
-            curl -L -f -o pages.tar.gz \
-              "https://github.com/${{ github.repository }}/archive/gh-pages.tar.gz" \
-              || CURL_EXIT=$?
-            
-            if [ $CURL_EXIT -ne 0 ]; then
-              echo "Could not download existing pages (exit code: $CURL_EXIT)"
-              echo "This is normal for first deployment or if gh-pages branch doesn't exist yet"
-            elif [ -f pages.tar.gz ]; then
-              # Verify the tar.gz file is valid before extraction
-              if tar -tzf pages.tar.gz > /dev/null 2>&1; then
-                echo "Downloaded tar.gz is valid, extracting..."
-                mkdir -p existing-pages
-                
-                TAR_EXIT=0
-                tar -xzf pages.tar.gz -C existing-pages --strip-components=1 || TAR_EXIT=$?
-                
-                if [ $TAR_EXIT -ne 0 ]; then
-                  echo "Warning: tar extraction failed with exit code: $TAR_EXIT"
-                  echo "Continuing without merging existing content"
-                fi
-                
-                # If we have existing content, use it as the base
-                if [ -d existing-pages ] && [ "$(ls -A existing-pages 2>/dev/null)" ]; then
-                  echo "Found existing pages content with $(du -sh existing-pages | cut -f1) of data"
-                  mkdir -p site-base
-                  
-                  # Copy everything except the subdirectory we're about to update
-                  RSYNC_EXIT=0
-                  rsync -av --exclude="$BRANCH_SUBDIR" existing-pages/ site-base/ || RSYNC_EXIT=$?
-                  
-                  if [ $RSYNC_EXIT -ne 0 ]; then
-                    echo "Warning: rsync failed with exit code: $RSYNC_EXIT"
-                    echo "Continuing with partial or no merge of existing content"
-                  else
-                    echo "Successfully merged existing pages content"
-                  fi
-                else
-                  echo "No existing pages content found or directory is empty"
-                fi
-              else
-                echo "Downloaded file is not a valid tar.gz archive, skipping extraction"
-              fi
-            fi
           fi
       - name: Capture job statuses
         env:
@@ -874,40 +838,175 @@ jobs:
         run: ./scripts/ci/prepare_report_site.sh
         env:
           PUBLIC_BASE_URL: ${{ steps.deployment_path.outputs.public_base_url }}
-      - name: Organize site for branch deployment
+          GIT_SHA: ${{ github.sha }}
+      - name: Create build report archive
+        run: |
+          BRANCH_NAME="${{ steps.deployment_path.outputs.branch_subdir || 'main' }}"
+          cd site
+          zip -r "../${BRANCH_NAME}_build_report.zip" .
+          cd ..
+          echo "Created ${BRANCH_NAME}_build_report.zip"
+      - name: Upload build report archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.deployment_path.outputs.branch_subdir || 'main' }}_build_report
+          path: ${{ steps.deployment_path.outputs.branch_subdir || 'main' }}_build_report.zip
+          retention-days: 90
+      - name: Upload branch-specific artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages-${{ steps.deployment_path.outputs.branch_subdir || 'main' }}
+          path: site
+          retention-days: 90
+          overwrite: true
+      - name: Download main branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: main
+          name: github-pages-main
+          path: combined-site
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Download dev branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: dev
+          name: github-pages-dev
+          path: combined-site/dev
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Download test branch artifact
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: full-checks.yml
+          branch: test
+          name: github-pages-test
+          path: combined-site/test
+          search_artifacts: true
+          if_no_artifact_found: ignore
+      - name: Place current branch content
         run: |
           BRANCH_SUBDIR="${{ steps.deployment_path.outputs.branch_subdir }}"
-          
+
+          # Ensure combined-site exists
+          mkdir -p combined-site
+
           if [ -n "$BRANCH_SUBDIR" ]; then
-            echo "Organizing site for $BRANCH_SUBDIR subdirectory deployment..."
-            
-            # Start with existing pages as base if available
-            if [ -d site-base ]; then
-              echo "Merging with existing GitHub Pages content"
-              mkdir -p site-final
-              # Copy may fail if site-base is empty, which is fine - we still create site-final
-              cp -r site-base/* site-final/ 2>/dev/null || echo "No files to copy from site-base (directory may be empty)"
-            else
-              echo "No existing pages found, creating fresh structure"
-              mkdir -p site-final
+            # Dev or test branch: place content in subdirectory
+            echo "Placing $BRANCH_SUBDIR content in combined-site/$BRANCH_SUBDIR/"
+            rm -rf "combined-site/$BRANCH_SUBDIR"
+            mkdir -p "combined-site/$BRANCH_SUBDIR"
+            cp -r site/. "combined-site/$BRANCH_SUBDIR/"
+          else
+            # Main branch: place content at root (preserve dev/ and test/ subdirectories)
+            echo "Placing main content at root of combined-site/"
+            # Save existing subdirectories
+            if [ -d combined-site/dev ]; then
+              mv combined-site/dev /tmp/dev-backup
             fi
-            
-            # Add the new branch-specific content
-            mkdir -p site-final/$BRANCH_SUBDIR
-            cp -r site/* site-final/$BRANCH_SUBDIR/
-            
-            # Replace site directory with merged content
-            rm -rf site
-            mv site-final site
+            if [ -d combined-site/test ]; then
+              mv combined-site/test /tmp/test-backup
+            fi
+            # Copy main content
+            cp -r site/. combined-site/
+            # Restore subdirectories
+            if [ -d /tmp/dev-backup ]; then
+              rm -rf combined-site/dev
+              mv /tmp/dev-backup combined-site/dev
+            fi
+            if [ -d /tmp/test-backup ]; then
+              rm -rf combined-site/test
+              mv /tmp/test-backup combined-site/test
+            fi
+          fi
+      - name: Download job statuses from all branches
+        continue-on-error: true
+        run: |
+          # Try to extract job-statuses.json from each branch artifact
+          mkdir -p branch-statuses
+          
+          # Extract from main
+          if [ -f combined-site/job-statuses.json ]; then
+            cp combined-site/job-statuses.json branch-statuses/main-job-statuses.json
           fi
           
-          # Verify the structure
-          echo "Final site structure:"
-          find site -type f -name "*.html" | head -20
-      - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
+          # Extract from dev
+          if [ -f combined-site/dev/job-statuses.json ]; then
+            cp combined-site/dev/job-statuses.json branch-statuses/dev-job-statuses.json
+          fi
+          
+          # Extract from test
+          if [ -f combined-site/test/job-statuses.json ]; then
+            cp combined-site/test/job-statuses.json branch-statuses/test-job-statuses.json
+          fi
+          
+          echo "Branch statuses collected:"
+          ls -la branch-statuses/ || echo "No statuses found"
+      - name: Generate top-level index
+        run: |
+          python scripts/generate_branch_index.py \
+            --output combined-site/index.html \
+            --main-statuses branch-statuses/main-job-statuses.json \
+            --dev-statuses branch-statuses/dev-job-statuses.json \
+            --test-statuses branch-statuses/test-job-statuses.json
+          
+          echo "Top-level index generated at combined-site/index.html"
+      - name: Verify combined site content
+        run: |
+          echo "Combined site structure:"
+          echo "Root files:"
+          ls -la combined-site/ | head -20 || true
+          echo ""
+          echo "Dev directory:"
+          ls -la combined-site/dev/ 2>/dev/null | head -10 || echo "  (not present)"
+          echo ""
+          echo "Test directory:"
+          ls -la combined-site/test/ 2>/dev/null | head -10 || echo "  (not present)"
+          echo ""
+          echo "Total HTML files: $(find combined-site -type f -name '*.html' | wc -l)"
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./combined-site
+          keep_files: false
+
+  validate-deployment:
+    name: Validate GitHub Pages Deployment
+    # This job validates the GitHub Pages deployment after the site is published:
+    # - Verifies that branch-specific URLs exist (dev, test, main)
+    # - Verifies that index pages exist for each branch
+    # - Extracts and verifies embedded git SHA matches deployment
+    # - Displays all successes and failures in the log
+    # - Fails the job if there are any failures
+    needs:
+      - deploy-reports
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Determine branch name
+        id: branch
+        run: |
+          # Extract branch name from ref
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            echo "name=dev" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/test" ]; then
+            echo "name=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=main" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validate deployment
+        run: |
+          python3 scripts/validate_github_pages.py \
+            --base-url https://curtcox.github.io/Viewer \
+            --branch ${{ steps.branch.outputs.name }} \
+            --git-sha ${{ github.sha }} \
+            --validate-all-branches \
+            --wait 120
