@@ -1,8 +1,0 @@
-Pydoclint Report
-Total issues: 39
-Files with issues: 28
-DOC105: 3 issue(s)
-DOC109: 3 issue(s)
-DOC110: 3 issue(s)
-DOC203: 1 issue(s)
-DOC301: 29 issue(s)

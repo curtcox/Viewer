@@ -1,0 +1,79 @@
+{
+  "label": "GET /AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt",
+  "captured_at": "2026-01-22T13:22:03Z",
+  "preview": "Hello from origin",
+  "request": {
+    "method": "GET",
+    "path": "/AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt?",
+    "url": "http://localhost/AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4.txt",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=.eJxFj91qg0AQhV8lzHVSCmoquUtsG2raSExBmhKWdR3rklXDzpqfiu-e1ZZ2bmYOnDOcrwWWK04FEsw-WxgZu4AaIZAIxvBSHmttMBu5I0J9Qk13sO_2Y2BH1CWvsLIBoxscgxysjCp-pKI2DC-9hlkLQmYwg3k_y3ch80UUuWyXpd5UN27ytDmvt-Z5N08SP_aKQ37dOlytHgJ0RCHUNA6DIK7XH370nT6GdHA2b6tFODlf_WUSXcRreF_tvC_o_hs0Zcn1lVW87Kla4EpyGgBtcUKh0fyJgaln5pJhJk2tLbW9yTSpvajgGrOJqWtlVaPVr8dmT1xLnqqfv113A7tOcU8.aXIkew.GErEsbRdbpPe2xo-v6lLuC59_1I"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/plain",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "17"
+      },
+      {
+        "name": "ETag",
+        "value": "\"AAAAAAARSGVsbG8gZnJvbSBvcmlnaW4\""
+      },
+      {
+        "name": "Last-Modified",
+        "value": "Thu, 01 Jan 1970 00:00:00 GMT"
+      },
+      {
+        "name": "Cache-Control",
+        "value": "public, max-age=31536000, immutable"
+      },
+      {
+        "name": "Expires",
+        "value": "Thu, 31 Dec 2037 23:55:55 GMT"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=.eJxFj91qg0AQhV8lzHVSCmoquUtsG2raSExBmhKWdR3rklXDzpqfiu-e1ZZ2bmYOnDOcrwWWK04FEsw-WxgZu4AaIZAIxvBSHmttMBu5I0J9Qk13sO_2Y2BH1CWvsLIBoxscgxysjCp-pKI2DC-9hlkLQmYwg3k_y3ch80UUuWyXpd5UN27ytDmvt-Z5N08SP_aKQ37dOlytHgJ0RCHUNA6DIK7XH370nT6GdHA2b6tFODlf_WUSXcRreF_tvC_o_hs0Zcn1lVW87Kla4EpyGgBtcUKh0fyJgaln5pJhJk2tLbW9yTSpvajgGrOJqWtlVaPVr8dmT1xLnqqfv113A7tOcU8.aXIkew.GErEsbRdbpPe2xo-v6lLuC59_1I; Expires=Sun, 22 Feb 2026 13:22:03 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "Hello from origin"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

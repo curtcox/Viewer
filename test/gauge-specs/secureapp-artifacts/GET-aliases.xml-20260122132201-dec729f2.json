@@ -1,0 +1,63 @@
+{
+  "label": "GET /aliases.xml",
+  "captured_at": "2026-01-22T13:22:01Z",
+  "preview": "<response><item><id>6</id><name>CSS</name><definition>css/custom.css -&gt; /css/default\ncss/default -&gt; /css/lightmode\ncss/lightmode -&gt; /static/css/custom.css\ncss/darkmode -&gt; /static/css/custom.css</definition><created_at>2026-01-22T13:21:36.422978</created_at><updated_at>2026-01-22T13:21:36.422982</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/css/custom.css</match_pattern><target_path>/css/default</target_path><ignore_case>False</ignore_case></item><item><id>1</id><name>ai</name><definition>ai -&gt; /ai_assist\n</definition><created_at>2026-01-22T13:21:35.809954</created_at><updated_at>2026-01-22T13:21:35.809958</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/ai</match_pattern><target_path>/ai_assist</target_path><ignore_case>False</ignore_case></item><item><id>2</id><name>ai_about</name><definition>ai_about -&gt; /echo\n</definition><created_at>2026-01-22T13:21:35.812130</created_at><updated_at>2026-01-22T13:21:35.812133</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/ai_about</match_pattern><target_path>/echo</target_path><ignore_case>False</ignore_case></item><item><",
+  "request": {
+    "method": "GET",
+    "path": "/aliases.xml?",
+    "url": "http://localhost/aliases.xml",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkeQ.tq9NHeZ37BxAglahO01sPnBE8HU"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "application/xml",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/xml; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "2445"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkeQ.tq9NHeZ37BxAglahO01sPnBE8HU; Expires=Sun, 22 Feb 2026 13:22:01 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<response><item><id>6</id><name>CSS</name><definition>css/custom.css -&gt; /css/default\ncss/default -&gt; /css/lightmode\ncss/lightmode -&gt; /static/css/custom.css\ncss/darkmode -&gt; /static/css/custom.css</definition><created_at>2026-01-22T13:21:36.422978</created_at><updated_at>2026-01-22T13:21:36.422982</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/css/custom.css</match_pattern><target_path>/css/default</target_path><ignore_case>False</ignore_case></item><item><id>1</id><name>ai</name><definition>ai -&gt; /ai_assist\n</definition><created_at>2026-01-22T13:21:35.809954</created_at><updated_at>2026-01-22T13:21:35.809958</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/ai</match_pattern><target_path>/ai_assist</target_path><ignore_case>False</ignore_case></item><item><id>2</id><name>ai_about</name><definition>ai_about -&gt; /echo\n</definition><created_at>2026-01-22T13:21:35.812130</created_at><updated_at>2026-01-22T13:21:35.812133</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/ai_about</match_pattern><target_path>/echo</target_path><ignore_case>False</ignore_case></item><item><id>3</id><name>cookies</name><definition>cookies -&gt; /AAAAAA702Jd2bw4GIauxtS0rxxOR7RILAHsdX0tF-dCoEJythraumzCMkzPv6BUqQUSXOp8RRQUETcC1NIb0QX_MXvhdWw.html\n</definition><created_at>2026-01-22T13:21:35.814103</created_at><updated_at>2026-01-22T13:21:35.814106</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/cookies</match_pattern><target_path>/AAAAAA702Jd2bw4GIauxtS0rxxOR7RILAHsdX0tF-dCoEJythraumzCMkzPv6BUqQUSXOp8RRQUETcC1NIb0QX_MXvhdWw.html</target_path><ignore_case>False</ignore_case></item><item><id>4</id><name>help</name><definition>help -&gt; /help\n</definition><created_at>2026-01-22T13:21:35.815731</created_at><updated_at>2026-01-22T13:21:35.815734</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/help</match_pattern><target_path>/help</target_path><ignore_case>False</ignore_case></item><item><id>5</id><name>teams</name><definition>teams -&gt; /microsoft_teams\n</definition><created_at>2026-01-22T13:21:35.817243</created_at><updated_at>2026-01-22T13:21:35.817261</updated_at><enabled>True</enabled><match_type>literal</match_type><match_pattern>/teams</match_pattern><target_path>/microsoft_teams</target_path><ignore_case>False</ignore_case></item></response>"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

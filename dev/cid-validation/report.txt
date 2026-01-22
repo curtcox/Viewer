@@ -1,8 +1,0 @@
-CID Validation Report
---------------------
-Total CIDs: 1517
-Valid CIDs: 1517
-Failures: 0
-Total size: 13111894 bytes (12.50 MB)
-
-No validation failures detected.

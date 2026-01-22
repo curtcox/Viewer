@@ -1,0 +1,63 @@
+{
+  "label": "GET /servers/ai_stub.csv",
+  "captured_at": "2026-01-22T13:22:01Z",
+  "preview": "id,name,definition,definition_cid,created_at,updated_at,enabled\n1,ai_stub,\"\"\"\"\"\"\"AI stub server template that mimics the legacy in-browser behaviour.\"\"\"\"\"\"\n\nimport json\nfrom typing import Any, Dict, Optional\n\n\ndef _summarise_context(context: Any) -> Optional[str]:\n    \"\"\"\"\"\"Return a short summary of context keys when possible.\"\"\"\"\"\"\n\n    if not isinstance(context, dict):\n        return None\n\n    keys = [str(key) for key in context.keys()]\n    if not keys:\n        return None\n\n    return \"\"Context keys: \"\" + \"\", \"\".join(keys)\n\n\ndef _summarise_form(form_summary: Any) -> Optional[str]:\n    \"\"\"\"\"\"Return a summary of captured form field names.\"\"\"\"\"\"\n\n    if not isinstance(form_summary, dict):\n        return None\n\n    keys = [str(key) for key in form_summary.keys()]\n    if not keys:\n        return None\n\n    return \"\"Form fields captured: \"\" + \"\", \"\".join(keys)\n\n\ndef _build_stub_response(payload: Dict[str, Any]) -> Dict[str, Any]:\n    \"\"\"\"\"\"Generate the same output produced by the previous JavaScript stub.\"\"\"\"\"\"\n\n    request_text = payload.get(\"\"request_text\"\") or \"\"\"\"\n    original_text = payload.get(\"\"original_text\"\") or \"\"\"\"\n    target_label = payload.get(\"\"target_label\"\") or \"\"the text",
+  "request": {
+    "method": "GET",
+    "path": "/servers/ai_stub.csv?",
+    "url": "http://localhost/servers/ai_stub.csv",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkeQ.tq9NHeZ37BxAglahO01sPnBE8HU"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/csv",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/csv; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "2719"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkeQ.tq9NHeZ37BxAglahO01sPnBE8HU; Expires=Sun, 22 Feb 2026 13:22:01 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "id,name,definition,definition_cid,created_at,updated_at,enabled\r\n1,ai_stub,\"\"\"\"\"\"\"AI stub server template that mimics the legacy in-browser behaviour.\"\"\"\"\"\"\n\nimport json\nfrom typing import Any, Dict, Optional\n\n\ndef _summarise_context(context: Any) -> Optional[str]:\n    \"\"\"\"\"\"Return a short summary of context keys when possible.\"\"\"\"\"\"\n\n    if not isinstance(context, dict):\n        return None\n\n    keys = [str(key) for key in context.keys()]\n    if not keys:\n        return None\n\n    return \"\"Context keys: \"\" + \"\", \"\".join(keys)\n\n\ndef _summarise_form(form_summary: Any) -> Optional[str]:\n    \"\"\"\"\"\"Return a summary of captured form field names.\"\"\"\"\"\"\n\n    if not isinstance(form_summary, dict):\n        return None\n\n    keys = [str(key) for key in form_summary.keys()]\n    if not keys:\n        return None\n\n    return \"\"Form fields captured: \"\" + \"\", \"\".join(keys)\n\n\ndef _build_stub_response(payload: Dict[str, Any]) -> Dict[str, Any]:\n    \"\"\"\"\"\"Generate the same output produced by the previous JavaScript stub.\"\"\"\"\"\"\n\n    request_text = payload.get(\"\"request_text\"\") or \"\"\"\"\n    original_text = payload.get(\"\"original_text\"\") or \"\"\"\"\n    target_label = payload.get(\"\"target_label\"\") or \"\"the text\"\"\n    context_data = payload.get(\"\"context_data\"\")\n    form_summary = payload.get(\"\"form_summary\"\")\n\n    separator = \"\"\"\"\n    if original_text and request_text and not original_text.endswith(\"\"\\n\"\"):\n        separator = \"\"\\n\"\"\n\n    updated_text = original_text + separator + request_text\n    message = f\"\"OK I changed {target_label} by {request_text}\"\"\n\n    context_summary = _summarise_context(context_data)\n    form_summary_text = _summarise_form(form_summary)\n    if form_summary_text:\n        context_summary = (\n            f\"\"{context_summary}\\n{form_summary_text}\"\"\n            if context_summary\n            else form_summary_text\n        )\n\n    return {\n        \"\"updated_text\"\": updated_text,\n        \"\"message\"\": message,\n        \"\"context_summary\"\": context_summary or \"\"\"\",\n    }\n\n\ndef main(\n    request_text=None,\n    original_text=None,\n    target_label=None,\n    context_data=None,\n    form_summary=None,\n):\n    \"\"\"\"\"\"Entry point executed by the Viewer runtime.\"\"\"\"\"\"\n\n    payload = {\n        \"\"request_text\"\": request_text,\n        \"\"original_text\"\": original_text,\n        \"\"target_label\"\": target_label,\n        \"\"context_data\"\": context_data,\n        \"\"form_summary\"\": form_summary,\n    }\n    result = _build_stub_response(payload)\n\n    return {\n        \"\"output\"\": json.dumps(result),\n        \"\"content_type\"\": \"\"application/json\"\",\n    }\n\",AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg,2026-01-22T13:21:35.819823,2026-01-22T13:21:36.418677,True\r\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}

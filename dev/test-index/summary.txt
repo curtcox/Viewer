@@ -1,3 +1,0 @@
-Tests indexed: 6420
-Exit code: 1
-Status: ✗ Index validation failed

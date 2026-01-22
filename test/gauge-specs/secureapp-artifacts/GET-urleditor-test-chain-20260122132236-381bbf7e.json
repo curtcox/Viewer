@@ -1,0 +1,63 @@
+{
+  "label": "GET /urleditor/test-chain",
+  "captured_at": "2026-01-22T13:22:35Z",
+  "preview": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/AAAAAABwmhVhDoEMIztRwtkyKwD_Zy1PxHG2fxxf29ywAYJG7asTGiNblSXxhms48YCr9lWgIayWx_a_qubpzgnaUtFEEw.txt\">/AAAAAABwmhVhDoEMIztRwtkyKwD_Zy1PxHG2fxxf29ywAYJG7asTGiNblSXxhms48YCr9lWgIayWx_a_qubpzgnaUtFEEw.txt</a>. If not, click the link.",
+  "request": {
+    "method": "GET",
+    "path": "/urleditor/test-chain?",
+    "url": "http://localhost/urleditor/test-chain",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.5"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkmw.PSAWM6mqPFVowrVPG0tHns8ySSI"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 302,
+    "mimetype": "text/html",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/html; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "385"
+      },
+      {
+        "name": "Location",
+        "value": "/AAAAAABwmhVhDoEMIztRwtkyKwD_Zy1PxHG2fxxf29ywAYJG7asTGiNblSXxhms48YCr9lWgIayWx_a_qubpzgnaUtFEEw.txt"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlLCJjc3JmX3Rva2VuIjoiYjhjMDUwYWNiNTY5MDZhYThjNDI3ZDk1YTExY2Q2NDg3MzZjNTRhYyJ9.aXIkmw.PSAWM6mqPFVowrVPG0tHns8ySSI; Expires=Sun, 22 Feb 2026 13:22:35 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/AAAAAABwmhVhDoEMIztRwtkyKwD_Zy1PxHG2fxxf29ywAYJG7asTGiNblSXxhms48YCr9lWgIayWx_a_qubpzgnaUtFEEw.txt\">/AAAAAABwmhVhDoEMIztRwtkyKwD_Zy1PxHG2fxxf29ywAYJG7asTGiNblSXxhms48YCr9lWgIayWx_a_qubpzgnaUtFEEw.txt</a>. If not, click the link.\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false
+  }
+}
